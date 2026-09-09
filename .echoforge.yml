@@ -1,0 +1,9 @@
+name: lofi-engine
+type: web
+stack: bun
+port: 4707
+start: ./start.sh
+stop: ./stop.sh
+logs: logs/
+e2e:
+  url: http://localhost:4707
