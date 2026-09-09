@@ -16,12 +16,19 @@ const DELAI_CONSTRUCTION_MS = 1_800_000;
 const IMAGE_DIFFUSEUR = process.env.IMAGE_DIFFUSEUR ?? "lofi-navigateur:local";
 const JOURNAL_CONSTRUCTION = "/tmp/lofi-construction.log";
 const VERROU_CONSTRUCTION = "/tmp/lofi-construction.en-cours";
+const DETECTEUR = resolve(RACINE, "stream/materiel.sh");
+
+/** Ce que la machine offre comme encodeur matériel, et ce qu'il faut passer à Docker pour y accéder. */
+interface Materiel { nom: string; overrides: string[]; gidRender: string; }
+
+let materiel: Materiel | null = null;
 
 interface Resultat { ok: boolean; sortie: string; }
 
-async function executer(args: string[]): Promise<Resultat> {
+async function executer(args: string[], env?: Record<string, string>): Promise<Resultat> {
   try {
-    const proc = Bun.spawn(args, { cwd: RACINE, stdout: "pipe", stderr: "pipe" });
+    const environnement = env ? { ...process.env, ...env } : undefined;
+    const proc = Bun.spawn(args, { cwd: RACINE, stdout: "pipe", stderr: "pipe", env: environnement });
     const minuteur = setTimeout(() => proc.kill(), DELAI_MS);
     const [sortie, erreurs, code] = await Promise.all([
       new Response(proc.stdout).text(),
@@ -34,6 +41,44 @@ async function executer(args: string[]): Promise<Resultat> {
     journal.error({ erreur, args }, "commande impossible à lancer");
     return { ok: false, sortie: String(erreur) };
   }
+}
+
+/**
+ * Interroge une fois le détecteur de matériel : le résultat ne change pas tant que le serveur
+ * tourne. Une machine sans carte ni nœud de rendu répond « aucun », et tout marche pareil,
+ * en logiciel.
+ */
+async function lireMateriel(): Promise<Materiel> {
+  if (materiel) return materiel;
+  const defaut: Materiel = { nom: "aucun", overrides: [], gidRender: "" };
+  const r = await executer(["bash", DETECTEUR]);
+  if (!r.ok) {
+    journal.warn({ sortie: r.sortie }, "détection du matériel impossible — encodage logiciel");
+    materiel = defaut;
+    return materiel;
+  }
+  const champs = new Map<string, string>();
+  for (const ligne of r.sortie.split("\n")) {
+    const separateur = ligne.indexOf("=");
+    if (separateur > 0) champs.set(ligne.slice(0, separateur), ligne.slice(separateur + 1).trim());
+  }
+  materiel = {
+    nom: champs.get("MATERIEL") ?? "aucun",
+    overrides: (champs.get("OVERRIDES") ?? "").split(" ").filter(Boolean),
+    gidRender: champs.get("GID_RENDER") ?? "",
+  };
+  journal.info({ materiel }, "matériel d'encodage détecté");
+  return materiel;
+}
+
+/** `docker compose` avec les fichiers d'accès au matériel, s'il y en a. */
+async function compose(...reste: string[]): Promise<Resultat> {
+  const m = await lireMateriel();
+  const fichiers = m.overrides.length > 0
+    ? ["-f", "docker-compose.yml", ...m.overrides.flatMap((f) => ["-f", f])]
+    : [];
+  const env = m.gidRender ? { GID_RENDER: m.gidRender } : undefined;
+  return executer(["docker", "compose", ...fichiers, ...reste], env);
 }
 
 async function conteneurActif(nom: string): Promise<{ actif: boolean; depuis: string | null }> {
@@ -99,7 +144,7 @@ async function lancerConstruction(): Promise<void> {
     clearTimeout(minuteur);
     await Bun.file(VERROU_CONSTRUCTION).delete().catch(() => {});
     journal.info({ code }, "construction terminée");
-    if (code === 0) void executer(["docker", "compose", "--profile", "direct", "up", "-d", "direct"]);
+    if (code === 0) void compose("--profile", "direct", "up", "-d", "direct");
   });
 }
 
@@ -117,19 +162,19 @@ export async function demarrerDiffusion(): Promise<Resultat> {
     };
   }
   journal.info("démarrage de la diffusion");
-  const r = await executer(["docker", "compose", "--profile", "direct", "up", "-d", "direct"]);
+  const r = await compose("--profile", "direct", "up", "-d", "direct");
   if (r.ok || !/network .* not found/i.test(r.sortie)) return r;
 
   // Le conteneur existe encore mais son réseau a été supprimé entre-temps : il faut le
   // recréer, sinon Docker refuse de le démarrer indéfiniment.
   journal.warn("réseau disparu sous le conteneur — recréation");
   await executer(["docker", "rm", "-f", CONTENEUR]);
-  return executer(["docker", "compose", "--profile", "direct", "up", "-d", "direct"]);
+  return compose("--profile", "direct", "up", "-d", "direct");
 }
 
 export async function arreterDiffusion(): Promise<Resultat> {
   journal.info("arrêt de la diffusion");
-  return executer(["docker", "compose", "--profile", "direct", "stop", "direct"]);
+  return compose("--profile", "direct", "stop", "direct");
 }
 
 export async function lireJournalDiffusion(lignes = 80): Promise<string> {

@@ -1,0 +1,20 @@
+# Encodage matériel Intel (Quick Sync) ou AMD, par le nœud de rendu du noyau.
+# Ajouté automatiquement par stream/materiel.sh quand /dev/dri/renderD* existe :
+#   GID_RENDER=$(stat -c %g /dev/dri/renderD128) \
+#   docker compose -f docker-compose.yml -f docker-compose.dri.yml --profile direct up -d
+#
+# Le conteneur ne tourne pas en root : sans le groupe propriétaire du périphérique, il le
+# voit mais ne peut pas l'ouvrir. Le numéro de ce groupe change d'une distribution à l'autre,
+# d'où la variable — 104 est la valeur Debian, simple garde-fou si la détection n'a rien donné.
+services:
+  direct:
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${GID_RENDER:-104}"
+
+  diffuseur:
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${GID_RENDER:-104}"

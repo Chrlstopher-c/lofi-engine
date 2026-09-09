@@ -1,0 +1,24 @@
+# Encodage matériel NVIDIA (NVENC). Ajouté automatiquement par stream/materiel.sh
+# quand une carte et le pont nvidia-container sont présents :
+#   docker compose -f docker-compose.yml -f docker-compose.nvidia.yml --profile direct up -d
+#
+# « video » dans les capacités n'est pas décoratif : sans lui, les bibliothèques d'encodage
+# ne sont pas montées dans le conteneur et NVENC échoue alors que la carte est bien visible.
+services:
+  direct:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, video, utility]
+
+  diffuseur:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, video, utility]

@@ -44,6 +44,15 @@ if [ "$CODE" -ne 0 ]; then
   exit "$CODE"
 fi
 
+# L'image du diffuseur embarque les scripts de diffusion : si elle existe déjà, la
+# remettre à jour ici évite de diffuser avec une version périmée. Les scripts sont la
+# dernière couche du Dockerfile — quand rien n'a changé, Docker ne fait que relire le cache.
+if $DOCKER image inspect lofi-navigateur:local >/dev/null 2>&1; then
+  echo "[START] Mise à jour de l'image de diffusion..."
+  $COMPOSE --profile direct build direct >>"$LOG" 2>&1 \
+    || echoerr "Mise à jour de l'image de diffusion échouée — voir $LOG"
+fi
+
 echo "[START] Attente de la réponse du serveur..."
 DELAI=60
 for ((i = 1; i <= DELAI; i++)); do
@@ -53,6 +62,15 @@ for ((i = 1; i <= DELAI; i++)); do
     echo "        local  : http://localhost:$PORT"
     [ -n "${IP:-}" ] && echo "        réseau : http://$IP:$PORT"
     echo "        scène  : http://localhost:$PORT/scene/scene.html"
+    # Encoder en logiciel coûte un cœur entier en 1080p : le dire ici évite de
+    # chercher longtemps pourquoi la machine sature une fois la diffusion lancée.
+    case "$(bash stream/materiel.sh 2>/dev/null | sed -n 's/^MATERIEL=//p')" in
+      nvidia) echo "        encodage : carte NVIDIA (NVENC) — le processeur n'encodera pas" ;;
+      dri)    echo "        encodage : puce vidéo intégrée (VAAPI) — le processeur n'encodera pas" ;;
+      *)      echo "        encodage : logiciel (aucune puce vidéo accessible) — compter"
+              echo "                   environ un cœur en 1080p ; 1280x720 divise cette charge" ;;
+    esac
+
     if demarrer_controle; then
       echo ""
       echo "[START] Centre de contrôle — scène, calques, clés, diffusion"

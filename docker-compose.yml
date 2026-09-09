@@ -70,6 +70,8 @@ services:
       STREAM_FPS: "${STREAM_FPS:-30}"
       STREAM_VIDEO_BITRATE: "${STREAM_VIDEO_BITRATE:-1500k}"
       STREAM_AUDIO_BITRATE: "${STREAM_AUDIO_BITRATE:-160k}"
+      # auto : puce vidéo si elle est accessible, logiciel sinon (voir stream/materiel.sh)
+      STREAM_ENCODEUR: "${STREAM_ENCODEUR:-auto}"
       # Scène (mode direct uniquement) — le détail vit dans corpus/scene.json,
       # écrit par le centre de contrôle ; ici on ne dit que si la scène est active.
       STREAM_SCENE: "${STREAM_SCENE:-true}"
