@@ -209,4 +209,48 @@ input[type="number"].saisie { width: 100%; }
 .statut.arret { color: var(--texte-2); }
 .journal { margin: 0; background: var(--fond); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 10px 12px; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; max-height: 360px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: var(--texte-2); }
 
+/* --- Twitch ------------------------------------------------------------ */
+.lien { color: var(--accent); text-decoration: none; }
+.lien:hover { text-decoration: underline; }
+.twitch-compte { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.twitch-compte > .champ { width: 100%; max-width: 560px; }
+.twitch-activation {
+  width: 100%; border: 1px solid var(--accent); background: var(--accent-fond);
+  border-radius: var(--rayon); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.twitch-code { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.twitch-code-valeur {
+  font-family: var(--mono); font-size: 30px; font-weight: 600; letter-spacing: 0.22em;
+  background: var(--fond); border: 1px solid var(--bord-fort); border-radius: var(--rayon);
+  padding: 8px 6px 8px 18px; color: var(--texte); user-select: all;
+}
+.twitch-connecte { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.twitch-categories {
+  display: flex; flex-direction: column; gap: 2px; margin-top: 6px;
+  max-height: 220px; overflow-y: auto; border: 1px solid var(--bord); border-radius: var(--rayon); padding: 4px;
+}
+.twitch-categorie {
+  width: 100%; text-align: left; background: none; border: 0; padding: 5px 8px;
+  border-radius: var(--rayon); color: var(--texte); cursor: pointer;
+}
+.twitch-categorie:hover { background: var(--fond-4); }
+.twitch-etat-ligne { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.twitch-direct { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 12px; margin: 0; }
+.twitch-direct > div { display: contents; }
+.twitch-direct dt { color: var(--texte-2); }
+.twitch-direct dd { margin: 0; overflow: hidden; text-overflow: ellipsis; }
+.liste-rediffusions { display: flex; flex-direction: column; gap: 2px; }
+.rediffusion {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: center;
+  padding: 5px 6px; border-radius: var(--rayon); border: 1px solid transparent;
+}
+.rediffusion:hover { background: var(--fond-3); border-color: var(--bord); }
+.rediffusion-titre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rediffusion .discret { font-size: 11px; white-space: nowrap; }
+@media (max-width: 760px) {
+  .rediffusion { grid-template-columns: minmax(0, 1fr) auto; }
+  .rediffusion .discret { grid-column: 1 / -1; }
+  .twitch-direct { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 1100px) { .grille-champs.quatre-colonnes { grid-template-columns: 1fr 1fr; } .barre-etat { gap: 12px; } }

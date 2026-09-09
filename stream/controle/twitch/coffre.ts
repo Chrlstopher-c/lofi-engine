@@ -12,8 +12,13 @@ import { objet, texte, entier, listeTextes } from "./valider.ts";
 const CORPUS = resolve(process.env.CORPUS_DIR ?? resolve(import.meta.dir, "../../../corpus"));
 const FICHIER = resolve(CORPUS, "twitch-jetons.json");
 
+// Client ID livré avec le projet : il n'est pas secret (Twitch le transmet en clair à
+// chaque requête). Il évite à qui clone d'avoir à créer sa propre application ; chacun
+// autorise ensuite son propre compte. Le remplacer depuis l'interface reste possible.
+const CLIENT_ID_LIVRE = (process.env.TWITCH_CLIENT_ID ?? "").trim();
+
 const VIDE: Coffre = {
-  clientId: "", jetonAcces: "", jetonRafraichissement: "",
+  clientId: CLIENT_ID_LIVRE, jetonAcces: "", jetonRafraichissement: "",
   expireA: 0, portees: [], utilisateurId: "", utilisateurLogin: "",
 };
 
@@ -22,7 +27,7 @@ function normaliser(brut: unknown): Coffre {
   const o = objet(brut);
   if (!o) return { ...VIDE };
   return {
-    clientId: texte(o, "clientId") ?? "",
+    clientId: texte(o, "clientId") || CLIENT_ID_LIVRE,
     jetonAcces: texte(o, "jetonAcces") ?? "",
     jetonRafraichissement: texte(o, "jetonRafraichissement") ?? "",
     expireA: entier(o, "expireA") ?? 0,

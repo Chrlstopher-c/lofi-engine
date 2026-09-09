@@ -31,6 +31,9 @@ logs/
 .env.local
 .env.*.local
 
+# Jetons Twitch du centre de contrôle (déjà couvert par corpus/, redit pour ne pas l'oublier)
+corpus/twitch-jetons.json
+
 # Corpus audio du stream — volumineux, jamais versionné
 corpus/
 

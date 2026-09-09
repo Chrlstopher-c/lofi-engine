@@ -17,6 +17,14 @@ mkdir -p "$LOG_DIR"
 
 echoerr() { printf '[START] %s\n' "$*" >&2; }
 
+# Sur un clone frais il n'y a pas de .env : on le crée depuis le modèle plutôt que
+# de laisser l'utilisateur découvrir le manque par un message d'erreur.
+if [ ! -f .env ] && [ -f .env.example ]; then
+  cp .env.example .env
+  echo "[START] .env créé depuis .env.example — clés de diffusion à renseigner"
+  echo "        dans le centre de contrôle."
+fi
+
 if ! detecter_docker; then
   echoerr "Impossible de démarrer."
   expliquer_absence_docker

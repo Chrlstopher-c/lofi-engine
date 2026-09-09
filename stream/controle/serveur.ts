@@ -10,6 +10,7 @@ import { listerFonds, deposerFond, supprimerFond } from "./fonds.ts";
 import {
   listerProfils, enregistrerProfil, chargerProfil, supprimerProfil,
 } from "./profils.ts";
+import { routerTwitch } from "./twitch/routes.ts";
 import { journal } from "./journal.ts";
 
 const PORT = Number(process.env.CONTROLE_PORT ?? 4708);
@@ -47,7 +48,8 @@ async function routerApi(req: Request, chemin: string): Promise<Response | null>
   if (chemin === "/api/journal" && m === "GET") {
     return json({ texte: await lireJournalDiffusion() });
   }
-  return routerActions(req, chemin);
+  const twitch = await routerTwitch(req, chemin);
+  return twitch ?? routerActions(req, chemin);
 }
 
 async function routerActions(req: Request, chemin: string): Promise<Response | null> {

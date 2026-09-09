@@ -37,7 +37,7 @@ async function lireErreur(reponse: Response): Promise<string> {
   return `${reponse.status} ${reponse.statusText}`.trim();
 }
 
-async function requete<T>(chemin: string, init?: RequestInit): Promise<T> {
+export async function requete<T>(chemin: string, init?: RequestInit): Promise<T> {
   let reponse: Response;
   try {
     reponse = await fetch(chemin, { cache: "no-store", ...init });
@@ -50,7 +50,7 @@ async function requete<T>(chemin: string, init?: RequestInit): Promise<T> {
   return (await reponse.json()) as T;
 }
 
-function corpsJson(methode: string, donnees: unknown): RequestInit {
+export function corpsJson(methode: string, donnees: unknown): RequestInit {
   return {
     method: methode,
     headers: { "content-type": "application/json" },

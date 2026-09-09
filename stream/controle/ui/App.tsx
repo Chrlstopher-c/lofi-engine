@@ -1,15 +1,17 @@
-/** Racine de l'interface : en-tête avec l'état, puis l'onglet Scène ou Diffusion. */
+/** Racine de l'interface : en-tête avec l'état, puis l'onglet Scène, Diffusion ou Twitch. */
 import { useState, type ReactNode } from "react";
 import { BarreEtat } from "./commun/BarreEtat.tsx";
 import { useEtat } from "./commun/useEtat.ts";
 import { PanneauScene } from "./scene/PanneauScene.tsx";
 import { PanneauDiffusion } from "./diffusion/PanneauDiffusion.tsx";
+import { PanneauTwitch } from "./twitch/PanneauTwitch.tsx";
 
-type Onglet = "scene" | "diffusion";
+type Onglet = "scene" | "diffusion" | "twitch";
 
 const ONGLETS: ReadonlyArray<{ id: Onglet; libelle: string }> = [
   { id: "scene", libelle: "Scène" },
   { id: "diffusion", libelle: "Diffusion" },
+  { id: "twitch", libelle: "Twitch" },
 ];
 
 export function App(): ReactNode {
@@ -36,6 +38,7 @@ export function App(): ReactNode {
         {/* Les deux panneaux restent montés : changer d'onglet ne perd pas une édition en cours. */}
         <div hidden={onglet !== "scene"}><PanneauScene /></div>
         <div hidden={onglet !== "diffusion"}><PanneauDiffusion etat={etat} /></div>
+        <div hidden={onglet !== "twitch"}><PanneauTwitch /></div>
       </main>
     </div>
   );
