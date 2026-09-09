@@ -7,11 +7,18 @@ import { resolve } from "node:path";
 const UI = import.meta.dir;
 const DIST = resolve(UI, "dist");
 
+/**
+ * L'empreinte couvre le script ET la feuille : elle sert de `?v=` aux deux balises. Ne hacher que
+ * main.js laissait une refonte purement visuelle derrière le cache du navigateur — l'empreinte ne
+ * bougeait pas, la page rechargeait l'ancienne feuille.
+ */
 async function empreinte(): Promise<string> {
-  const bundle = Bun.file(resolve(DIST, "main.js"));
-  if (!(await bundle.exists())) throw new Error("dist/main.js absent : le bundle n'a pas été produit");
   const hachage = new Bun.CryptoHasher("sha1");
-  hachage.update(await bundle.arrayBuffer());
+  for (const nom of ["main.js", "main.css"]) {
+    const fichier = Bun.file(resolve(DIST, nom));
+    if (!(await fichier.exists())) throw new Error(`dist/${nom} absent : le bundle n'a pas été produit`);
+    hachage.update(await fichier.arrayBuffer());
+  }
   return hachage.digest("hex").slice(0, 10);
 }
 
