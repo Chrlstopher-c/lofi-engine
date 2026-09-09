@@ -254,3 +254,6 @@ input[type="number"].saisie { width: 100%; }
 }
 
 @media (max-width: 1100px) { .grille-champs.quatre-colonnes { grid-template-columns: 1fr 1fr; } .barre-etat { gap: 12px; } }
+
+/* Première mise en route : l'image du diffuseur se construit. */
+.statut.construction { color: var(--ambre, #e0b060); }

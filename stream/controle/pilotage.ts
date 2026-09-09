@@ -10,6 +10,12 @@ const RACINE = resolve(process.env.RACINE_PROJET ?? resolve(import.meta.dir, "..
 const CORPUS = resolve(process.env.CORPUS_DIR ?? resolve(RACINE, "corpus"));
 const CONTENEUR = "lofi-direct";
 const DELAI_MS = 180_000;
+// Construire l'image du diffuseur télécharge un système et un navigateur : c'est long,
+// et ça n'arrive qu'une fois. Le démarrage, lui, doit rester court.
+const DELAI_CONSTRUCTION_MS = 1_800_000;
+const IMAGE_DIFFUSEUR = process.env.IMAGE_DIFFUSEUR ?? "lofi-navigateur:local";
+const JOURNAL_CONSTRUCTION = "/tmp/lofi-construction.log";
+const VERROU_CONSTRUCTION = "/tmp/lofi-construction.en-cours";
 
 interface Resultat { ok: boolean; sortie: string; }
 
@@ -54,10 +60,11 @@ async function mesurerCorpus(): Promise<{ fichiers: number; octets: number }> {
 }
 
 export async function lireEtat(): Promise<EtatDiffusion> {
-  const [direct, site, corpus] = await Promise.all([
+  const [direct, site, corpus, construction] = await Promise.all([
     conteneurActif(CONTENEUR),
     conteneurActif("lofi-engine"),
     mesurerCorpus(),
+    constructionEnCours(),
   ]);
   return {
     enMarche: direct.actif,
@@ -66,10 +73,49 @@ export async function lireEtat(): Promise<EtatDiffusion> {
     corpusFichiers: corpus.fichiers,
     corpusOctets: corpus.octets,
     siteEnMarche: site.actif,
+    construction,
   };
 }
 
+async function imagePresente(): Promise<boolean> {
+  const r = await executer(["docker", "image", "inspect", IMAGE_DIFFUSEUR]);
+  return r.ok;
+}
+
+export async function constructionEnCours(): Promise<boolean> {
+  return Bun.file(VERROU_CONSTRUCTION).exists();
+}
+
+/** Construit l'image sans bloquer la requête : elle peut prendre dix minutes. */
+async function lancerConstruction(): Promise<void> {
+  await Bun.write(VERROU_CONSTRUCTION, String(Date.now()));
+  journal.info("construction de l'image du diffuseur (première fois)");
+  const proc = Bun.spawn(
+    ["docker", "compose", "--profile", "direct", "build", "direct"],
+    { cwd: RACINE, stdout: Bun.file(JOURNAL_CONSTRUCTION), stderr: Bun.file(JOURNAL_CONSTRUCTION) },
+  );
+  const minuteur = setTimeout(() => proc.kill(), DELAI_CONSTRUCTION_MS);
+  void proc.exited.then(async (code) => {
+    clearTimeout(minuteur);
+    await Bun.file(VERROU_CONSTRUCTION).delete().catch(() => {});
+    journal.info({ code }, "construction terminée");
+    if (code === 0) void executer(["docker", "compose", "--profile", "direct", "up", "-d", "direct"]);
+  });
+}
+
 export async function demarrerDiffusion(): Promise<Resultat> {
+  if (await constructionEnCours()) {
+    return { ok: true, sortie: "Construction de l'image déjà en cours." };
+  }
+  if (!(await imagePresente())) {
+    await lancerConstruction();
+    return {
+      ok: true,
+      sortie: "Première mise en route : construction de l'image du diffuseur, "
+        + "cinq à dix minutes selon la connexion. La diffusion démarrera toute seule ensuite. "
+        + "L'avancement s'affiche dans le journal ci-dessous.",
+    };
+  }
   journal.info("démarrage de la diffusion");
   return executer(["docker", "compose", "--profile", "direct", "up", "-d", "direct"]);
 }
@@ -81,6 +127,14 @@ export async function arreterDiffusion(): Promise<Resultat> {
 
 export async function lireJournalDiffusion(lignes = 80): Promise<string> {
   const n = Math.min(400, Math.max(10, Math.trunc(lignes)));
+  if (await constructionEnCours()) {
+    try {
+      const texte = await Bun.file(JOURNAL_CONSTRUCTION).text();
+      return "Construction de l'image en cours…\n\n" + texte.split("\n").slice(-n).join("\n");
+    } catch {
+      return "Construction de l'image en cours…";
+    }
+  }
   const r = await executer(["docker", "logs", "--tail", String(n), CONTENEUR]);
   return r.ok ? r.sortie : "La diffusion n'a pas encore tourné.";
 }

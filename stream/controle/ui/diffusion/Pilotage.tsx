@@ -13,7 +13,7 @@ const AVIS_NON_ENREGISTRE =
 
 interface Journal { texte: string; erreur: string | null; relire: () => Promise<void>; }
 
-function useJournal(enMarche: boolean): Journal {
+function useJournal(actif: boolean): Journal {
   const [texte, setTexte] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const relire = useCallback(async (): Promise<void> => {
@@ -26,16 +26,25 @@ function useJournal(enMarche: boolean): Journal {
   }, []);
   useEffect(() => {
     void relire(); // lecture initiale, puis périodique seulement en marche
-    if (!enMarche) return undefined;
+    if (!actif) return undefined;
     const minuteur = window.setInterval(() => void relire(), JOURNAL_MS);
     return () => window.clearInterval(minuteur);
-  }, [relire, enMarche]);
+  }, [relire, actif]);
   return { texte, erreur, relire };
 }
 
 function Statut({ etat }: { etat: Etat }): ReactNode {
   const e = etat.etat;
   if (!e) return <p className="discret">{etat.erreur ? `État indisponible : ${etat.erreur}` : "Lecture de l'état…"}</p>;
+  if (e.construction) {
+    return (
+      <p className="statut construction">
+        Construction de l'image du diffuseur…
+        <span className="discret"> — première mise en route, cinq à dix minutes. </span>
+        <span className="discret">La diffusion démarrera ensuite toute seule.</span>
+      </p>
+    );
+  }
   if (!e.enMarche) return <p className="statut arret">À l'arrêt</p>;
   return (
     <p className="statut marche">
@@ -67,7 +76,8 @@ function BoutonsPilotage({ enMarche, occupe, onAgir }: BoutonsProps): ReactNode 
 
 export function Pilotage({ etat, modifie }: Props): ReactNode {
   const enMarche = etat.etat?.enMarche === true;
-  const journal = useJournal(enMarche);
+  // On suit le journal aussi pendant la construction : c'est le seul retour visible.
+  const journal = useJournal(enMarche || etat.etat?.construction === true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
 

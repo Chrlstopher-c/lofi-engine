@@ -69,4 +69,6 @@ export interface EtatDiffusion {
   corpusFichiers: number;
   corpusOctets: number;
   siteEnMarche: boolean;
+  /** L'image du diffuseur est en cours de construction (première mise en route). */
+  construction: boolean;
 }
