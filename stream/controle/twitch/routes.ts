@@ -9,6 +9,9 @@ import { demarrerConnexion, annulerConnexion, etatConnexion } from "./appareil.t
 import { lireChaine, modifierChaine, chercherCategories, lireDirect } from "./chaine.ts";
 import { listerRediffusions, supprimerRediffusion } from "./rediffusions.ts";
 import { recupererCleDiffusion } from "./cle-diffusion.ts";
+import { lireLotChat, envoyerMessage, relancerChat, arreterChat, viderChat } from "./chat.ts";
+import { lireStatistiques } from "./statistiques.ts";
+import { lireArchivage, definirSuppressionAuto } from "./archivage.ts";
 
 const PREFIXE = "/api/twitch";
 
@@ -48,13 +51,19 @@ async function routerCompte(req: Request, chemin: string): Promise<Response | nu
     await enregistrerApplication((await corpsJson(req)).clientId);
     return json(await lireEtatTwitch());
   }
-  if (chemin === `${PREFIXE}/connexion` && m === "POST") return json(await demarrerConnexion());
+  if (chemin === `${PREFIXE}/connexion` && m === "POST") {
+    // Un nouveau jeton arrive : le chat en cours porte l'ancien, il repartira avec le nouveau.
+    arreterChat("connexion du compte relancée");
+    return json(await demarrerConnexion());
+  }
   if (chemin === `${PREFIXE}/connexion/annuler` && m === "POST") {
     annulerConnexion();
     return json(await lireEtatTwitch());
   }
   if (chemin === `${PREFIXE}/deconnexion` && m === "POST") {
     annulerConnexion();
+    arreterChat("compte Twitch déconnecté");
+    viderChat();
     await effacerJetons();
     return json(await lireEtatTwitch());
   }
@@ -79,11 +88,41 @@ async function routerChaine(req: Request, chemin: string): Promise<Response | nu
   return null;
 }
 
+/** Nombre positif tiré de la requête ; toute autre saisie vaut « depuis le début ». */
+function depuisDe(url: string): number {
+  const brut = new URL(url).searchParams.get("depuis") ?? "";
+  const valeur = /^\d{1,15}$/.test(brut) ? Number(brut) : 0;
+  return Number.isFinite(valeur) ? valeur : 0;
+}
+
+async function routerChat(req: Request, chemin: string): Promise<Response | null> {
+  const m = req.method;
+  if (chemin === `${PREFIXE}/chat` && m === "GET") return json(await lireLotChat(depuisDe(req.url)));
+  if (chemin === `${PREFIXE}/chat/message` && m === "POST") {
+    return json(await envoyerMessage((await corpsJson(req)).texte));
+  }
+  if (chemin === `${PREFIXE}/chat/relance` && m === "POST") return json(await relancerChat());
+  return null;
+}
+
+async function routerMesures(req: Request, chemin: string): Promise<Response | null> {
+  const m = req.method;
+  if (chemin === `${PREFIXE}/statistiques` && m === "GET") return json(await lireStatistiques());
+  if (chemin === `${PREFIXE}/archivage` && m === "GET") return json(await lireArchivage());
+  if (chemin === `${PREFIXE}/archivage` && m === "PUT") {
+    return json(await definirSuppressionAuto((await corpsJson(req)).suppressionAuto));
+  }
+  return null;
+}
+
 /** Renvoie `null` si le chemin n'appartient pas au domaine Twitch. */
 export async function routerTwitch(req: Request, chemin: string): Promise<Response | null> {
   if (!chemin.startsWith(`${PREFIXE}/`)) return null;
   try {
-    return (await routerCompte(req, chemin)) ?? (await routerChaine(req, chemin));
+    return (await routerCompte(req, chemin))
+      ?? (await routerChaine(req, chemin))
+      ?? (await routerChat(req, chemin))
+      ?? (await routerMesures(req, chemin));
   } catch (e) {
     return json({ erreur: e instanceof Error ? e.message : "erreur Twitch" }, 400);
   }

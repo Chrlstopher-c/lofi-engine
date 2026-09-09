@@ -8,6 +8,7 @@ import { Alerte, Bouton, Section } from "../commun/composants.tsx";
 import { dateLisible, messageErreur } from "../commun/format.ts";
 import { apiTwitch } from "./api-twitch.ts";
 import { dureeRediffusion, nombreLisible } from "./format-twitch.ts";
+import { Archivage } from "./Archivage.tsx";
 
 function Ligne({ video, occupe, onSupprimer }: {
   video: Rediffusion; occupe: boolean; onSupprimer: () => void;
@@ -96,6 +97,7 @@ export function Rediffusions(): ReactNode {
         <Bouton petit variante="discret" onClick={() => void archives.recharger()}>Actualiser</Bouton>
       }>
       <Alerte message={archives.erreur} onFermer={() => archives.setErreur(null)} />
+      <Archivage nombre={archives.liste === null ? null : archives.liste.length} />
       <Liste archives={archives} />
     </Section>
   );

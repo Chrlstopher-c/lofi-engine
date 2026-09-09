@@ -28,6 +28,13 @@ export function dureeRestante(iso: string, maintenant: number = Date.now()): str
   return minutes > 0 ? `${minutes} min` : `${secondes} s`;
 }
 
+/** Heure d'un horodatage ISO, en « 21:04 » ; chaîne vide si la date est illisible. */
+export function heureLisible(iso: string): string {
+  const instant = Date.parse(iso);
+  if (!Number.isFinite(instant)) return "";
+  return new Date(instant).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export function nombreLisible(valeur: number): string {
   return new Intl.NumberFormat("fr-FR").format(valeur);
 }

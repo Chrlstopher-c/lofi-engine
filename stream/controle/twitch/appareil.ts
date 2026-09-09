@@ -12,6 +12,7 @@ import { lireCoffre, enregistrerJetons, enregistrerUtilisateur, type JetonsRecus
 import { appelHttp, formulaire } from "./transport.ts";
 import { jetonsDe, POINT_JETON } from "./jeton.ts";
 import { appelHelix } from "./client.ts";
+import { PORTEES_CHAT } from "./chat.ts";
 import { objet, texte, entier, premierElement, messageTwitch } from "./valider.ts";
 import { journal } from "../journal.ts";
 
@@ -19,8 +20,14 @@ const POINT_APPAREIL = "https://id.twitch.tv/oauth2/device";
 const TYPE_ACCORD = "urn:ietf:params:oauth:grant-type:device_code";
 const ORIGINES_ACTIVATION = ["https://www.twitch.tv/", "https://twitch.tv/"];
 
-/** Portées demandées : clé de diffusion, titre et catégorie, suppression des rediffusions. */
-export const PORTEES = ["channel:read:stream_key", "channel:manage:broadcast", "channel:manage:videos"];
+/**
+ * Portées demandées : clé de diffusion, titre et catégorie, suppression des rediffusions,
+ * lecture et écriture du chat. Un compte connecté avant l'ajout des deux dernières n'en
+ * dispose pas — l'interface le détecte dans le coffre et demande une reconnexion.
+ */
+export const PORTEES = [
+  "channel:read:stream_key", "channel:manage:broadcast", "channel:manage:videos", ...PORTEES_CHAT,
+];
 
 const MAX_TENTATIVES = 240;
 const INTERVALLE_MIN_MS = 5_000;

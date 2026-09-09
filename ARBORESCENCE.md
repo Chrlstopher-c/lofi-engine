@@ -101,7 +101,7 @@ lofi-engine/
 │   ├── scene.ts / profils.ts          scène et scènes nommées
 │   ├── diffusion.ts / pilotage.ts     config des plateformes, démarrage, arrêt, état
 │   ├── fonds.ts                       images et vidéos de fond
-│   ├── twitch/                        compte, clé, chaîne, rediffusions
+│   ├── twitch/                        compte, clé, chaîne, chat, stats, rediffusions
 │   └── ui/                            interface React (Scène · Diffusion · Twitch)
 │
 ├── outils/

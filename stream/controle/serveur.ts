@@ -11,6 +11,8 @@ import {
   listerProfils, enregistrerProfil, chargerProfil, supprimerProfil,
 } from "./profils.ts";
 import { routerTwitch } from "./twitch/routes.ts";
+import { demarrerEchantillonnage } from "./twitch/historique.ts";
+import { demarrerSurveillanceArchivage } from "./twitch/archivage.ts";
 import { journal } from "./journal.ts";
 
 const PORT = Number(process.env.CONTROLE_PORT ?? 4708);
@@ -140,5 +142,11 @@ Bun.serve({
     }
   },
 });
+
+// Deux tâches de fond, toutes deux inertes tant qu'aucun compte Twitch n'est connecté :
+// le relevé des spectateurs (une mesure par minute, pendant le direct seulement) et la
+// suppression automatique des rediffusions (désactivée par défaut).
+demarrerEchantillonnage();
+demarrerSurveillanceArchivage();
 
 journal.info({ port: PORT, hote: HOTE }, "centre de contrôle en écoute");

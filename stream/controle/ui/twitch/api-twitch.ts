@@ -1,6 +1,7 @@
 /** Accès à l'API Twitch du centre de contrôle. Aucun secret ne circule par ces routes. */
 import type {
-  Categorie, Chaine, ConnexionAppareil, DirectTwitch, EtatTwitch, Rediffusion,
+  Archivage, Categorie, Chaine, ConnexionAppareil, DirectTwitch, EtatChat, EtatTwitch,
+  LotChat, MessageChat, Rediffusion, StatistiquesTwitch,
 } from "../../twitch/types.ts";
 import { requete, corpsJson } from "../commun/api.ts";
 
@@ -28,4 +29,14 @@ export const apiTwitch = {
   listerRediffusions: (): Promise<Rediffusion[]> => requete<Rediffusion[]>("/api/twitch/rediffusions"),
   supprimerRediffusion: (id: string): Promise<{ ok: boolean }> =>
     requete(`/api/twitch/rediffusions/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  /** Le serveur tient la connexion IRC : on ne lit ici que des messages déjà nettoyés. */
+  lireChat: (depuis: number): Promise<LotChat> =>
+    requete<LotChat>(`/api/twitch/chat?depuis=${encodeURIComponent(String(depuis))}`),
+  envoyerChat: (texte: string): Promise<MessageChat> =>
+    requete<MessageChat>("/api/twitch/chat/message", corpsJson("POST", { texte })),
+  relancerChat: (): Promise<EtatChat> => requete<EtatChat>("/api/twitch/chat/relance", { method: "POST" }),
+  lireStatistiques: (): Promise<StatistiquesTwitch> => requete<StatistiquesTwitch>("/api/twitch/statistiques"),
+  lireArchivage: (): Promise<Archivage> => requete<Archivage>("/api/twitch/archivage"),
+  definirSuppressionAuto: (suppressionAuto: boolean): Promise<Archivage> =>
+    requete<Archivage>("/api/twitch/archivage", corpsJson("PUT", { suppressionAuto })),
 };
