@@ -1,0 +1,15 @@
+services:
+  lofi-engine:
+    build: .
+    image: lofi-engine:local
+    container_name: lofi-engine
+    # 0.0.0.0 côté hôte : joignable depuis le réseau, pas seulement en localhost
+    ports:
+      - "0.0.0.0:${LOFI_PORT:-4707}:4707"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bun", "-e", "await fetch('http://127.0.0.1:4707/').then(r=>process.exit(r.ok?0:1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

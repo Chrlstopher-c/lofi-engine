@@ -1,16 +1,30 @@
 #!/bin/bash
-# Arrête le serveur par son PID, jamais par motif de nom.
+# Arrête et retire le conteneur. L'image et le cache de build sont conservés,
+# le prochain démarrage est donc quasi immédiat.
+set -uo pipefail
 cd "$(dirname "$0")"
 
-PID_FILE="./logs/web.pid"
-if [ -f "$PID_FILE" ]; then
-  PID=$(cat "$PID_FILE")
-  if kill -0 "$PID" 2>/dev/null; then
-    kill "$PID" && echo "[STOP] LoFi Engine stoppé (PID: $PID)"
-  else
-    echo "[STOP] Aucun processus vivant pour le PID $PID"
-  fi
-  rm -f "$PID_FILE"
+if ! command -v docker >/dev/null 2>&1; then
+  echo "[STOP] Docker est introuvable — rien à arrêter." >&2
+  exit 0
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo "[STOP] Le démon Docker ne répond pas — rien à arrêter." >&2
+  exit 0
+fi
+
+COMPOSE="docker compose"
+$COMPOSE version >/dev/null 2>&1 || COMPOSE="docker-compose"
+
+if [ -z "$($COMPOSE ps -q 2>/dev/null)" ]; then
+  echo "[STOP] Aucun conteneur en marche — rien à arrêter."
+  exit 0
+fi
+
+if $COMPOSE down 2>&1 | tee -a ./logs/web.log; then
+  echo "[STOP] LoFi Engine arrêté."
 else
-  echo "[STOP] Aucun PID enregistré — rien à arrêter"
+  echo "[STOP] L'arrêt a échoué — voir logs/web.log" >&2
+  exit 1
 fi
