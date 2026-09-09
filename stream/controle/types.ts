@@ -5,7 +5,7 @@ export type Ancre =
   | "centre"
   | "bas-gauche" | "bas-centre" | "bas-droite";
 
-export type TypeCalque = "texte" | "horloge" | "accords" | "image";
+export type TypeCalque = "texte" | "horloge" | "accords" | "image" | "video";
 
 export interface Calque {
   id: string;
@@ -25,10 +25,14 @@ export interface Calque {
   graisse?: "legere" | "normale";
   date?: boolean;
   cadre?: boolean;
+  /** Nom du fichier média, pour les calques image et vidéo (servi sous /fonds/). */
   fichier?: string;
+  /** Vidéo : relire en boucle. Le son est toujours coupé — voir Fond.boucle. */
+  boucle?: boolean;
 }
 
 export interface Fond {
+  /** Image ou vidéo. Une vidéo de fond est toujours muette et lue en boucle. */
   fichier: string;
   ajustement: "cover" | "contain";
   mouvement: boolean;

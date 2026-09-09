@@ -42,7 +42,10 @@
     el.style.opacity = String(calque.opacite);
     const c = triplet(calque.couleur || "");
     if (c) el.style.setProperty("--c", c); else el.style.removeProperty("--c");
-    if (calque.type === "image") { el.style.width = calque.taille + "vw"; el.style.fontSize = ""; }
+    if (calque.type === "image" || calque.type === "video") {
+      el.style.width = calque.taille + "vw";
+      el.style.fontSize = "";
+    }
     else { el.style.fontSize = calque.taille + "vw"; el.style.width = ""; }
   }
 
@@ -111,6 +114,34 @@
         const url = urlFichier(calque.fichier);
         if (!url) { el.hidden = true; el.removeAttribute("src"); return; }
         if (el.getAttribute("src") !== url) el.src = url;
+      },
+    },
+
+    // La vidéo est TOUJOURS muette : le stream capture le son du navigateur, une bande-son
+    // ici viendrait se mélanger à la musique diffusée.
+    video: {
+      creer() {
+        const el = document.createElement("video");
+        el.muted = true;
+        el.defaultMuted = true;
+        el.autoplay = true;
+        el.playsInline = true;
+        el.preload = "auto";
+        el.addEventListener("error", () => { el.hidden = true; });
+        el.addEventListener("loadeddata", () => { el.hidden = false; });
+        return el;
+      },
+      appliquer(el, calque) {
+        el.loop = calque.boucle !== false;
+        el.muted = true;
+        const url = urlFichier(calque.fichier);
+        if (!url) { el.hidden = true; el.removeAttribute("src"); return; }
+        if (el.getAttribute("src") !== url) {
+          el.src = url;
+          // La lecture automatique peut être refusée : on réessaie, sans casser la scène.
+          const lecture = el.play();
+          if (lecture && typeof lecture.catch === "function") lecture.catch(() => {});
+        }
       },
     },
   };

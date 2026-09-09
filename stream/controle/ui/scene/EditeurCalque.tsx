@@ -92,16 +92,37 @@ function ChampsTexte({ calque, onModifier }: { calque: Calque; onModifier: Modif
   );
 }
 
-function ChampsImage({ calque, fonds, onModifier }: Props): ReactNode {
-  const options = [
-    { valeur: "", libelle: "— choisir une image —" },
-    ...fonds.map((f) => ({ valeur: f.fichier, libelle: f.fichier })),
+function optionsMedias(fonds: Props["fonds"], video: boolean) {
+  const vide = video ? "— choisir une vidéo —" : "— choisir une image —";
+  return [
+    { valeur: "", libelle: vide },
+    ...fonds.filter((f) => f.video === video).map((f) => ({ valeur: f.fichier, libelle: f.fichier })),
   ];
+}
+
+function ChampsImage({ calque, fonds, onModifier }: Props): ReactNode {
   return (
-    <Champ libelle="Fichier" indice="parmi les images déposées">
-      <Selection valeur={calque.fichier ?? ""} options={options}
+    <Champ libelle="Fichier" indice="parmi les images déposées — un GIF s'anime tout seul">
+      <Selection valeur={calque.fichier ?? ""} options={optionsMedias(fonds, false)}
         onChange={(fichier) => onModifier((c) => ({ ...c, fichier }))} />
     </Champ>
+  );
+}
+
+function ChampsVideo({ calque, fonds, onModifier }: Props): ReactNode {
+  return (
+    <>
+      <Champ libelle="Fichier" indice="parmi les vidéos déposées">
+        <Selection valeur={calque.fichier ?? ""} options={optionsMedias(fonds, true)}
+          onChange={(fichier) => onModifier((c) => ({ ...c, fichier }))} />
+      </Champ>
+      <Bascule libelle="Lire en boucle" actif={calque.boucle !== false}
+        onChange={(boucle) => onModifier((c) => ({ ...c, boucle }))} />
+      <p className="indice">
+        Le son est toujours coupé : le stream capte l'audio du navigateur, une bande-son
+        se mélangerait à la musique diffusée.
+      </p>
+    </>
   );
 }
 
@@ -116,6 +137,7 @@ function ChampsSpecifiques(props: Props): ReactNode {
       return <Bascule libelle="Cadre autour du bloc" actif={calque.cadre !== false}
         onChange={(cadre) => onModifier((c) => ({ ...c, cadre }))} />;
     case "image": return <ChampsImage {...props} />;
+    case "video": return <ChampsVideo {...props} />;
   }
 }
 

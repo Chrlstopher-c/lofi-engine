@@ -52,14 +52,36 @@
     image.src = url;
   }
 
+  const EXT_VIDEO = /\.(mp4|webm|m4v)$/i;
+
+  // Un fond vidéo remplace l'image : on n'affiche jamais les deux.
+  function poserFond(url) {
+    const video = el("fondVideo");
+    const image = el("fond");
+    if (url && EXT_VIDEO.test(url)) {
+      image.style.backgroundImage = "none";
+      video.hidden = false;
+      if (video.getAttribute("src") !== url) {
+        video.src = url;
+        const lecture = video.play();
+        if (lecture && typeof lecture.catch === "function") lecture.catch(() => {});
+      }
+      return;
+    }
+    video.hidden = true;
+    video.removeAttribute("src");
+    poserImageDeFond(url);
+  }
+
   function appliquerFond(scene) {
     const f = scene.fond;
     const url = CALQUES.urlFichier(f.fichier);
-    if (url !== fondCourant) { fondCourant = url; poserImageDeFond(url); }
+    if (url !== fondCourant) { fondCourant = url; poserFond(url); }
     const fond = el("fond");
     const mouvementReduit = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     fond.classList.toggle("derive", f.mouvement && !mouvementReduit);
     fond.classList.toggle("contain", f.ajustement === "contain");
+    el("fondVideo").classList.toggle("contain", f.ajustement === "contain");
     const voile = el("voile");
     voile.style.setProperty("--voile", String(f.voile));
     voile.classList.toggle("vignette", f.vignettage);

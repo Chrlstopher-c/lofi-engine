@@ -14,7 +14,7 @@ const ANCRES: Ancre[] = [
   "haut-gauche", "haut-centre", "haut-droite",
   "centre", "bas-gauche", "bas-centre", "bas-droite",
 ];
-const TYPES: TypeCalque[] = ["texte", "horloge", "accords", "image"];
+const TYPES: TypeCalque[] = ["texte", "horloge", "accords", "image", "video"];
 const THEMES = ["nuit", "ambre", "brume"] as const;
 const TEXTE_MAX = 240;
 
@@ -59,6 +59,7 @@ function nettoyerCalque(brut: Record<string, unknown>, rang: number): Calque | n
     date: brut.date !== false,
     cadre: brut.cadre !== false,
     fichier: nomFichier(brut.fichier),
+    boucle: brut.boucle !== false,
   };
 }
 

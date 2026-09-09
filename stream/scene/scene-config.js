@@ -24,7 +24,7 @@
   });
 
   const ANCRES = ["haut-gauche", "haut-centre", "haut-droite", "centre", "bas-gauche", "bas-centre", "bas-droite"];
-  const TYPES = ["texte", "horloge", "accords", "image"];
+  const TYPES = ["texte", "horloge", "accords", "image", "video"];
   const THEMES = ["nuit", "ambre", "brume"];
   const VRAI = ["1", "true", "oui", "on"];
   const FAUX = ["0", "false", "non", "off"];
@@ -86,6 +86,7 @@
       graisse: b.graisse === "legere" ? "legere" : "normale",
       date: booleen(b.date, true),
       cadre: booleen(b.cadre, true),
+      boucle: booleen(b.boucle, true),
       fichier: fichier(b.fichier),
     };
   }

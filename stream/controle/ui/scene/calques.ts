@@ -16,6 +16,7 @@ export const TYPES: ReadonlyArray<{ valeur: TypeCalque; libelle: string }> = [
   { valeur: "horloge", libelle: "Horloge" },
   { valeur: "accords", libelle: "Accords" },
   { valeur: "image", libelle: "Image" },
+  { valeur: "video", libelle: "Vidéo" },
 ];
 
 export function libelleType(type: TypeCalque): string {
@@ -35,6 +36,7 @@ const MODELES: Record<TypeCalque, Partial<Calque>> = {
   horloge: { ancre: "haut-droite", x: 4.5, y: 6, taille: 3.2, date: true },
   accords: { ancre: "bas-droite", x: 4.5, y: 9, taille: 1.1, cadre: true },
   image: { ancre: "centre", x: 0, y: 0, taille: 20, fichier: "" },
+  video: { ancre: "centre", x: 0, y: 0, taille: 20, fichier: "", boucle: true },
 };
 
 export function nouveauCalque(type: TypeCalque, existants: Calque[]): Calque {
