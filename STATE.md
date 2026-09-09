@@ -1,37 +1,68 @@
 # STATE — LoFi Engine
 *Dernière mise à jour : 2026-09-09*
 
-## Statut global
-En prod — servi sur https://lofi.christophercouspeyre.com depuis le Raspberry Pi.
+## Résumé de l'état actuel
+Générateur de musique lofi procédurale, en production sur https://lofi.christophercouspeyre.com
+depuis le Raspberry Pi (service systemd `lofi-engine`, port 8794, derrière le tunnel Cloudflare).
+Le dépôt est un fork de meel-hd/lofi-engine sur le compte Chrlstopher-c, mis aux normes Echo et
+reproductible : `./start.sh` en local passe par Docker, `./deploy-pi.sh` reconstruit et redéploie
+la production en vérifiant la réponse publique. Aucune modification fonctionnelle n'a été
+apportée à l'application elle-même.
 
 ## Nature du dépôt
 Fork de [meel-hd/lofi-engine](https://github.com/meel-hd/lofi-engine) (MIT, Mehdi El Oualy).
-L'upstream est déclaré comme remote `upstream` : `git fetch upstream` puis merge pour suivre
-les évolutions amont. Les ajouts Echo (scripts, doc, serveur de production) vivent à la racine
-et ne touchent pas au code source de l'application.
+L'amont est déclaré comme remote `upstream` : `git fetch upstream` puis merge pour suivre ses
+évolutions. Tous les ajouts Echo vivent à la racine et ne touchent pas au code de l'application —
+c'est ce qui garde les merges sans conflit.
 
 ## Stack
-Svelte 3 + TypeScript + Vite pour l'interface · Tone.js pour la synthèse audio procédurale ·
-Tauri 2 pour la version desktop · Bun pour le runtime et le serveur statique de production.
+Svelte 3 + TypeScript + Vite pour l'interface · Tone.js pour la synthèse audio · Tauri 2 pour la
+version desktop (amont, non utilisée en production) · Bun pour le serveur statique · Docker pour
+le lancement local.
 
-## Décisions clés
-- 2026-09-09 — Hébergement sur le Pi en site statique plutôt qu'en application Tauri : toute la
-  synthèse audio tourne dans le navigateur du visiteur, le serveur ne fait que servir des
-  fichiers. Coût mesuré : 28 Mo de RAM sur le Pi, constants quelle que soit la fréquentation.
-- 2026-09-09 — Le build ne tourne jamais sur le Pi : mesuré à 1 891 Mo de pic mémoire, contre
-  455 Mo disponibles à l'époque sur la machine. On construit sur le PC et on envoie le `dist/`.
-- 2026-09-09 — Serveur maison (`server.ts`) plutôt qu'un serveur statique tout fait : les pistes mp3
-  sont lues en streaming par le navigateur, qui les demande par tranches (requêtes Range).
-- 2026-09-09 — Port local 4707, port de production 8794 sur le Pi.
+## Ce qui a été fait — session du 2026-09-09
+- Clone, analyse et mesure de consommation du projet amont avant tout déploiement.
+- Déploiement sur le Pi : service systemd, entrée d'ingress dans le tunnel Cloudflare, création
+  du sous-domaine `lofi.christophercouspeyre.com`.
+- Fork sur Chrlstopher-c, mise aux normes Echo : scripts start/stop/restart, `deploy-pi.sh`,
+  `server.ts`, `.echoforge.yml`, `.env.example` et les quatre fichiers de documentation.
+- Passage du lancement local à Docker : image en deux étapes, conteneur publié sur toutes les
+  interfaces réseau, scripts recâblés, fonctionnels sur un clone vierge.
+- Ajout puis retrait d'une compatibilité `vmdocker` — le binaire n'existe pas (voir plus bas).
+- Le message d'erreur d'absence de Docker donne désormais la commande de la distribution
+  courante, vérifiée sur six familles.
 
-## Avancées récentes
-- 2026-09-09 — Lancement local passé sous Docker : image en deux étapes, conteneur publié sur
-  toutes les interfaces réseau. Les scripts start/stop/restart pilotent Docker et fonctionnent
-  sur un clone frais, sans rien installer sur l'hôte.
-- 2026-09-09 — Déploiement initial sur le Pi, tunnel Cloudflare et sous-domaine `lofi` créés.
-- 2026-09-09 — Fork sur le compte Chrlstopher-c, mise aux normes Echo du dépôt.
+## Décisions prises
+| Décision | Raison | Date |
+|---|---|---|
+| Héberger en site statique, pas en app Tauri | Toute la synthèse audio tourne chez le visiteur ; le serveur ne sert que des fichiers. 28 Mo de RAM constants sur le Pi | 2026-09-09 |
+| Le build ne tourne jamais sur le Pi | 1 891 Mo de pic mémoire mesuré, contre 455 Mo disponibles à l'époque | 2026-09-09 |
+| Serveur maison plutôt qu'un serveur statique tout fait | Les mp3 sont lus en streaming : le navigateur les demande par tranches (requêtes Range) | 2026-09-09 |
+| Docker en local, systemd direct en production | Le Pi ne peut pas construire l'image ; le dockeriser supposerait un registre | 2026-09-09 |
+| Conteneur publié sur `0.0.0.0` | Demande explicite : joignable depuis le réseau, pas seulement en localhost | 2026-09-09 |
+| README de l'amont conservé tel quel | Le remplacer par la charte Echo casserait les merges depuis upstream | 2026-09-09 |
+| `console.log` conservé malgré le linter | Même pattern que les autres serveurs statiques du Pi ; systemd capture la sortie. Pino pour deux lignes serait une dépendance pour rien | 2026-09-09 |
+
+## Contexte non-évident
+- **Ports** : 4707 en local, 8794 en production sur le Pi. Le 4707 a été choisi parce qu'aucun
+  `.echoforge.yml` de `/mnt/projects` ne le déclarait.
+- **`vmdocker` n'existe pas.** Une compatibilité a été codée puis retirée : le paquet réellement
+  proposé par apt s'appelle `wmdocker`, un dock Window Maker sans rapport avec les conteneurs.
+  Apt le suggère parce que sur Debian le paquet Docker s'appelle `docker.io` — `apt install
+  docker` échoue et apt propose le nom le plus proche de sa base.
+- **`hostname -I` n'existe pas sur Arch.** Une première version de `start.sh` l'utilisait et
+  mourait juste après un démarrage pourtant réussi, annonçant un échec. L'IP se lit via
+  `ip route get`.
+- **Le projet a migré avec le reste du Pi** vers `/mnt/projects` (disque externe) le même jour.
+  L'unité systemd pointe vers ce chemin, plus vers `/home/pi`.
+- Poids par visiteur : 12,5 Mo transférés et 45 requêtes au premier chargement.
+
+## Prochaines étapes
+1. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
+2. Si la fréquentation monte : cache navigateur explicite sur les mp3.
+3. Éventuellement dockeriser la production — suppose de construire l'image sur le PC et de la
+   pousser vers le Pi par un registre. Chantier distinct, non engagé.
 
 ## Points en suspens
-- Le README est celui de l'auteur amont, non retouché — à décider s'il passe à la charte Echo
-  (ce qui compliquerait les merges depuis l'upstream).
-- Aucune modification fonctionnelle apportée à l'application elle-même pour l'instant.
+- Le README n'est pas tranché.
+- La production ne passe pas par Docker, contrairement au local — écart assumé et documenté.
