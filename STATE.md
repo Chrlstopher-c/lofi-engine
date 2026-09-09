@@ -32,6 +32,16 @@ le lancement local.
 - Le message d'erreur d'absence de Docker donne désormais la commande de la distribution
   courante, vérifiée sur six familles.
 
+## Stream 24/7 — construit le 2026-09-09
+Diffusion en direct vers Twitch et/ou YouTube, configurée entièrement par le `.env`, entièrement
+en conteneurs : rien n'est installé sur la machine hôte. Le moteur génère la musique en continu
+dans un navigateur ; si ce navigateur tombe, le corpus enregistré est rejoué **dans le même puits
+audio**, si bien que ffmpeg ne s'arrête pas et que la connexion aux plateformes tient. Trou de son
+mesuré lors d'une panne provoquée : 3,5 s. Détail et mesures : `docs/STREAM-24-7.md`.
+
+Trois profils : `generateur` (enregistre le corpus), `direct` (mode retenu), `diffusion`
+(corpus en boucle, sans navigateur). Licences des échantillons : `CREDITS.md`.
+
 ## Décisions prises
 | Décision | Raison | Date |
 |---|---|---|

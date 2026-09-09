@@ -389,6 +389,15 @@
     generateProgression();
   }
 
+  // ?autoplay=1 — démarre la lecture sans clic, pour la capture du corpus de stream.
+  // Le navigateur doit tourner avec la politique de lecture automatique désactivée.
+  const autoplayDemande = new URLSearchParams(location.search).has("autoplay");
+  let autoplayFait = false;
+  $: if (autoplayDemande && !autoplayFait && allSamplesLoaded && contextStarted && genChordsOnce) {
+    autoplayFait = true;
+    toggle();
+  }
+
   function handleButtonAction() {
     if (!allSamplesLoaded) {
       // Do nothing, button is disabled

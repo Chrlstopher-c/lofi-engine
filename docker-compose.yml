@@ -13,3 +13,68 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+
+  # --- Diffusion en continu (docs/STREAM-24-7.md) ---
+  # Aucun de ces services ne démarre avec le site : chacun s'active par son profil.
+
+  # Ponctuel : enregistre un corpus audio, qui sert de secours au direct.
+  #   docker compose --profile generateur run --rm generateur
+  generateur:
+    build:
+      context: ./stream
+      dockerfile: Dockerfile.navigateur
+    image: lofi-navigateur:local
+    profiles: ["generateur"]
+    depends_on:
+      lofi-engine:
+        condition: service_healthy
+    shm_size: 1gb
+    volumes:
+      - ./corpus:/corpus
+    environment:
+      CAPTURE_DUREE: "${CAPTURE_DUREE:-3600}"
+      SEGMENT_DUREE: "${SEGMENT_DUREE:-600}"
+
+  # Permanent : le moteur génère en direct, avec repli sur le corpus si le navigateur tombe.
+  #   docker compose --profile direct up -d
+  direct:
+    build:
+      context: ./stream
+      dockerfile: Dockerfile.navigateur
+    image: lofi-navigateur:local
+    container_name: lofi-direct
+    profiles: ["direct"]
+    command: ["/usr/local/bin/direct.sh"]
+    depends_on:
+      lofi-engine:
+        condition: service_healthy
+    restart: unless-stopped
+    shm_size: 1gb
+    volumes:
+      - ./corpus:/corpus
+    environment: &diffusion_env
+      STREAM_IMAGE: "/corpus/${STREAM_IMAGE:-fond.png}"
+      STREAM_TWITCH: "${STREAM_TWITCH:-false}"
+      STREAM_YOUTUBE: "${STREAM_YOUTUBE:-false}"
+      TWITCH_STREAM_KEY: "${TWITCH_STREAM_KEY:-}"
+      YOUTUBE_STREAM_KEY: "${YOUTUBE_STREAM_KEY:-}"
+      TWITCH_INGEST: "${TWITCH_INGEST:-rtmp://live.twitch.tv/app}"
+      YOUTUBE_INGEST: "${YOUTUBE_INGEST:-rtmp://a.rtmp.youtube.com/live2}"
+      STREAM_RESOLUTION: "${STREAM_RESOLUTION:-1920x1080}"
+      STREAM_FPS: "${STREAM_FPS:-30}"
+      STREAM_VIDEO_BITRATE: "${STREAM_VIDEO_BITRATE:-1500k}"
+      STREAM_AUDIO_BITRATE: "${STREAM_AUDIO_BITRATE:-160k}"
+
+  # Permanent, sans navigateur : lit le corpus en boucle. Le mode le plus léger.
+  #   docker compose --profile diffusion up -d
+  diffuseur:
+    build:
+      context: ./stream
+      dockerfile: Dockerfile.diffuseur
+    image: lofi-diffuseur:local
+    container_name: lofi-diffuseur
+    profiles: ["diffusion"]
+    restart: unless-stopped
+    volumes:
+      - ./corpus:/corpus
+    environment: *diffusion_env

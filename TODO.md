@@ -4,23 +4,33 @@
 ## En cours
 - [ ] Rien en cours.
 
-## Chantier suivant — stream 24/7 Twitch + YouTube
-**Conception écrite : `docs/STREAM-24-7.md`** — la lire avant de reprendre, elle est
-auto-suffisante. Décision retenue : corpus audio pré-généré sur le PC fixe, diffusé en
-boucle par un conteneur FFmpeg. Tout passe par Docker : aucun système hôte n'est modifié.
+## Chantier en cours — stream 24/7 Twitch + YouTube
+**État : construit et mesuré de bout en bout.** Mode d'emploi et preuves dans
+`docs/STREAM-24-7.md`. Licences des échantillons dans `CREDITS.md`.
 
-- [ ] **Bloquant** — vérifier l'origine et la licence des échantillons audio (aucune
-      attribution dans le dépôt ; noms évoquant Pixabay et SoundBible, plus 48 samples de
-      piano non documentés). Peut imposer des remplacements, donc à faire en premier.
-- [ ] Choisir l'image de fond (décision de Chris) et vérifier sa licence.
-- [ ] Construire le capteur de corpus sur le PC fixe — capture en temps réel, le rendu
-      hors-ligne étant inaccessible (moteur câblé sur `Tone.Master`).
-- [ ] Générer un premier corpus de quelques heures et mesurer son poids.
-- [ ] Construire le conteneur diffuseur (FFmpeg), piloté par le `.env` : plateformes
-      activables et clés dedans. Refus explicite si une clé manque.
-- [ ] Décider sur quelle machine tourne le diffuseur (allumée en permanence, Docker requis).
-- [ ] Essai sur une chaîne non listée avant toute diffusion publique.
+Fait :
+- [x] Licences des échantillons tracées — piano (Salamander/Alexander Holm) et vent
+      (Mark DiAngelo) en CC BY 3.0, crédit à porter en description ; jungle en domaine
+      public ; orage en royalty-free. Aucun remplacement nécessaire.
+- [x] `?autoplay=1` sur la page, pour démarrer le moteur sans clic.
+- [x] Conteneur de capture du corpus (navigateur + écran virtuel + serveur audio + ffmpeg),
+      avec refus de capturer si le niveau mesuré est du silence, et élagage des segments
+      inexploitables.
+- [x] Conteneur de diffusion depuis le corpus, piloté par le `.env` : plateformes activables,
+      clés dedans, refus explicite nommant ce qui manque.
+- [x] Conteneur de diffusion en direct avec repli sur le corpus.
+- [x] Chaîne validée sur un serveur RTMP local : H.264 720p30 + AAC 44,1 kHz stéréo,
+      images-clés à 2,00 s (limite Twitch), son présent à -24 dBFS.
+
+Reste :
+- [ ] **Décision de Chris** — sur quelle machine tourne le direct (Docker, allumée en
+      permanence). Le corpus pèse ~400 Mo par heure.
+- [ ] **Décision de Chris** — l'image de fond, et vérifier sa licence.
+      `corpus/fond-test.png` n'est qu'une mire de validation.
+- [ ] Générer un vrai corpus de secours de quelques heures (temps réel : 1 h = 1 h).
 - [ ] Activer le direct sur YouTube (24 h de délai la première fois) — à anticiper.
+- [ ] Essai sur une chaîne non listée avant toute diffusion publique.
+- [ ] Porter les crédits (`CREDITS.md`) dans la description de la chaîne.
 
 ## À faire (priorité)
 - [ ] Trancher le sort du README : conserver celui de l'amont, ou passer à la charte Echo

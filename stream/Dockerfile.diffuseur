@@ -1,0 +1,14 @@
+# Diffuseur du corpus : un seul ffmpeg, volontairement minimal.
+FROM alpine:3.20
+
+RUN apk add --no-cache ffmpeg bash coreutils findutils
+
+COPY base.sh commun.sh /usr/local/lib/lofi/
+COPY diffuseur/diffuser.sh /usr/local/bin/diffuser.sh
+RUN chmod +x /usr/local/bin/diffuser.sh
+
+ENV CORPUS_DIR=/corpus \
+    STREAM_IMAGE=/corpus/fond.png
+
+WORKDIR /corpus
+CMD ["/usr/local/bin/diffuser.sh"]

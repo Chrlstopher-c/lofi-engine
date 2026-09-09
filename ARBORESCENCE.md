@@ -86,6 +86,20 @@ lofi-engine/
 │   ├── assets/background/             fonds d'écran (webp)
 │   └── LofiEngine.png                 logo
 │
+├── stream/                            diffusion en continu (docs/STREAM-24-7.md)
+│   ├── Dockerfile.navigateur          image chromium + écran virtuel + audio + ffmpeg
+│   ├── Dockerfile.diffuseur           image ffmpeg seul, pour le mode sans navigateur
+│   ├── base.sh                        journalisation, partagée par tous les scripts
+│   ├── commun.sh                      config des plateformes, sortie RTMP, playlist
+│   ├── navigateur.sh                  écran virtuel, puits audio, pilotage du navigateur
+│   ├── direct/direct.sh               diffusion en direct + repli sur le corpus
+│   ├── generateur/capturer.sh         enregistre le corpus en FLAC
+│   └── diffuseur/diffuser.sh          lit le corpus en boucle, sans navigateur
+│
+├── corpus/                            audio capté + image de fond (ignoré par git)
+│
+├── CREDITS.md                         origine et licence de chaque échantillon audio
+│
 ├── scripts/
 │   └── optimize-backgrounds.sh        compression des fonds d'écran
 └── screenshots/                       captures utilisées par le README amont
