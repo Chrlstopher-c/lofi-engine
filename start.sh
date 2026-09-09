@@ -6,6 +6,8 @@ cd "$(dirname "$0")"
 
 # shellcheck source=docker-cli.sh
 source ./docker-cli.sh
+# shellcheck source=controle.sh
+source ./controle.sh
 
 LOG_DIR="./logs"
 LOG="$LOG_DIR/web.log"
@@ -42,6 +44,12 @@ for ((i = 1; i <= DELAI; i++)); do
     echo "[START] LoFi Engine est en marche."
     echo "        local  : http://localhost:$PORT"
     [ -n "${IP:-}" ] && echo "        réseau : http://$IP:$PORT"
+    if demarrer_controle; then
+      echo "[START] Centre de contrôle : http://localhost:$CONTROLE_PORT"
+      [ -n "${IP:-}" ] && echo "                            http://$IP:$CONTROLE_PORT"
+    else
+      echoerr "Le site tourne, mais le centre de contrôle n'a pas démarré."
+    fi
     echo "        arrêt  : ./stop.sh"
     exit 0
   fi

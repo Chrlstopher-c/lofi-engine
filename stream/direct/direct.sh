@@ -166,13 +166,9 @@ surveiller() {
 construire_url() {
   if [ -n "$LOFI_URL" ]; then echo "$LOFI_URL"; return 0; fi
   if ! vrai "$STREAM_SCENE"; then echo "${LOFI_BASE}/?autoplay=1"; return 0; fi
-  local q="titre=$(encoder_url "${STREAM_TITRE:-}")"
-  q+="&sousTitre=$(encoder_url "${STREAM_SOUS_TITRE:-}")"
-  q+="&credits=$(encoder_url "${STREAM_CREDITS:-}")"
-  q+="&fond=$(encoder_url "/fonds/${STREAM_FOND:-}")"
-  q+="&horloge=${STREAM_HORLOGE:-true}&accords=${STREAM_ACCORDS:-true}"
-  q+="&theme=${STREAM_THEME:-nuit}"
-  echo "${LOFI_BASE}/scene/scene.html?${q}"
+  # Aucun paramètre : la scène se définit dans scene.json, écrit par le centre de contrôle.
+  # Passer des valeurs ici recréerait une seconde source de vérité qui l'écraserait.
+  echo "${LOFI_BASE}/scene/scene.html"
 }
 
 valider_plateformes

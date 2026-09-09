@@ -81,8 +81,3 @@ compter_corpus() {
 verifier_image_fixe() {
   [ -f "$STREAM_IMAGE" ] || echec "image de fond introuvable : $STREAM_IMAGE (variable STREAM_IMAGE)"
 }
-
-# Encode une valeur pour la passer en paramètre d'URL sans casser la requête.
-encoder_url() {
-  printf '%s' "$1" | od -An -tx1 -v | tr -d '\n ' | sed 's/\(..\)/%\1/g'
-}

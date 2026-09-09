@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "theme": "nuit",
+  "fond": {
+    "fichier": "",
+    "ajustement": "cover",
+    "mouvement": true,
+    "voile": 0.55,
+    "vignettage": true
+  },
+  "calques": [
+    {
+      "id": "titre",
+      "nom": "Titre",
+      "type": "texte",
+      "visible": true,
+      "ancre": "bas-gauche",
+      "x": 4.5,
+      "y": 14,
+      "taille": 4.2,
+      "opacite": 1,
+      "couleur": "#f2f4f8",
+      "texte": "LoFi Engine",
+      "graisse": "legere"
+    },
+    {
+      "id": "sous-titre",
+      "nom": "Sous-titre",
+      "type": "texte",
+      "visible": true,
+      "ancre": "bas-gauche",
+      "x": 4.5,
+      "y": 9,
+      "taille": 1.5,
+      "opacite": 0.78,
+      "couleur": "#d5dae4",
+      "texte": "Musique lofi générée en direct, note par note",
+      "graisse": "normale"
+    },
+    {
+      "id": "horloge",
+      "nom": "Horloge",
+      "type": "horloge",
+      "visible": true,
+      "ancre": "haut-droite",
+      "x": 4.5,
+      "y": 6,
+      "taille": 3.2,
+      "opacite": 0.9,
+      "couleur": "#e8ebf2",
+      "date": true
+    },
+    {
+      "id": "accords",
+      "nom": "Tonalité et accords",
+      "type": "accords",
+      "visible": true,
+      "ancre": "bas-droite",
+      "x": 4.5,
+      "y": 9,
+      "taille": 1.1,
+      "opacite": 1,
+      "couleur": "#e8ebf2",
+      "cadre": true
+    }
+  ]
+}

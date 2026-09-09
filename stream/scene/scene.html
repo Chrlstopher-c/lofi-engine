@@ -6,13 +6,14 @@
   <title>LoFi Engine — scène</title>
   <script src="scene-font.js"></script>
   <script src="scene-config.js"></script>
+  <script src="scene-calques.js"></script>
   <style>
     /* ---- Jetons : un thème = une teinte de voile, une couleur d'accent, une couleur de texte ---- */
     :root {
       --teinte: 12 14 20;
       --texte: 246 242 234;
       --accent: 224 198 150;
-      --marge: 4.5vw;
+      --voile: 0.55;
       --police-titre: "Scene Display", "Source Serif 4 Display", "Iowan Old Style", Georgia, serif;
       --police-texte: "Scene Texte", "Source Serif 4", "Iowan Old Style", Georgia, serif;
       --ombre-texte: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 30px rgb(0 0 0 / 0.25);
@@ -35,15 +36,14 @@
     }
     [hidden] { display: none !important; }
 
-    /* ---- Couches : chacune couvre l'écran, empilée par z-index, sans capter la souris ---- */
+    /* ---- Couches fixes : fond, voile, moteur, puis le conteneur des calques ---- */
     .couche { position: fixed; inset: 0; pointer-events: none; }
     .couche-fond { z-index: 0; }
     .couche-voile { z-index: 1; }
     .couche-moteur { z-index: 2; }
-    .couche-texte { z-index: 3; }
-    .couche-info { z-index: 4; }
+    .couche-calques { z-index: 3; }
 
-    /* Fond : image en cover, légèrement agrandie pour que la dérive n'expose jamais un bord */
+    /* Fond : image légèrement agrandie pour que la dérive n'expose jamais un bord */
     .couche-fond {
       background-color: rgb(var(--teinte));
       background-position: center;
@@ -51,7 +51,9 @@
       background-repeat: no-repeat;
       transform: scale(1.06);
       will-change: transform;
+      transition: opacity 600ms ease;
     }
+    .couche-fond.contain { background-size: contain; }
     @keyframes derive {
       from { transform: scale(1.06) translate3d(0, 0, 0); }
       to   { transform: scale(1.06) translate3d(-1.2%, -0.8%); }
@@ -59,12 +61,20 @@
     .couche-fond.derive { animation: derive 120s ease-in-out infinite alternate; }
     @media (prefers-reduced-motion: reduce) { .couche-fond.derive { animation: none; } }
 
-    /* Voile : assombrissement vers le bas (là où vit le texte) et vignettage aux bords */
+    /* Voile : assombrissement vers le bas, dosé par --voile ; vignettage aux bords en option */
     .couche-voile {
+      background: linear-gradient(to top,
+        rgb(var(--teinte) / calc(var(--voile) * 1.4)) 0%,
+        rgb(var(--teinte) / calc(var(--voile) * 0.5)) 42%,
+        rgb(var(--teinte) / calc(var(--voile) * 0.2)) 100%);
+    }
+    .couche-voile.vignette {
       background:
         radial-gradient(ellipse at center, transparent 50%, rgb(var(--teinte) / 0.55) 100%),
-        linear-gradient(to top, rgb(var(--teinte) / 0.78) 0%, rgb(var(--teinte) / 0.28) 42%,
-          rgb(var(--teinte) / 0.12) 100%);
+        linear-gradient(to top,
+          rgb(var(--teinte) / calc(var(--voile) * 1.4)) 0%,
+          rgb(var(--teinte) / calc(var(--voile) * 0.5)) 42%,
+          rgb(var(--teinte) / calc(var(--voile) * 0.2)) 100%);
     }
 
     /* Moteur : plein cadre, invisible mais jamais display:none — il produit le son.
@@ -72,132 +82,107 @@
     .couche-moteur { width: 100%; height: 100%; border: 0; opacity: 0; background: transparent; }
     body.moteur-visible .couche-moteur { opacity: 1; }
 
-    /* ---- Couche texte : bloc bas-gauche ---- */
-    .couche-texte { display: flex; flex-direction: column; justify-content: flex-end; padding: var(--marge); }
-    .titre {
-      margin: 0;
-      max-width: 58vw;
-      font-family: var(--police-titre);
-      font-weight: 300;
-      font-size: 3.7vw;
-      line-height: 1.05;
-      letter-spacing: -0.012em;
-      text-shadow: var(--ombre-texte);
-    }
-    .sous-titre {
-      margin: 0.9vw 0 0;
-      max-width: 50vw;
-      font-size: 1.38vw;
-      color: rgb(var(--texte) / 0.8);
-      text-shadow: var(--ombre-texte);
-    }
-    .credits {
-      margin: 1.6vw 0 0;
-      max-width: 52vw;
-      font-size: 0.98vw;
-      line-height: 1.5;
-      color: rgb(var(--texte) / 0.5);
-      text-shadow: var(--ombre-texte);
-    }
-
-    /* ---- Couche info : horloge haut-droite, accords bas-droite ---- */
-    .horloge {
+    /* ---- Calques : positionnés en absolu par ancre, l'ordre du DOM fait l'empilement ---- */
+    .calque {
       position: absolute;
-      top: var(--marge);
-      right: var(--marge);
-      text-align: right;
+      --c: var(--texte);
+      color: rgb(var(--c));
       text-shadow: var(--ombre-texte);
+      transition: opacity 400ms ease;
     }
+    .ancre-haut-gauche  { text-align: left; }
+    .ancre-haut-centre  { text-align: center; transform: translateX(-50%); }
+    .ancre-haut-droite  { text-align: right; }
+    .ancre-centre       { text-align: center; transform: translate(-50%, -50%); }
+    .ancre-bas-gauche   { text-align: left; }
+    .ancre-bas-centre   { text-align: center; transform: translateX(-50%); }
+    .ancre-bas-droite   { text-align: right; }
+
+    /* Texte : la taille du calque est la taille de police */
+    .calque-texte {
+      margin: 0;
+      max-width: 70vw;
+      line-height: 1.12;
+      white-space: pre-line;
+      letter-spacing: -0.008em;
+    }
+    .calque-texte.graisse-legere { font-family: var(--police-titre); font-weight: 300; }
+    .calque-texte.graisse-normale { font-family: var(--police-texte); font-weight: 400; line-height: 1.35; }
+
+    /* Horloge : l'heure à la taille du calque, la date au tiers */
+    .calque-horloge { line-height: 1; }
     .horloge-heure {
       display: block;
       font-family: var(--police-titre);
       font-weight: 300;
-      font-size: 2.9vw;
-      line-height: 1;
       letter-spacing: 0.01em;
       font-variant-numeric: tabular-nums;
     }
     .horloge-date {
       display: block;
-      margin-top: 0.45vw;
-      font-size: 1.05vw;
-      color: rgb(var(--texte) / 0.62);
+      margin-top: 0.16em;
+      font-size: 0.34em;
+      line-height: 1.3;
+      color: rgb(var(--c) / 0.66);
     }
     .horloge-date::first-letter { text-transform: uppercase; }
 
-    .accords {
-      position: absolute;
-      right: var(--marge);
-      bottom: var(--marge);
-      padding: 1.05vw 1.4vw 1.15vw;
-      border: 1px solid rgb(var(--texte) / 0.09);
-      border-radius: 1vw;
+    /* Accords : composé en em, la taille du calque en est l'unité */
+    .calque-accords { line-height: 1; text-align: left; }
+    .calque-accords.cadre {
+      padding: 0.95em 1.3em 1.05em;
+      border: 1px solid rgb(var(--c) / 0.09);
+      border-radius: 0.9em;
       background: rgb(var(--teinte) / 0.42);
       box-shadow: 0 12px 40px rgb(0 0 0 / 0.22);
     }
-    .etiquette {
+    .accords-etiquette {
       display: block;
-      margin-bottom: 0.55vw;
-      font-size: 0.78vw;
+      margin-bottom: 0.5em;
+      font-size: 0.7em;
       letter-spacing: 0.16em;
       text-transform: uppercase;
-      color: rgb(var(--texte) / 0.5);
+      color: rgb(var(--c) / 0.5);
     }
-    .accords-ligne { display: flex; align-items: baseline; gap: 1.2vw; }
+    .accords-ligne { display: flex; align-items: baseline; gap: 1.1em; }
     .accords-cle {
       font-family: var(--police-titre);
       font-weight: 300;
-      font-size: 2.5vw;
-      line-height: 1;
+      font-size: 2.3em;
       color: rgb(var(--accent));
-      min-width: 2.2vw;
+      min-width: 0.9em;
     }
     .accords-liste {
       display: flex;
-      gap: 0.95vw;
+      gap: 0.85em;
       margin: 0;
-      padding: 0 0 0 1.2vw;
+      padding: 0 0 0 1.1em;
       list-style: none;
-      border-left: 1px solid rgb(var(--texte) / 0.14);
-      font-size: 1.12vw;
+      border-left: 1px solid rgb(var(--c) / 0.14);
       font-variant-numeric: tabular-nums;
     }
     .accords-liste li {
-      min-width: 1.4vw;
+      min-width: 1.3em;
       text-align: center;
-      color: rgb(var(--texte) / 0.36);
+      color: rgb(var(--c) / 0.36);
       transition: color 260ms ease;
     }
     .accords-liste li.actif { color: rgb(var(--accent)); }
+
+    /* Image : la taille du calque est sa largeur */
+    .calque-image { display: block; height: auto; max-height: 95vh; object-fit: contain; }
   </style>
 </head>
 <body>
   <div id="fond" class="couche couche-fond"></div>
-  <div class="couche couche-voile"></div>
+  <div id="voile" class="couche couche-voile vignette"></div>
 
   <!-- Le moteur : c'est lui qui joue. Même origine que la scène, son DOM est lisible. -->
-  <iframe id="moteur" class="couche couche-moteur" src="/?autoplay=1" allow="autoplay"
+  <iframe id="moteur" class="couche couche-moteur" data-src="/?autoplay=1" allow="autoplay"
     title="LoFi Engine"></iframe>
 
-  <section class="couche couche-texte">
-    <h1 id="titre" class="titre"></h1>
-    <p id="sousTitre" class="sous-titre"></p>
-    <p id="credits" class="credits"></p>
-  </section>
-
-  <section class="couche couche-info">
-    <div id="horloge" class="horloge" hidden>
-      <span id="horlogeHeure" class="horloge-heure"></span>
-      <span id="horlogeDate" class="horloge-date"></span>
-    </div>
-    <div id="accords" class="accords" hidden>
-      <span class="etiquette">Tonalité</span>
-      <div class="accords-ligne">
-        <span id="accordsCle" class="accords-cle"></span>
-        <ol id="accordsListe" class="accords-liste"></ol>
-      </div>
-    </div>
-  </section>
+  <!-- Les calques sont construits par scene.js depuis le fichier de scène. -->
+  <section id="calques" class="couche couche-calques"></section>
 
   <script src="scene.js"></script>
 </body>

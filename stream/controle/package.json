@@ -1,0 +1,19 @@
+{
+  "name": "lofi-controle",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run serveur.ts",
+    "build-ui": "NODE_ENV=production bun build ui/main.tsx --outdir ui/dist --minify && bun run ui/construire-index.ts"
+  },
+  "dependencies": {
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19"
+  }
+}

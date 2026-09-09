@@ -6,6 +6,11 @@ cd "$(dirname "$0")"
 
 # shellcheck source=docker-cli.sh
 source ./docker-cli.sh
+# shellcheck source=controle.sh
+source ./controle.sh
+
+# Le centre de contrôle tourne hors conteneur : il s'arrête d'abord.
+arreter_controle
 
 if ! detecter_docker; then
   echo "[STOP] Aucun client Docker utilisable — rien à arrêter." >&2

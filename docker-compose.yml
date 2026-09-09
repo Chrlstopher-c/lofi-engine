@@ -70,15 +70,9 @@ services:
       STREAM_FPS: "${STREAM_FPS:-30}"
       STREAM_VIDEO_BITRATE: "${STREAM_VIDEO_BITRATE:-1500k}"
       STREAM_AUDIO_BITRATE: "${STREAM_AUDIO_BITRATE:-160k}"
-      # Scène (mode direct uniquement)
+      # Scène (mode direct uniquement) — le détail vit dans corpus/scene.json,
+      # écrit par le centre de contrôle ; ici on ne dit que si la scène est active.
       STREAM_SCENE: "${STREAM_SCENE:-true}"
-      STREAM_TITRE: "${STREAM_TITRE:-}"
-      STREAM_SOUS_TITRE: "${STREAM_SOUS_TITRE:-}"
-      STREAM_CREDITS: "${STREAM_CREDITS:-}"
-      STREAM_FOND: "${STREAM_FOND:-}"
-      STREAM_HORLOGE: "${STREAM_HORLOGE:-true}"
-      STREAM_ACCORDS: "${STREAM_ACCORDS:-true}"
-      STREAM_THEME: "${STREAM_THEME:-nuit}"
       # sinon l'horloge de la scène affiche l'heure UTC du conteneur
       TZ: "${TZ:-Europe/Paris}"
 
