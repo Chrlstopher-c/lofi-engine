@@ -138,9 +138,21 @@ lofi-engine/
 │   │   ├── archivage.ts               suppression automatique, non rétroactive
 │   │   └── routes.ts                  bord HTTP du domaine Twitch
 │   └── ui/                            interface React (Scène · Diffusion · Twitch)
-│       ├── App.tsx                    en-tête, onglets, bandeau d'état
-│       ├── styles.css                 thème sombre, jetons sémantiques
+│       ├── App.tsx                    en-tête, onglets, bascule de thème, état
+│       ├── styles.css                 assemble les feuilles de styles/
+│       ├── styles/socle.css           jetons, thèmes clair et sombre, échelles
+│       ├── styles/coquille.css        en-tête, onglets, panneaux, grilles de page
+│       ├── styles/controles.css       champs, curseurs, bascules, sélecteurs
+│       ├── styles/boutons.css         boutons, badges, barres d'outils
+│       ├── styles/retours.css         avis, dialogues, états vides, mesures
+│       ├── styles/scene.css           galerie, canevas, surcouches d'édition
+│       ├── styles/scene-calques.css   pile de calques, éditeur, compositions
+│       ├── styles/diffusion.css       pilotage, destinations, journal
+│       ├── styles/twitch.css          chaîne, courbe, rediffusions, chat
+│       ├── styles/heritage.css        anciennes classes, à vider au fil du portage
 │       ├── commun/                    API, formats, éditeur, composants partagés
+│       ├── commun/Icones.tsx          jeu d'icônes en sprite SVG
+│       ├── commun/useTheme.ts         thème clair ou sombre, retenu localement
 │       ├── scene/                     fond, calques, aperçu, composition
 │       ├── profils/                   enregistrer et charger une scène
 │       ├── diffusion/                 plateformes, encodage, pilotage, journal

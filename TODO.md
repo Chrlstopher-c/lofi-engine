@@ -2,9 +2,13 @@
 *Dernière mise à jour : 2026-09-09*
 
 ## En cours
-- [ ] **Porter le nouveau dessin du centre de contrôle** — maquette validée dans
-      `maquettes/centre-controle-v2.html` : thèmes clair et sombre, échelles typographiques
-      et d'espacement déclarées, calques masquables et verrouillables, aperçu manipulable.
+- [x] **Socle du nouveau dessin** — jetons, thèmes clair et sombre, échelles, briques
+      communes. Poussé et vérifié dans un navigateur.
+- [ ] **Porter les panneaux sur ce socle** — `ui/scene/`, puis `ui/diffusion/` et
+      `ui/twitch/`. Référence : `maquettes/centre-controle-v2.html`. Le détail de la reprise
+      est dans `STATE.md`, section « Reprise immédiate ».
+- [ ] **Vider `ui/styles/heritage.css`** au fur et à mesure : il ne porte que les anciennes
+      classes des panneaux pas encore portés.
 
 ## À faire
 - [ ] **Afficher les accords quand ffmpeg compose** — c'est le seul calque qui force encore
@@ -13,6 +17,10 @@
       musical écrive l'accord courant dans un fichier du même genre.
 - [ ] **Exercer VAAPI sur du vrai matériel Intel** — le profil n'a jamais encodé une image sur
       une puce Intel, faute d'en avoir une ici. À faire chez quelqu'un qui en a une.
+- [ ] **Passer la diffusion à 30 images par seconde** — le `.env` est encore à 25, hérité de
+      l'époque où le processeur encodait. La carte tient les 30 sans effort. Décision de Chris.
+- [ ] **Migrer l'installation de l'ami en conteneur LXC** — une VM Proxmox ne voit pas la puce
+      vidéo du NUC, donc son encodage restera logiciel tant qu'il tourne en VM.
 
 ## Stream 24/7 — en service
 **Diffuse réellement sur Twitch.** Mode d'emploi et mesures : `docs/STREAM-24-7.md`.

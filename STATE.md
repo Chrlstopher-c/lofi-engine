@@ -102,6 +102,34 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
   L'unité systemd pointe vers ce chemin, plus vers `/home/pi`.
 - Poids par visiteur : 12,5 Mo transférés et 45 requêtes au premier chargement.
 
+## Reprise immédiate — portage du dessin du centre de contrôle
+*Chantier en cours au 2026-09-09 21 h. Cette section disparaît quand il est fini.*
+
+Le **socle est posé et poussé** : jetons de couleur, thèmes clair et sombre, échelles
+typographiques et d'espacement, hauteurs de contrôle, briques communes (`ui/styles/`,
+`ui/commun/`, `App.tsx`). Vérifié dans un navigateur : zéro erreur en console, le basculeur
+de thème fonctionne dans les deux sens et retient le choix.
+
+**Deux agents portaient les panneaux** au moment de la coupure : l'un sur `ui/scene/`,
+l'autre sur `ui/diffusion/` et `ui/twitch/`. Consigne qui leur a été donnée, à maintenir si
+on les relance : **ils n'écrivent aucune ligne de CSS** — un seul propriétaire du système
+visuel, sinon les collisions sont ingérables — et **aucun d'eux ne valide son travail**,
+c'est le rôle du parent.
+
+Ce qu'il reste, dans l'ordre :
+1. Récupérer ce que les deux agents ont produit (ou relancer le portage panneau par panneau).
+2. Construire l'interface : `cd stream/controle && bun run build-ui`.
+3. **Vérifier par le chemin réel** : ouvrir `http://127.0.0.1:4708/`, zéro erreur en console,
+   les trois onglets, le basculeur de thème, et une action réelle par panneau.
+4. Retirer de `ui/styles/heritage.css` les anciennes classes devenues inutiles.
+5. Commit, push, et supprimer cette section.
+
+À savoir : `heritage.css` porte les anciennes classes encore employées par les panneaux non
+portés, réécrites en jetons. Trois noms sont entrés en collision avec la maquette et ont été
+arbitrés — `.composition` reste la surcouche d'édition (la carte enregistrée est
+`.composition-carte`), `.etiquette` reste l'ancien badge (celle du canevas est
+`.etiquette-selection`), et `.vignette` a pris le dessin de la maquette.
+
 ## Prochaines étapes
 1. **YouTube au même niveau que Twitch** — le chantier est décrit dans `TODO.md`, avec ce qui
    diffère réellement : autorisation Google plus lourde, obligation de créer une diffusion
@@ -109,9 +137,8 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
    du chat dès le départ.
 2. **Enregistrer un vrai corpus de secours** — il ne fait qu'un fichier de 40 s, donc le repli
    n'a presque rien à jouer si le navigateur tombe. Une à deux heures suffisent, en temps réel.
-3. **Porter le nouveau dessin du centre de contrôle** — les maquettes vivent dans
-   `maquettes/`, la v2 en thème clair et sombre.
-4. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
+   C'est aujourd'hui la seule faiblesse réelle du montage.
+3. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
 
 ## Points en suspens
 - Le README n'est pas tranché.
