@@ -11,6 +11,9 @@ FICHIER_SCENE="${FICHIER_SCENE:-${CORPUS_DIR:-/corpus}/scene.json}"
 ECRAN_MOTEUR="${ECRAN_MOTEUR:-360x240x24}"   # le navigateur ne sert plus qu'à jouer, pas à montrer
 ARGS_COMPOSITION=()
 EMPREINTE_SCENE=""
+EMPREINTE_ATTENTE=""      # empreinte vue au tour précédent, pas encore appliquée
+APAISEMENT=3              # pulsations pendant lesquelles la scène doit rester stable
+COMPTE_APAISEMENT=0
 
 JOURS_FR=(dimanche lundi mardi mercredi jeudi vendredi samedi)
 MOIS_FR=(janvier février mars avril mai juin juillet août septembre octobre novembre décembre)
@@ -74,7 +77,23 @@ choisir_mode_scene() {
   return 0
 }
 
+# Recomposer coupe le flux le temps que ffmpeg reparte, et une plateforme met parfois
+# plusieurs minutes à re-signaler le direct. Éditer une scène produit plusieurs
+# enregistrements d'affilée : on attend qu'elle se taise avant de payer ce prix une fois.
 scene_modifiee() {
   [ "$MODE_SCENE" = "ffmpeg" ] || return 1
-  [ "$(empreinte_scene)" != "$EMPREINTE_SCENE" ]
+  local vue
+  vue=$(empreinte_scene)
+  if [ "$vue" = "$EMPREINTE_SCENE" ]; then
+    EMPREINTE_ATTENTE=""
+    COMPTE_APAISEMENT=0
+    return 1
+  fi
+  if [ "$vue" != "$EMPREINTE_ATTENTE" ]; then
+    EMPREINTE_ATTENTE="$vue"      # elle bouge encore : on redémarre le compte à rebours
+    COMPTE_APAISEMENT=0
+    return 1
+  fi
+  COMPTE_APAISEMENT=$((COMPTE_APAISEMENT + 1))
+  [ "$COMPTE_APAISEMENT" -ge "$APAISEMENT" ]
 }

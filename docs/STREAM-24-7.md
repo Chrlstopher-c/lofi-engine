@@ -147,6 +147,11 @@ valeur naît dans le moteur musical. Mieux vaut une scène complète et chère q
 légère et amputée. `STREAM_COMPOSITEUR=ffmpeg` force la composition en acceptant la perte,
 `navigateur` revient à l'ancien comportement.
 
+Changer la scène pendant que ça diffuse relance ffmpeg : quelques secondes de coupure, et
+une plateforme met parfois plusieurs minutes à re-signaler le direct. Comme éditer produit
+plusieurs enregistrements d'affilée, la diffusion **attend que la scène se taise** — trois
+tours de veille, environ six secondes — avant de payer ce prix une seule fois.
+
 ### Ce que ça change
 
 | | processeur | images/s |
