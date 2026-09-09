@@ -46,6 +46,13 @@ attendre_controle() {
 
 demarrer_controle() {
   mkdir -p ./logs
+  # Un serveur déjà en marche tourne sur le code chargé à SON démarrage : après une mise à
+  # jour, il continue d'exécuter l'ancienne version sans rien signaler. Le remplacer est le
+  # seul moyen que ./start.sh applique vraiment ce qui vient d'être installé.
+  if [ -f "$CONTROLE_PID" ] && kill -0 "$(cat "$CONTROLE_PID" 2>/dev/null)" 2>/dev/null; then
+    echo "[CONTRÔLE] Un centre de contrôle tourne déjà — remplacement par la version installée"
+    arreter_controle
+  fi
   : > "$CONTROLE_LOG"
   if ! command -v bun >/dev/null 2>&1; then
     expliquer_absence_bun
