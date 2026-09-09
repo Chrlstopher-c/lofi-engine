@@ -43,14 +43,28 @@ ordinaire :
 Il écoute sur `127.0.0.1` par défaut — jamais exposé directement, toujours derrière le tunnel
 Cloudflare.
 
+## Comment on le lance
+
+En local, tout passe par **Docker** : `./start.sh` construit l'image et démarre le conteneur.
+Rien n'est requis sur la machine hôte à part Docker lui-même — ni Bun, ni Node, ni les
+dépendances. Un clone frais suffit.
+
+L'image est construite en deux étapes. La première installe les dépendances et fait tourner
+Vite ; la seconde ne garde que le serveur et le site construit. Les outils de build ne se
+retrouvent pas dans l'image finale.
+
+Le conteneur écoute sur `0.0.0.0` et son port est publié sur toutes les interfaces : le site
+est joignable depuis n'importe quelle machine du réseau, pas seulement en localhost.
+
 ## Les deux environnements
 
-| | Local | Production (Pi) |
+| | Local (Docker) | Production (Pi) |
 |---|---|---|
-| Port | 4707 | 8794 |
-| Racine servie | `./dist` | le dossier du projet, à plat |
-| Lancement | `./start.sh` | service systemd `lofi-engine` |
-| Façade | aucune | tunnel Cloudflare → lofi.christophercouspeyre.com |
+| Port | 4707, publié sur toutes les interfaces | 8794, sur la boucle locale |
+| Racine servie | `/app/dist` dans le conteneur | le dossier du projet, à plat |
+| Lancement | `./start.sh` (Docker) | service systemd `lofi-engine` |
+| Façade | l'IP de la machine sur le réseau | tunnel Cloudflare → lofi.christophercouspeyre.com |
 
-Le build ne tourne **jamais** sur le Pi : il réclame près de 1,9 Go de mémoire, la machine n'en
-a pas la moitié de libre. `deploy-pi.sh` construit sur le PC et n'envoie que le résultat.
+La production tourne encore sans Docker, en service systemd direct : le Pi n'a pas la mémoire
+pour construire l'image sur place. `deploy-pi.sh` construit sur le PC et n'envoie que le
+résultat.
