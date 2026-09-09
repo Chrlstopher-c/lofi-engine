@@ -1,39 +1,77 @@
 /**
- * Statistiques de la chaîne : spectateurs, abonnés, durée, pic et moyenne, plus la courbe
- * des relevés. L'API Twitch ne garde aucun historique — celui-ci est échantillonné par le
- * centre de contrôle, une mesure par minute pendant la diffusion.
+ * Statistiques de la chaîne : spectateurs, abonnés, durée, pic et moyenne, puis la courbe des
+ * relevés. L'API Twitch ne garde aucun historique — celui-ci est échantillonné par le centre
+ * de contrôle pendant la diffusion.
  *
- * Une valeur que Twitch ne donne pas ne s'affiche pas : aucune case n'est remplie d'un zéro.
+ * Une valeur que Twitch ne donne pas s'affiche « — » : jamais un zéro de complaisance.
  */
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import type { StatistiquesTwitch } from "../../twitch/types.ts";
-import { Alerte, Bouton, Section } from "../commun/composants.tsx";
-import { dureeDepuis, messageErreur } from "../commun/format.ts";
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from "react";
+import type { PointSpectateurs, StatistiquesTwitch } from "../../twitch/types.ts";
+import { Alerte, BoutonIcone, Section } from "../commun/composants.tsx";
+import { messageErreur } from "../commun/format.ts";
 import { apiTwitch } from "./api-twitch.ts";
-import { nombreLisible } from "./format-twitch.ts";
+import { heureLisible, nombreLisible, segmentsDepuis } from "./format-twitch.ts";
 import { Courbe } from "./Courbe.tsx";
 
 const INTERVALLE_MS = 30_000;
 
-function Mesure({ libelle, valeur }: { libelle: string; valeur: string | null }): ReactNode {
-  if (valeur === null) return null;
+interface MesureProps { libelle: string; valeur: ReactNode; detail?: string; sens?: "live" | "ok"; }
+
+function Mesure({ libelle, valeur, detail, sens }: MesureProps): ReactNode {
   return (
-    <div className="mesure">
-      <span className="mesure-libelle">{libelle}</span>
-      <span className="mesure-valeur mono">{valeur}</span>
+    <div className={sens ? `mesure ${sens}` : "mesure"}>
+      <span className="l">{libelle}</span>
+      <span className="v">{valeur}</span>
+      {detail ? <span className="d">{detail}</span> : null}
     </div>
   );
 }
 
+function nombreOuTiret(valeur: number | null): ReactNode {
+  return valeur === null ? "—" : nombreLisible(valeur);
+}
+
+/** Durée du direct en cours, découpée pour que l'unité reste petite. */
+function Duree({ depuis }: { depuis: string | null }): ReactNode {
+  const segments = segmentsDepuis(depuis);
+  if (segments.length === 0) return <>—</>;
+  return (
+    <>
+      {segments.map((segment, rang) => (
+        <Fragment key={`${rang}-${segment.unite}`}>
+          {segment.valeur}{segment.unite ? <small>{segment.unite}</small> : null}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+function dernierReleve(points: PointSpectateurs[]): string {
+  const dernier = points[points.length - 1];
+  const heure = dernier ? heureLisible(dernier.instant) : "";
+  return heure ? `relevé ${heure}` : "";
+}
+
+function instantDuPic(points: PointSpectateurs[], pic: number | null): string {
+  if (pic === null) return "";
+  const trouve = points.find((point) => point.spectateurs === pic);
+  const heure = trouve ? heureLisible(trouve.instant) : "";
+  return heure ? `à ${heure}` : "";
+}
+
 function Mesures({ stats }: { stats: StatistiquesTwitch }): ReactNode {
-  const duree = stats.enDirect ? dureeDepuis(stats.depuis) : "";
+  const debut = stats.depuis ? heureLisible(stats.depuis) : "";
   return (
     <div className="mesures">
-      <Mesure libelle="Spectateurs" valeur={stats.spectateurs === null ? null : nombreLisible(stats.spectateurs)} />
-      <Mesure libelle="Abonnés" valeur={stats.abonnes === null ? null : nombreLisible(stats.abonnes)} />
-      <Mesure libelle="Durée du direct" valeur={duree.length > 0 ? duree : null} />
-      <Mesure libelle="Pic de la session" valeur={stats.pic === null ? null : nombreLisible(stats.pic)} />
-      <Mesure libelle="Moyenne des relevés" valeur={stats.moyenne === null ? null : nombreLisible(stats.moyenne)} />
+      <Mesure libelle="Spectateurs" valeur={nombreOuTiret(stats.spectateurs)}
+        detail={dernierReleve(stats.points)} sens={stats.enDirect ? "live" : undefined} />
+      <Mesure libelle="Pic de la session" valeur={nombreOuTiret(stats.pic)}
+        detail={instantDuPic(stats.points, stats.pic)} />
+      <Mesure libelle="Moyenne des relevés" valeur={nombreOuTiret(stats.moyenne)}
+        detail={stats.points.length > 0 ? `${stats.points.length} relevés` : ""} />
+      <Mesure libelle="Abonnés" valeur={nombreOuTiret(stats.abonnes)} />
+      <Mesure libelle="Durée du direct" valeur={<Duree depuis={stats.enDirect ? stats.depuis : null} />}
+        detail={stats.enDirect && debut ? `depuis ${debut}` : ""} />
     </div>
   );
 }
@@ -59,7 +97,7 @@ function useStatistiques(): Lecture {
   }, []);
 
   useEffect(() => {
-    void rafraichir();
+    void rafraichir(); // première lecture ; l'erreur éventuelle est déjà dans l'état
     const minuteur = window.setInterval(() => void rafraichir(), INTERVALLE_MS);
     return () => window.clearInterval(minuteur);
   }, [rafraichir]);
@@ -69,20 +107,26 @@ function useStatistiques(): Lecture {
 
 export function Statistiques(): ReactNode {
   const { stats, erreur, rafraichir, effacerErreur } = useStatistiques();
-  const actions = <Bouton petit variante="discret" onClick={() => void rafraichir()}>Actualiser</Bouton>;
+  const actions = (
+    <BoutonIcone nom="rafraichir" titre="Actualiser les statistiques" variante="discret" taille="sm"
+      onClick={() => void rafraichir()} />
+  );
   return (
-    <Section titre="Statistiques" actions={actions}>
+    <>
       <Alerte message={erreur} onFermer={effacerErreur} />
-      {stats === null ? <p className="discret chargement">Lecture des statistiques…</p> : null}
       {stats ? <Mesures stats={stats} /> : null}
-      {stats ? (
-        <>
-          <p className="sous-titre">
-            {stats.sessionEnCours ? "Spectateurs depuis le début du direct" : "Derniers relevés enregistrés"}
-          </p>
-          <Courbe points={stats.points} />
-        </>
-      ) : null}
-    </Section>
+      <Section titre="Audience" actions={actions}
+        compte={stats ? `${stats.points.length} relevés` : undefined}>
+        {stats === null ? <p className="chargement">Lecture des statistiques…</p> : null}
+        {stats ? (
+          <>
+            <p className="section-titre">
+              {stats.sessionEnCours ? "Spectateurs depuis le début du direct" : "Derniers relevés enregistrés"}
+            </p>
+            <Courbe points={stats.points} />
+          </>
+        ) : null}
+      </Section>
+    </>
   );
 }

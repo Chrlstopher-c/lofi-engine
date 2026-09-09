@@ -149,14 +149,62 @@ lofi-engine/
 │       ├── styles/scene-calques.css   pile de calques, éditeur, compositions
 │       ├── styles/diffusion.css       pilotage, destinations, journal
 │       ├── styles/twitch.css          chaîne, courbe, rediffusions, chat
-│       ├── styles/heritage.css        anciennes classes, à vider au fil du portage
-│       ├── commun/                    API, formats, éditeur, composants partagés
+│       ├── styles/heritage.css        anciennes classes encore employées
+│       ├── commun/api.ts              appels au serveur, types partagés
+│       ├── commun/composants.tsx      panneau, section, champ, bouton, badge
+│       ├── commun/BarreEtat.tsx       bandeau d'état en pied de page
 │       ├── commun/Icones.tsx          jeu d'icônes en sprite SVG
+│       ├── commun/format.ts           tailles, durées, dates en français
+│       ├── commun/useEditeur.ts       état d'édition et suivi des modifications
+│       ├── commun/useEtat.ts          état global du serveur, rafraîchi
 │       ├── commun/useTheme.ts         thème clair ou sombre, retenu localement
-│       ├── scene/                     fond, calques, aperçu, composition
-│       ├── profils/                   enregistrer et charger une scène
-│       ├── diffusion/                 plateformes, encodage, pilotage, journal
-│       └── twitch/                    compte, chaîne, chat, statistiques, archives
+│       ├── scene/PanneauScene.tsx     grille à trois colonnes de l'onglet Scène
+│       ├── scene/ColonneFond.tsx      choix du fond et ses réglages
+│       ├── scene/Galerie.tsx          vignettes des fonds, filtre, import
+│       ├── scene/ReglagesFond.tsx     ajustement, voile, vignettage, palette
+│       ├── scene/useFonds.ts          liste des médias, type déduit de l'extension
+│       ├── scene/ratiosImages.ts      proportions mesurées des images
+│       ├── scene/Apercu.tsx           cadre, surcouches, guides, zoom
+│       ├── scene/Canevas.tsx          rendu du cadre et de ses calques
+│       ├── scene/BarreCanevas.tsx     zoom, grille, aimantation, état du curseur
+│       ├── scene/BarreAlignement.tsx  aligner un calque sur le cadre
+│       ├── scene/CoucheComposition.tsx  zones cliquables, survol, glissement
+│       ├── scene/Poignees.tsx         poignées d'angle du calque choisi
+│       ├── scene/aimants.ts           repères du cadre, aimantation, alignement
+│       ├── scene/optionsCanevas.ts    réglages d'affichage du canevas
+│       ├── scene/apercuDirect.ts      rafraîchissement de l'aperçu en direct
+│       ├── scene/ListeCalques.tsx     pile des calques, réordonnancement
+│       ├── scene/RangeeCalque.tsx     une ligne : œil, verrou, nom, outils
+│       ├── scene/EditeurCalque.tsx    édition du calque choisi
+│       ├── scene/ChampsCalque.tsx     champs propres à chaque type de calque
+│       ├── scene/calques.ts           types, icônes, création, déplacement
+│       ├── scene/etatCalques.ts       actions sur la pile, verrous côté client
+│       ├── scene/composition.ts       géométrie d'un calque dans le cadre
+│       ├── scene/Compositions.tsx     scènes enregistrées, chargement
+│       ├── profils/PanneauProfils.tsx  ancien panneau, plus importé
+│       ├── profils/useProfils.ts      lecture et écriture des profils
+│       ├── diffusion/PanneauDiffusion.tsx  grille de l'onglet Diffusion
+│       ├── diffusion/Pilotage.tsx     démarrer, arrêter, durée à l'antenne
+│       ├── diffusion/Services.tsx     générateur, corpus de repli, encodage
+│       ├── diffusion/Destinations.tsx liste des plateformes configurées
+│       ├── diffusion/Plateforme.tsx   une destination : logo, bascule, clé
+│       ├── diffusion/Encodage.tsx     résolution, images par seconde, débits
+│       ├── diffusion/Journal.tsx      sorties du conteneur, relecture
+│       ├── diffusion/format-diffusion.ts  durées et horloge
+│       ├── twitch/PanneauTwitch.tsx   grille de l'onglet Twitch
+│       ├── twitch/Compte.tsx          autorisation par code d'appareil
+│       ├── twitch/Entete.tsx          compte connecté, portées, clé, déconnexion
+│       ├── twitch/Chaine.tsx          titre, catégorie, état constaté
+│       ├── twitch/Direct.tsx          état du direct lu sur la chaîne
+│       ├── twitch/Statistiques.tsx    spectateurs, pic, moyenne, abonnés
+│       ├── twitch/Courbe.tsx          spectateurs au fil du direct
+│       ├── twitch/Chat.tsx            messages en direct, envoi
+│       ├── twitch/Rediffusions.tsx    archives publiées, suppression
+│       ├── twitch/Archivage.tsx       suppression automatique, non rétroactive
+│       ├── twitch/api-twitch.ts       appels au bord HTTP du domaine Twitch
+│       ├── twitch/useTwitch.ts        état du compte et de la chaîne
+│       ├── twitch/useChat.ts          flux de messages, tampon borné
+│       └── twitch/format-twitch.ts    durées, nombres, dates du domaine
 │
 ├── outils/
 │   └── telecharger-fonds.ts           récupère des boucles depuis l'API Pixabay

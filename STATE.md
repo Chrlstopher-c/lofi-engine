@@ -102,33 +102,33 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
   L'unité systemd pointe vers ce chemin, plus vers `/home/pi`.
 - Poids par visiteur : 12,5 Mo transférés et 45 requêtes au premier chargement.
 
-## Reprise immédiate — portage du dessin du centre de contrôle
-*Chantier en cours au 2026-09-09 21 h. Cette section disparaît quand il est fini.*
+## Dessin du centre de contrôle — porté
 
-Le **socle est posé et poussé** : jetons de couleur, thèmes clair et sombre, échelles
-typographiques et d'espacement, hauteurs de contrôle, briques communes (`ui/styles/`,
-`ui/commun/`, `App.tsx`). Vérifié dans un navigateur : zéro erreur en console, le basculeur
-de thème fonctionne dans les deux sens et retient le choix.
+Les trois onglets sont sur le nouveau système visuel : jetons de couleur, thèmes clair et
+sombre, échelles typographiques et d'espacement, hauteurs de contrôle, briques communes
+(`ui/styles/`, `ui/commun/`, `App.tsx`). Le portage des panneaux a été fait par deux agents,
+sous une règle qui reste valable si on relance ce genre de chantier : **ils n'écrivent aucune
+ligne de CSS** — un seul propriétaire du système visuel — et **aucun d'eux ne valide son
+travail**, c'est le rôle du parent.
 
-**Deux agents portaient les panneaux** au moment de la coupure : l'un sur `ui/scene/`,
-l'autre sur `ui/diffusion/` et `ui/twitch/`. Consigne qui leur a été donnée, à maintenir si
-on les relance : **ils n'écrivent aucune ligne de CSS** — un seul propriétaire du système
-visuel, sinon les collisions sont ingérables — et **aucun d'eux ne valide son travail**,
-c'est le rôle du parent.
+Vérifié par le chemin réel, sur `http://127.0.0.1:4708/`, la diffusion étant en cours :
+zéro erreur en console sur les trois onglets, basculeur de thème dans les deux sens avec le
+choix retenu, galerie et journal alimentés par le serveur, données Twitch réelles (compte,
+spectateurs, titre), sélection d'un calque qui ouvre l'éditeur avec les valeurs de
+`scene.json`. Le bouton « Enregistrer la scène » s'active à la modification et se désactive
+au retour à la valeur d'origine — `scene.json` n'a pas bougé, la diffusion n'a pas été
+recomposée.
 
-Ce qu'il reste, dans l'ordre :
-1. Récupérer ce que les deux agents ont produit (ou relancer le portage panneau par panneau).
-2. Construire l'interface : `cd stream/controle && bun run build-ui`.
-3. **Vérifier par le chemin réel** : ouvrir `http://127.0.0.1:4708/`, zéro erreur en console,
-   les trois onglets, le basculeur de thème, et une action réelle par panneau.
-4. Retirer de `ui/styles/heritage.css` les anciennes classes devenues inutiles.
-5. Commit, push, et supprimer cette section.
+`heritage.css` est passé de 238 à 111 lignes : n'y restent que les classes encore employées.
+Trois noms étaient entrés en collision avec la maquette et ont été arbitrés — `.composition`
+reste la surcouche d'édition (la carte enregistrée est `.composition-carte`), `.etiquette`
+reste l'ancien badge (celle du canevas est `.etiquette-selection`), et `.vignette` a pris le
+dessin de la maquette.
 
-À savoir : `heritage.css` porte les anciennes classes encore employées par les panneaux non
-portés, réécrites en jetons. Trois noms sont entrés en collision avec la maquette et ont été
-arbitrés — `.composition` reste la surcouche d'édition (la carte enregistrée est
-`.composition-carte`), `.etiquette` reste l'ancien badge (celle du canevas est
-`.etiquette-selection`), et `.vignette` a pris le dessin de la maquette.
+Ce que les agents ont écarté faute de backend, plutôt que de l'inventer : choix d'encodeur et
+jauge de charge, badge d'état par destination, modération du chat, annuler/rétablir, groupes
+de calques, dimensions en pixels, dupliquer/renommer une composition. La liste complète est
+dans `TODO.md`.
 
 ## Prochaines étapes
 1. **YouTube au même niveau que Twitch** — le chantier est décrit dans `TODO.md`, avec ce qui

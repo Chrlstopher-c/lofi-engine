@@ -1,5 +1,6 @@
 /** Opérations pures sur la liste des calques : création, duplication, déplacement. */
 import type { Ancre, Calque, TypeCalque } from "../../types.ts";
+import type { NomIcone } from "../commun/Icones.tsx";
 
 export const ANCRES: ReadonlyArray<{ valeur: Ancre; libelle: string }> = [
   { valeur: "haut-gauche", libelle: "Haut gauche" },
@@ -19,8 +20,21 @@ export const TYPES: ReadonlyArray<{ valeur: TypeCalque; libelle: string }> = [
   { valeur: "video", libelle: "Vidéo" },
 ];
 
+export const ICONES: Readonly<Record<TypeCalque, NomIcone>> = {
+  texte: "texte", horloge: "horloge", accords: "accords", image: "image", video: "video",
+};
+
 export function libelleType(type: TypeCalque): string {
   return TYPES.find((t) => t.valeur === type)?.libelle ?? type;
+}
+
+export function libelleAncre(ancre: Ancre): string {
+  return ANCRES.find((a) => a.valeur === ancre)?.libelle ?? ancre;
+}
+
+/** Un calque sans nom reste désignable : son identifiant fait office d'étiquette. */
+export function nomCalque(calque: Calque): string {
+  return calque.nom || calque.id;
 }
 
 function idUnique(base: string, existants: Calque[]): string {
@@ -69,6 +83,18 @@ export function deplacer<T>(liste: T[], index: number, delta: -1 | 1): T[] {
   if (element === undefined) return liste;
   copie.splice(cible, 0, element);
   return copie;
+}
+
+/** Repose un calque juste avant ou juste après un autre, dans l'ordre du tableau. */
+export function deplacerVers(liste: Calque[], id: string, cible: string, apres: boolean): Calque[] {
+  if (id === cible) return liste;
+  const source = liste.find((c) => c.id === id);
+  if (!source) return liste;
+  const restants = liste.filter((c) => c.id !== id);
+  const index = restants.findIndex((c) => c.id === cible);
+  if (index < 0) return liste;
+  const rang = apres ? index + 1 : index;
+  return [...restants.slice(0, rang), source, ...restants.slice(rang)];
 }
 
 export function remplacerCalque(liste: Calque[], id: string, transformer: (c: Calque) => Calque): Calque[] {

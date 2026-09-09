@@ -2,13 +2,33 @@
 *Dernière mise à jour : 2026-09-09*
 
 ## En cours
-- [x] **Socle du nouveau dessin** — jetons, thèmes clair et sombre, échelles, briques
-      communes. Poussé et vérifié dans un navigateur.
-- [ ] **Porter les panneaux sur ce socle** — `ui/scene/`, puis `ui/diffusion/` et
-      `ui/twitch/`. Référence : `maquettes/centre-controle-v2.html`. Le détail de la reprise
-      est dans `STATE.md`, section « Reprise immédiate ».
-- [ ] **Vider `ui/styles/heritage.css`** au fur et à mesure : il ne porte que les anciennes
-      classes des panneaux pas encore portés.
+- [x] **Socle du nouveau dessin** — jetons, thèmes clair et sombre, échelles, briques communes.
+- [x] **Porter les panneaux sur ce socle** — `ui/scene/`, `ui/diffusion/`, `ui/twitch/`.
+      Vérifié dans un navigateur, diffusion en cours, zéro erreur en console.
+- [x] **Élaguer `ui/styles/heritage.css`** — 238 → 111 lignes, il ne reste que ce qui sert.
+
+## Ce que le dessin attend du serveur
+La maquette prévoit des choses que le backend ne sait pas encore dire. Les panneaux les
+laissent de côté plutôt que d'afficher du vide décoratif — chacune est une petite tâche
+serveur, pas un chantier d'interface.
+
+- [ ] **Encodeur retenu et charge du processeur** exposés par l'API — le panneau Diffusion a
+      la place et le dessin, il lui manque la donnée. C'est aussi ce qui manque le plus : on
+      ne voit pas depuis l'interface si la puce vidéo encode ou si le processeur a repris la
+      main.
+- [ ] **État par destination** — « reçoit », « clé refusée ». Aujourd'hui seule l'existence
+      d'une clé est affichée.
+- [ ] **Profil appliqué à l'antenne** — le serveur ne dit pas quelle composition est en cours,
+      donc aucune carte ne peut porter le badge.
+- [ ] **Dupliquer et renommer une composition** — aucune route ; dupliquer imposerait de
+      charger le profil, ce qui remplacerait la scène diffusée.
+- [ ] **Modération du chat** (bannir, expulser, mode lent) — aucune route Twitch câblée.
+- [ ] **Historique d'édition de la scène** (annuler / rétablir) — il n'y a pas de pile d'états
+      dans l'éditeur ; le popover de la maquette serait décoratif sans elle.
+- [ ] **Dimensions d'un calque en pixels** — le modèle n'a qu'une taille uniforme, d'où des
+      poignées d'angle seulement. À trancher : est-ce qu'on veut vraiment déformer un calque ?
+- [ ] **`ui/profils/PanneauProfils.tsx` n'est plus importé par personne** — les compositions
+      l'ont remplacé. À supprimer une fois qu'on est sûr de ne pas y revenir.
 
 ## À faire
 - [ ] **Afficher les accords quand ffmpeg compose** — c'est le seul calque qui force encore

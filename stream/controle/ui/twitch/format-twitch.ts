@@ -38,3 +38,25 @@ export function heureLisible(iso: string): string {
 export function nombreLisible(valeur: number): string {
   return new Intl.NumberFormat("fr-FR").format(valeur);
 }
+
+export interface SegmentDuree {
+  valeur: string;
+  unite: string;
+}
+
+/**
+ * Durée écoulée depuis une date ISO, découpée en « 14 · h · 32 · min » pour l'affichage :
+ * la valeur est grande, l'unité petite à côté. Vide si la date est illisible.
+ */
+export function segmentsDepuis(iso: string | null, maintenant: number = Date.now()): SegmentDuree[] {
+  if (!iso) return [];
+  const debut = Date.parse(iso);
+  if (!Number.isFinite(debut)) return [];
+  const total = Math.max(0, Math.floor((maintenant - debut) / 1000));
+  const heures = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  if (heures > 0) {
+    return [{ valeur: String(heures), unite: "h" }, { valeur: String(minutes).padStart(2, "0"), unite: "" }];
+  }
+  return [{ valeur: String(minutes), unite: "min" }];
+}

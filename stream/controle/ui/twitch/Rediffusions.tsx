@@ -4,7 +4,8 @@
  */
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { Rediffusion } from "../../twitch/types.ts";
-import { Alerte, Bouton, Section } from "../commun/composants.tsx";
+import { Alerte, BoutonIcone, Section, Vide } from "../commun/composants.tsx";
+import { Icone } from "../commun/Icones.tsx";
 import { dateLisible, messageErreur } from "../commun/format.ts";
 import { apiTwitch } from "./api-twitch.ts";
 import { dureeRediffusion, nombreLisible } from "./format-twitch.ts";
@@ -14,21 +15,25 @@ function Ligne({ video, occupe, onSupprimer }: {
   video: Rediffusion; occupe: boolean; onSupprimer: () => void;
 }): ReactNode {
   const duree = dureeRediffusion(video.duree);
+  const titre = video.titre || "(sans titre)";
   return (
-    <li className="rediffusion">
-      <span className="rediffusion-titre" title={video.titre}>
+    <div className="rediffusion">
+      <span className="titre" title={titre}>{titre}</span>
+      <span className="date">{dateLisible(video.publieeLe)}</span>
+      <span className="mono t-xs fg-1">
+        {duree}{duree ? " · " : ""}{nombreLisible(video.vues)} vues
+      </span>
+      <span className="ligne">
         {video.url
-          ? <a className="lien" href={video.url} target="_blank" rel="noreferrer">{video.titre || "(sans titre)"}</a>
-          : (video.titre || "(sans titre)")}
+          ? <a className="btn sm icone" href={video.url} target="_blank" rel="noreferrer"
+              title="Ouvrir sur Twitch" aria-label="Ouvrir sur Twitch">
+              <Icone nom="externe" />
+            </a>
+          : null}
+        <BoutonIcone nom="corbeille" titre="Supprimer cette rediffusion" variante="danger" taille="sm"
+          desactive={occupe} onClick={onSupprimer} />
       </span>
-      <span className="discret">
-        {dateLisible(video.publieeLe)}
-        {duree ? ` · ${duree}` : ""}
-        {` · ${nombreLisible(video.vues)} vues`}
-      </span>
-      <Bouton petit variante="discret" desactive={occupe} titre="Supprimer cette rediffusion"
-        onClick={onSupprimer}>×</Bouton>
-    </li>
+    </div>
   );
 }
 
@@ -78,24 +83,30 @@ function useArchives(): Archives {
 
 function Liste({ archives }: { archives: Archives }): ReactNode {
   const { liste, occupe, supprimer } = archives;
-  if (liste === null) return <p className="discret chargement">Lecture des archives…</p>;
-  if (liste.length === 0) return <p className="discret vide">Aucune rediffusion archivée.</p>;
+  if (liste === null) return <p className="chargement">Lecture des archives…</p>;
+  if (liste.length === 0) return <Vide icone="video" message="Aucune rediffusion archivée." />;
   return (
-    <ul className="liste-rediffusions">
+    <>
       {liste.map((video) => (
         <Ligne key={video.id} video={video} occupe={occupe} onSupprimer={() => void supprimer(video)} />
       ))}
-    </ul>
+    </>
   );
+}
+
+function compte(liste: Rediffusion[] | null): string | undefined {
+  if (liste === null) return undefined;
+  return liste.length > 1 ? `${liste.length} archivées` : `${liste.length} archivée`;
 }
 
 export function Rediffusions(): ReactNode {
   const archives = useArchives();
+  const actions = (
+    <BoutonIcone nom="rafraichir" titre="Actualiser les rediffusions" variante="discret" taille="sm"
+      onClick={() => void archives.recharger()} />
+  );
   return (
-    <Section titre="Rediffusions"
-      actions={
-        <Bouton petit variante="discret" onClick={() => void archives.recharger()}>Actualiser</Bouton>
-      }>
+    <Section titre="Rediffusions" compte={compte(archives.liste)} actions={actions}>
       <Alerte message={archives.erreur} onFermer={() => archives.setErreur(null)} />
       <Archivage nombre={archives.liste === null ? null : archives.liste.length} />
       <Liste archives={archives} />

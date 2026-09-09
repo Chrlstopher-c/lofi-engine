@@ -1,96 +1,142 @@
-/** Images de fond disponibles : vignettes, choix, dépôt (glisser-déposer ou bouton), suppression. */
-import { useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
-import type { ImageFond } from "../commun/api.ts";
+/** Fonds disponibles : recherche, filtre par nature, vignettes, choix et glisser-déposer. */
+import { useState, type DragEvent, type ReactNode } from "react";
 import { urlFond } from "../commun/api.ts";
 import { octetsLisibles } from "../commun/format.ts";
-import { Bouton } from "../commun/composants.tsx";
+import { Bouton, Segments, Vide } from "../commun/composants.tsx";
+import { Icone } from "../commun/Icones.tsx";
+import type { Media } from "./useFonds.ts";
+
+type Filtre = "tous" | "image" | "video";
+
+const FILTRES: ReadonlyArray<{ valeur: Filtre; libelle: string }> = [
+  { valeur: "tous", libelle: "Tous" },
+  { valeur: "image", libelle: "Images" },
+  { valeur: "video", libelle: "Vidéos" },
+];
 
 interface Props {
-  fonds: ImageFond[];
+  fonds: Media[];
   choisi: string;
-  occupe: boolean;
+  chargement: boolean;
   onChoisir: (fichier: string) => void;
   onDeposer: (fichiers: File[]) => void;
-  onSupprimer: (fichier: string) => void;
+  onImporter: () => void;
 }
-
-const ACCEPTE = ".png,.jpg,.jpeg,.webp,.avif";
-
-interface VignetteProps { image: ImageFond; active: boolean; onChoisir: () => void; onSupprimer: () => void; }
 
 /**
  * Une vidéo ne s'affiche pas dans une balise image : elle apparaîtrait cassée. On montre sa
  * première image, et on la joue au survol pour voir ce qu'elle donne avant de la choisir.
  */
-function Apercu({ image }: { image: ImageFond }): ReactNode {
-  if (!image.video) return <img src={urlFond(image.fichier)} alt="" loading="lazy" />;
+function ApercuMedia({ media }: { media: Media }): ReactNode {
+  if (!media.video) return <img src={urlFond(media.fichier)} alt="" loading="lazy" />;
   return (
     <video
-      src={urlFond(image.fichier)} muted playsInline loop preload="metadata"
+      src={urlFond(media.fichier)} muted playsInline loop preload="metadata"
       onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})}
       onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
     />
   );
 }
 
-function Vignette({ image, active, onChoisir, onSupprimer }: VignetteProps): ReactNode {
+interface VignetteProps { media: Media; active: boolean; onChoisir: () => void; }
+
+function Vignette({ media, active, onChoisir }: VignetteProps): ReactNode {
   return (
-    <li className={active ? "vignette active" : "vignette"}>
-      <button type="button" className="vignette-image" onClick={onChoisir} title={image.fichier}>
-        <Apercu image={image} />
-      </button>
-      <div className="vignette-pied">
-        <span className="vignette-nom" title={image.fichier}>{image.fichier}</span>
-        <span className="discret mono">{octetsLisibles(image.octets)}</span>
-        <button type="button" className="vignette-supprimer" onClick={onSupprimer} title="Supprimer cette image">
-          ×
-        </button>
-      </div>
-    </li>
+    <button
+      type="button" className="vignette" aria-pressed={active} onClick={onChoisir}
+      title={`${media.fichier} — ${octetsLisibles(media.octets)}`}
+    >
+      <i><ApercuMedia media={media} /></i>
+      {media.anime ? <em>{media.format}</em> : null}
+      <b>{media.fichier}</b>
+    </button>
   );
 }
 
-function VignetteVide({ active, onChoisir }: { active: boolean; onChoisir: () => void }): ReactNode {
-  return (
-    <li className={active ? "vignette active vignette-vide" : "vignette vignette-vide"}>
-      <button type="button" className="vignette-image" onClick={onChoisir}><span>Aucun fond</span></button>
-      <div className="vignette-pied"><span className="vignette-nom">Fond par défaut de la scène</span></div>
-    </li>
-  );
+function retenir(fonds: Media[], terme: string, filtre: Filtre): Media[] {
+  const recherche = terme.trim().toLowerCase();
+  return fonds.filter((m) => {
+    if (filtre === "image" && m.video) return false;
+    if (filtre === "video" && !m.video) return false;
+    return recherche === "" || m.fichier.toLowerCase().includes(recherche);
+  });
 }
 
-function ZoneDepot({ occupe, onDeposer }: { occupe: boolean; onDeposer: (f: File[]) => void }): ReactNode {
-  const saisie = useRef<HTMLInputElement>(null);
-  function surSelection(e: ChangeEvent<HTMLInputElement>): void {
-    const fichiers = Array.from(e.target.files ?? []);
-    e.target.value = "";
-    if (fichiers.length > 0) onDeposer(fichiers);
-  }
+interface FiltreProps {
+  terme: string;
+  filtre: Filtre;
+  onTerme: (t: string) => void;
+  onFiltre: (f: Filtre) => void;
+}
+
+function BarreFiltre({ terme, filtre, onTerme, onFiltre }: FiltreProps): ReactNode {
   return (
-    <div className="galerie-depot">
-      <span className="discret">Glisser une image ici, ou</span>
-      <Bouton petit desactive={occupe} onClick={() => saisie.current?.click()}>
-        {occupe ? "Dépôt en cours…" : "Déposer une image"}
-      </Bouton>
-      <input ref={saisie} type="file" accept={ACCEPTE} multiple hidden onChange={surSelection} />
-      <span className="discret">
-        Images png, jpg, webp, avif, gif — 25 Mo max · Vidéos mp4, webm — 400 Mo max
-      </span>
+    <div className="galerie-filtre">
+      <input
+        className="ctrl" type="search" value={terme} placeholder="Rechercher un fond…"
+        aria-label="Rechercher un fond" spellCheck={false}
+        onChange={(e) => onTerme(e.target.value)}
+      />
+      <Segments valeur={filtre} options={FILTRES} onChange={onFiltre} etiquette="Filtrer les fonds" />
     </div>
   );
 }
 
-export function Galerie(props: Props): ReactNode {
-  const { fonds, choisi, occupe, onChoisir, onDeposer, onSupprimer } = props;
-  const [survol, setSurvol] = useState(false);
+interface VignettesProps {
+  retenus: Media[];
+  choisi: string;
+  filtree: boolean;
+  onChoisir: (fichier: string) => void;
+  onImporter: () => void;
+}
 
-  function surDepot(e: DragEvent<HTMLElement>): void {
+function Vignettes({ retenus, choisi, filtree, onChoisir, onImporter }: VignettesProps): ReactNode {
+  return (
+    <div className="vignettes">
+      {filtree ? null : (
+        <button type="button" className="vignette" aria-pressed={choisi === ""}
+          onClick={() => onChoisir("")} title="Fond par défaut de la scène">
+          <b>Aucun fond</b>
+        </button>
+      )}
+      {retenus.map((media) => (
+        <Vignette key={media.fichier} media={media} active={media.fichier === choisi}
+          onChoisir={() => onChoisir(media.fichier)} />
+      ))}
+      <button type="button" className="vignette ajout" onClick={onImporter}
+        title="Déposer ou choisir un fichier" aria-label="Ajouter un fond">
+        <Icone nom="plus" />
+      </button>
+    </div>
+  );
+}
+
+interface EtatVideProps { filtree: boolean; onEffacer: () => void; }
+
+function GalerieVide({ filtree, onEffacer }: EtatVideProps): ReactNode {
+  return (
+    <Vide
+      icone={filtree ? "recherche" : "image"}
+      message={filtree ? "Aucun fond ne correspond au filtre." : "Aucun fichier déposé."}
+      action={filtree ? <Bouton petit onClick={onEffacer}>Effacer le filtre</Bouton> : null}
+    />
+  );
+}
+
+export function Galerie(props: Props): ReactNode {
+  const { fonds, choisi, chargement, onChoisir, onDeposer, onImporter } = props;
+  const [survol, setSurvol] = useState(false);
+  const [terme, setTerme] = useState("");
+  const [filtre, setFiltre] = useState<Filtre>("tous");
+  const retenus = retenir(fonds, terme, filtre);
+  const filtree = terme.trim() !== "" || filtre !== "tous";
+  const surDepot = (e: DragEvent<HTMLElement>): void => {
     e.preventDefault();
     setSurvol(false);
     const fichiers = Array.from(e.dataTransfer.files);
     if (fichiers.length > 0) onDeposer(fichiers);
-  }
-
+  };
+  const effacer = (): void => { setTerme(""); setFiltre("tous"); };
   return (
     <div
       className={survol ? "galerie depot-survol" : "galerie"}
@@ -98,14 +144,10 @@ export function Galerie(props: Props): ReactNode {
       onDragLeave={() => setSurvol(false)}
       onDrop={surDepot}
     >
-      <ul className="vignettes">
-        <VignetteVide active={choisi === ""} onChoisir={() => onChoisir("")} />
-        {fonds.map((image) => (
-          <Vignette key={image.fichier} image={image} active={image.fichier === choisi}
-            onChoisir={() => onChoisir(image.fichier)} onSupprimer={() => onSupprimer(image.fichier)} />
-        ))}
-      </ul>
-      <ZoneDepot occupe={occupe} onDeposer={onDeposer} />
+      <BarreFiltre terme={terme} filtre={filtre} onTerme={setTerme} onFiltre={setFiltre} />
+      <Vignettes retenus={retenus} choisi={choisi} filtree={filtree}
+        onChoisir={onChoisir} onImporter={onImporter} />
+      {chargement || retenus.length > 0 ? null : <GalerieVide filtree={filtree} onEffacer={effacer} />}
     </div>
   );
 }

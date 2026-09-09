@@ -11,8 +11,10 @@ import type { Ancre, Calque } from "../../types.ts";
 const RATIO = 16 / 9;
 /** Le fichier de scène garde une décimale : le glissement ne produit pas de valeurs plus fines. */
 const PAS = 10;
+/** Sortie 1920 × 1080 : un point de pourcentage de la largeur vaut ce nombre de pixels. */
+const PIXELS_PAR_POURCENT = 19.2;
 
-type Axe = "debut" | "centre" | "fin";
+export type Axe = "debut" | "centre" | "fin";
 
 export interface Axes { horiz: Axe; vert: Axe; }
 
@@ -46,13 +48,27 @@ export function boiteCalque(calque: Calque, ratioImage: number): Boite {
       return { largeur: calque.taille * 2.9, hauteur: calque.taille * (calque.date === false ? 1.05 : 2) };
     case "accords": return { largeur: calque.taille * 11, hauteur: calque.taille * 3.4 };
     case "image": return { largeur: calque.taille, hauteur: calque.taille * ratioImage };
+    case "video": return { largeur: calque.taille, hauteur: calque.taille * (9 / 16) };
   }
+}
+
+/** Hauteur de la boîte convertie en % de la hauteur du cadre, pour l'axe vertical. */
+export function hauteurRelative(boite: Boite): number {
+  return boite.hauteur * RATIO;
+}
+
+/** Dimensions de la boîte à la sortie 1920 × 1080, arrondies au pixel. */
+export function dimensionsSortie(boite: Boite): { largeur: number; hauteur: number } {
+  return {
+    largeur: Math.round(boite.largeur * PIXELS_PAR_POURCENT),
+    hauteur: Math.round(boite.hauteur * PIXELS_PAR_POURCENT),
+  };
 }
 
 /** Style absolu du cadre dans un conteneur 16/9 : mêmes bords et mêmes translations que la scène. */
 export function styleCadre(calque: Calque, boite: Boite): CSSProperties {
   const { horiz, vert } = axes(calque.ancre);
-  const style: CSSProperties = { width: `${boite.largeur}%`, height: `${boite.hauteur * RATIO}%` };
+  const style: CSSProperties = { width: `${boite.largeur}%`, height: `${hauteurRelative(boite)}%` };
   const translations: string[] = [];
   if (horiz === "debut") style.left = `${calque.x}%`;
   else if (horiz === "fin") style.right = `${calque.x}%`;
@@ -66,7 +82,7 @@ export function styleCadre(calque: Calque, boite: Boite): CSSProperties {
 
 export interface Position { x: number; y: number; }
 
-function arrondir(valeur: number): number {
+export function arrondir(valeur: number): number {
   return Math.round(valeur * PAS) / PAS;
 }
 
@@ -86,4 +102,16 @@ export function positionApresGlissement(
     x: arrondir(depart.x + (horiz === "fin" ? -dx : dx)),
     y: arrondir(depart.y + (vert === "fin" ? -dy : dy)),
   };
+}
+
+/** Bornes du champ Taille, partagées par le curseur de l'éditeur et les poignées de l'aperçu. */
+export const TAILLE_MIN = 0.2;
+export const TAILLE_MAX = 40;
+
+/** Nouvelle taille de base après un étirement horizontal de dxPx sur une boîte de largeurPx. */
+export function tailleApresEtirement(depart: Calque, boite: Boite, dxPx: number, largeurPx: number): number {
+  const largeurBoite = (boite.largeur / 100) * largeurPx;
+  if (largeurBoite <= 0) return depart.taille;
+  const facteur = (largeurBoite + dxPx) / largeurBoite;
+  return Math.min(TAILLE_MAX, Math.max(TAILLE_MIN, arrondir(depart.taille * facteur)));
 }
