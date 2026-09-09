@@ -4,37 +4,48 @@
 ## En cours
 - [ ] Rien en cours.
 
-## Chantier en cours — stream 24/7 Twitch + YouTube
-**État : construit et mesuré de bout en bout.** Mode d'emploi et preuves dans
-`docs/STREAM-24-7.md`. Licences des échantillons dans `CREDITS.md`.
+## Stream 24/7 — en service
+**Diffuse réellement sur Twitch.** Mode d'emploi et mesures : `docs/STREAM-24-7.md`.
+Licences des échantillons : `CREDITS.md`. Fonds animés : `docs/FONDS-ANIMES.md`.
 
-Fait :
-- [x] Licences des échantillons tracées — piano (Salamander/Alexander Holm) et vent
-      (Mark DiAngelo) en CC BY 3.0, crédit à porter en description ; jungle en domaine
-      public ; orage en royalty-free. Aucun remplacement nécessaire.
-- [x] `?autoplay=1` sur la page, pour démarrer le moteur sans clic.
-- [x] Conteneur de capture du corpus (navigateur + écran virtuel + serveur audio + ffmpeg),
-      avec refus de capturer si le niveau mesuré est du silence, et élagage des segments
-      inexploitables.
-- [x] Conteneur de diffusion depuis le corpus, piloté par le `.env` : plateformes activables,
-      clés dedans, refus explicite nommant ce qui manque.
-- [x] Conteneur de diffusion en direct avec repli sur le corpus.
-- [x] Scène composée en couches (fond, titre, sous-titre, crédits, horloge, tonalité et
-      accord en cours lus dans le moteur), réglée par le `.env`, capturée à l'écran.
-- [x] Chaîne validée sur un serveur RTMP local : H.264 720p30 + AAC 44,1 kHz stéréo,
-      images-clés à 2,00 s (limite Twitch), son présent à -24 dBFS.
+Fait : scène en calques pilotée à chaud · centre de contrôle (scène, diffusion, Twitch) ·
+aperçu en temps réel et mode composition · profils · vidéos et GIF en boucle · repli sur
+corpus en 3,5 s · intégration Twitch complète (compte, clé récupérée automatiquement, titre,
+catégorie, spectateurs, statistiques, chat en direct, rediffusions).
 
-Reste :
-- [ ] **Décision de Chris** — sur quelle machine tourne le direct (Docker, allumée en
-      permanence). Le corpus pèse ~400 Mo par heure.
-- [ ] **Décision de Chris** — l'image de fond, et vérifier sa licence.
-      `corpus/fond-test.png` n'est qu'une mire de validation.
-- [ ] **Décision de Chris** — le rendu de la scène : équilibre, tailles, thème
-      (`nuit` / `ambre` / `brume`). C'est à l'œil, pas à la mesure.
-- [ ] Générer un vrai corpus de secours de quelques heures (temps réel : 1 h = 1 h).
-- [ ] Activer le direct sur YouTube (24 h de délai la première fois) — à anticiper.
-- [ ] Essai sur une chaîne non listée avant toute diffusion publique.
+### Prochain chantier — YouTube au même niveau que Twitch
+Aujourd'hui YouTube n'est qu'une **destination RTMP** : on peut y pousser le flux si on colle
+la clé à la main, rien de plus. Tout ce qui a été fait pour Twitch reste à faire.
+
+Ce que ça demande, et en quoi ce n'est **pas** un simple copier-coller de Twitch :
+
+- [ ] **Autorisation Google**, pas un flux d'appareil : passage par la Google Cloud Console,
+      création d'un projet, écran de consentement, portées `youtube` et `youtube.force-ssl`.
+      Plus lourd que Twitch, et l'écran de consentement doit être configuré même pour un
+      usage personnel.
+- [ ] **La clé de diffusion** se lit par `liveStreams.list` (`cdn.ingestionInfo.streamName`).
+- [ ] **Différence de fond avec Twitch** : sur YouTube il faut **créer une diffusion**
+      (`liveBroadcasts.insert`) et la lier au flux avant que la clé serve à quelque chose.
+      Twitch accepte un flux poussé sans rien déclarer, YouTube non. C'est ce qui change le
+      plus dans le pilotage : démarrer, c'est aussi créer et passer l'événement en direct.
+- [ ] **Titre, description, visibilité** par `liveBroadcasts.update`.
+- [ ] **Chat** : utiliser `liveChatMessages.streamList`, qui **pousse** les messages, et non
+      `liveChatMessages.list` interrogé en boucle — voir le quota ci-dessous.
+- [ ] **Le point dur : le quota.** L'API YouTube alloue **10 000 unités par jour** par défaut,
+      toutes opérations confondues. Une interrogation régulière du chat épuise ça en quelques
+      heures. À concevoir en conséquence dès le départ (méthode qui pousse, cadence prudente),
+      et prévoir une demande d'augmentation de quota si nécessaire.
+- [ ] **Activer le direct sur la chaîne** — 24 h de délai la première fois, à anticiper.
+- [ ] Statistiques et rediffusions YouTube, une fois le reste en place.
+
+### Reste à faire, hors YouTube
+- [ ] **Générer un vrai corpus de secours.** Il ne fait qu'un fichier de 40 s : si le
+      navigateur tombe, le repli tourne en boucle très courte. Une à deux heures suffisent
+      (temps réel : une heure de musique = une heure).
+- [ ] Vérifier le **renouvellement du jeton Twitch** après expiration — écrit d'après la
+      documentation, jamais observé.
 - [ ] Porter les crédits (`CREDITS.md`) dans la description de la chaîne.
+- [ ] `60 i/s` coûte le double de processeur pour un fond quasi immobile — envisager 30.
 
 ## À faire (priorité)
 - [ ] Trancher le sort du README : conserver celui de l'amont, ou passer à la charte Echo
