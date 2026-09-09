@@ -4,6 +4,24 @@
 ## En cours
 - [ ] Rien en cours.
 
+## Chantier suivant — stream 24/7 Twitch + YouTube
+**Conception écrite : `docs/STREAM-24-7.md`** — la lire avant de reprendre, elle est
+auto-suffisante. Décision retenue : corpus audio pré-généré sur le PC fixe, diffusé en
+boucle par un conteneur FFmpeg. Tout passe par Docker : aucun système hôte n'est modifié.
+
+- [ ] **Bloquant** — vérifier l'origine et la licence des échantillons audio (aucune
+      attribution dans le dépôt ; noms évoquant Pixabay et SoundBible, plus 48 samples de
+      piano non documentés). Peut imposer des remplacements, donc à faire en premier.
+- [ ] Choisir l'image de fond (décision de Chris) et vérifier sa licence.
+- [ ] Construire le capteur de corpus sur le PC fixe — capture en temps réel, le rendu
+      hors-ligne étant inaccessible (moteur câblé sur `Tone.Master`).
+- [ ] Générer un premier corpus de quelques heures et mesurer son poids.
+- [ ] Construire le conteneur diffuseur (FFmpeg), piloté par le `.env` : plateformes
+      activables et clés dedans. Refus explicite si une clé manque.
+- [ ] Décider sur quelle machine tourne le diffuseur (allumée en permanence, Docker requis).
+- [ ] Essai sur une chaîne non listée avant toute diffusion publique.
+- [ ] Activer le direct sur YouTube (24 h de délai la première fois) — à anticiper.
+
 ## À faire (priorité)
 - [ ] Trancher le sort du README : conserver celui de l'amont, ou passer à la charte Echo
       (charger le skill `readme` avant d'y toucher). Décision de Chris, en attente.

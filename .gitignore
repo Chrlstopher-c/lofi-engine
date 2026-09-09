@@ -25,3 +25,8 @@ dist-ssr
 
 # Echo — exécution locale
 logs/
+
+# Secrets — jamais versionnés (dépôt public)
+.env
+.env.local
+.env.*.local

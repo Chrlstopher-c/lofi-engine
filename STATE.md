@@ -57,6 +57,21 @@ le lancement local.
   L'unité systemd pointe vers ce chemin, plus vers `/home/pi`.
 - Poids par visiteur : 12,5 Mo transférés et 45 requêtes au premier chargement.
 
+## Chantier suivant — stream 24/7
+Diffuser la musique en continu sur Twitch et YouTube, avec une image de fond. Conception
+complète et auto-suffisante dans **`docs/STREAM-24-7.md`**.
+
+Le point dur : la musique est synthétisée dans le navigateur, il n'existe aucun fichier audio
+à diffuser. Et le rendu hors-ligne est inaccessible — le moteur est câblé sur `Tone.Master`,
+un nœud global, donc `Tone.Offline` ne peut pas l'atteindre sans refactoriser du code amont.
+La capture se fera en temps réel.
+
+Architecture retenue : corpus audio pré-généré, diffusé en boucle par un unique FFmpeg. Tout
+passe par des conteneurs Docker — aucun système hôte n'est modifié. Le choix des plateformes et
+les clés de diffusion vivent dans le `.env`, désormais ignoré par git (il ne l'était pas, sur un
+dépôt public). Bloquants à lever : la licence des échantillons audio n'est pas documentée, et la
+machine qui hébergera le diffuseur n'est pas décidée.
+
 ## Prochaines étapes
 1. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
 2. Si la fréquentation monte : cache navigateur explicite sur les mp3.

@@ -27,6 +27,8 @@ lofi-engine/
 ├── package.json                       dépendances et scripts (dev, build, tauri)
 ├── vite.config.ts                     configuration Vite + plugin Svelte
 ├── tsconfig.json                      configuration TypeScript
+├── docs/
+│   └── STREAM-24-7.md              ⬤ conception du stream continu Twitch + YouTube
 ├── logs/                           ⬤ sortie du serveur local (non versionné)
 ├── dist/                              site construit par Vite (non versionné)
 │
