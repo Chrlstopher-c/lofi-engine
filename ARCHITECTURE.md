@@ -53,6 +53,11 @@ L'image est construite en deux étapes. La première installe les dépendances e
 Vite ; la seconde ne garde que le serveur et le site construit. Les outils de build ne se
 retrouvent pas dans l'image finale.
 
+Le client Docker n'est pas supposé s'appeler `docker` : sous VM, la commande est `vmdocker`.
+Les scripts cherchent l'un puis l'autre, vérifient que le démon répond avant de s'en servir, et
+disent lequel ils ont retenu. `DOCKER_CLI=<commande>` force un client précis. Quand rien ne
+convient, le script s'arrête avec la commande à taper plutôt qu'une trace d'erreur.
+
 Le conteneur écoute sur `0.0.0.0` et son port est publié sur toutes les interfaces : le site
 est joignable depuis n'importe quelle machine du réseau, pas seulement en localhost.
 

@@ -25,6 +25,8 @@ Tauri 2 pour la version desktop · Bun pour le runtime et le serveur statique de
 - 2026-09-09 — Port local 4707, port de production 8794 sur le Pi.
 
 ## Avancées récentes
+- 2026-09-09 — Compatibilité `vmdocker` : sous VM la commande remplace `docker`. La détection est
+  factorisée dans `docker-cli.sh`, testée sur les trois cas (docker, vmdocker, démon absent).
 - 2026-09-09 — Lancement local passé sous Docker : image en deux étapes, conteneur publié sur
   toutes les interfaces réseau. Les scripts start/stop/restart pilotent Docker et fonctionnent
   sur un clone frais, sans rien installer sur l'hôte.
