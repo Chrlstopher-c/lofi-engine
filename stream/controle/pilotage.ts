@@ -117,6 +117,13 @@ export async function demarrerDiffusion(): Promise<Resultat> {
     };
   }
   journal.info("démarrage de la diffusion");
+  const r = await executer(["docker", "compose", "--profile", "direct", "up", "-d", "direct"]);
+  if (r.ok || !/network .* not found/i.test(r.sortie)) return r;
+
+  // Le conteneur existe encore mais son réseau a été supprimé entre-temps : il faut le
+  // recréer, sinon Docker refuse de le démarrer indéfiniment.
+  journal.warn("réseau disparu sous le conteneur — recréation");
+  await executer(["docker", "rm", "-f", CONTENEUR]);
   return executer(["docker", "compose", "--profile", "direct", "up", "-d", "direct"]);
 }
 

@@ -17,13 +17,16 @@ if ! detecter_docker; then
   exit 0
 fi
 
-if [ -z "$($COMPOSE ps -q 2>/dev/null)" ]; then
+if [ -z "$($COMPOSE --profile direct --profile diffusion --profile generateur ps -q 2>/dev/null)" ]; then
   echo "[STOP] Aucun conteneur en marche — rien à arrêter."
   exit 0
 fi
 
 mkdir -p ./logs
-if $COMPOSE down 2>&1 | tee -a ./logs/web.log; then
+# « down » supprime le réseau du projet, mais ne touche pas aux services des autres profils :
+# le conteneur de diffusion survivait en pointant vers un réseau détruit, et refusait de
+# redémarrer (« network … not found »). On arrête donc tous les profils avant.
+if $COMPOSE --profile direct --profile diffusion --profile generateur down 2>&1 | tee -a ./logs/web.log; then
   echo "[STOP] LoFi Engine arrêté."
 else
   echo "[STOP] L'arrêt a échoué — voir logs/web.log" >&2
