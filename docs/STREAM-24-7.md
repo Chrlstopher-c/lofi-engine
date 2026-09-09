@@ -127,28 +127,74 @@ fois, à la diffusion.
   reconnexion prend dix secondes.
 - **La suppression d'une rediffusion**, irréversible et sur un vrai compte : non exercée.
 
-## 5. La scène affichée à l'écran
+## 5. La scène, et qui la dessine
 
-Ce qui est diffusé n'est pas une image fixe mais une **page web** rendue par le navigateur qui
-tourne déjà dans le conteneur, et capturée à l'écran. Le choix est délibéré : composer en
-couches CSS s'ajuste en éditant du HTML, là où un montage en filtres FFmpeg se réécrit
-entièrement à chaque retouche.
+La scène se décrit en HTML — fond, voile, calques de texte, horloge, incrustations — et se
+compose dans `corpus/scene.json`, écrit par le centre de contrôle. C'est ce fichier qui fait
+foi ; les réglages qui vivaient autrefois dans le `.env` ont été retirés, ils l'écrasaient.
 
-Les couches, du fond vers l'avant : l'image de fond (légère dérive lente, voile et vignettage
-pour la lisibilité) · le moteur en iframe, invisible mais **actif — c'est lui qui joue** · les
-textes (titre, sous-titre, crédits) · les informations (horloge, tonalité et accord en cours,
-lus en direct dans le DOM du moteur).
+**Deux chemins mènent de ce fichier à l'antenne**, et la diffusion choisit seule.
 
-Tout se règle dans le `.env` : `STREAM_TITRE`, `STREAM_SOUS_TITRE`, `STREAM_CREDITS`,
-`STREAM_FOND`, `STREAM_HORLOGE`, `STREAM_ACCORDS`, `STREAM_THEME`. `STREAM_SCENE=false`
-revient à l'image fixe. Détail des paramètres : `stream/scene/README.md`.
+**ffmpeg compose** (`STREAM_COMPOSITEUR=auto`, le défaut). Un traducteur lit `scene.json` et
+en fait une chaîne de filtres : le fond décodé et recadré, la dérive lente, le voile et le
+vignettage, les incrustations image, GIF ou vidéo, les textes et l'horloge. Le navigateur
+reste — lui seul produit la musique — mais dans un écran de 360×240 que personne ne capture,
+sur une page qui ne dessine rien (`scene.html?audio=1`).
 
-La scène est montée dans le conteneur du site, pas copiée dans l'image : elle se retouche
-sans reconstruire quoi que ce soit, et surtout elle est servie **depuis la même origine** que
-le moteur — sans quoi l'iframe qui produit le son serait bridée.
+**Le navigateur affiche et ffmpeg recapture son écran** — l'ancien chemin. Il sert encore
+quand la scène contient un calque que ffmpeg ne sait pas rendre : les **accords**, dont la
+valeur naît dans le moteur musical. Mieux vaut une scène complète et chère qu'une scène
+légère et amputée. `STREAM_COMPOSITEUR=ffmpeg` force la composition en acceptant la perte,
+`navigateur` revient à l'ancien comportement.
 
-Vérifié sur le flux reçu : le son sort bien d'une iframe à opacité nulle (-24,9 dBFS), la
-scène est rendue en 1920×1080 réels, et l'accord affiché suit la progression du moteur.
+### Ce que ça change
+
+| | processeur | images/s |
+|---|---|---|
+| navigateur affiche, ffmpeg recapture | 306 % | 25 |
+| **ffmpeg compose** | **105 %** | **30** |
+
+Mesuré sur la même scène, un flux réel reçu par un serveur RTMP, encodage sur la carte
+graphique dans les deux cas. Le détail : le navigateur seul coûtait 167 % pour afficher cette
+scène, dont 101 rien que pour décoder la vidéo de fond ; réduit à la musique, il tombe à 30 %.
+
+### Ce qui a rendu la composition rentable
+
+Trois mesures, parce que la première version en ffmpeg coûtait 250 % — pire que le navigateur :
+
+- **Une image fixe superposée est lue une fois, pas trente fois par seconde.** La relire à la
+  cadence du flux coûtait 130 points de processeur pour un contenu qui ne change jamais.
+- **Le voile et le vignettage sont calculés une seule fois** dans une image transparente
+  superposée, au lieu d'être recalculés par image : 118 % → 49 %.
+- **Un seul redimensionnement.** Cadrer puis agrandir pour la dérive en faisait deux.
+
+À l'inverse, deux hypothèses raisonnables se sont révélées fausses à la mesure : couper le
+mouvement de fond ne gagne rien, et donner la carte graphique au navigateur non plus — il ne
+l'exploite pas dans un écran virtuel.
+
+### Polices
+
+ffmpeg écrit avec les mêmes caractères que l'aperçu : Source Serif 4, extraite de la page
+(`stream/scene/scene-font.js`) vers `stream/polices/`, sous licence SIL OFL 1.1. La date,
+que ffmpeg ne sait écrire que dans la locale du système, est déposée en français dans un
+fichier qu'il relit à chaque image.
+
+### Encodage
+
+L'encodage passe sur la puce vidéo dès qu'il y en a une : NVENC sur une carte NVIDIA, VAAPI
+sur une puce Intel ou AMD, libx264 sinon. Chaque profil est **réellement essayé** au démarrage
+— une carte visible ne garantit pas que la bibliothèque soit là, et découvrir l'échec en
+direct coûterait le flux. Mesuré sur la même source, en temps réel : 96 % d'un cœur en
+logiciel contre 20 % sur la carte.
+
+L'accès au matériel est donné automatiquement par `stream/materiel.sh`, qui ajoute le fichier
+Docker qui convient à la machine. Sur une machine sans puce vidéo et sous six cœurs, la
+définition est ramenée d'elle-même à 1280×720 : le 1080p logiciel n'y décroche pas franchement,
+il s'étrangle jusqu'à ce que quelque chose meure. `STREAM_ADAPTER=false` l'en empêche.
+
+Attention : **une machine virtuelle Proxmox ne voit pas la puce vidéo de son hôte.** Sur ce
+genre d'installation, l'encodage restera logiciel tant que le projet tournera dans une VM
+plutôt que dans un conteneur LXC.
 
 ## 6. Pièges rencontrés, et ce qu'il a fallu faire
 

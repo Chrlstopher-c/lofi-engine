@@ -4,15 +4,22 @@ FROM debian:bookworm-slim
 
 # chromium n'émet pas d'audio sans affichage : d'où xvfb. pulseaudio fournit le puits
 # audio virtuel que ffmpeg vient lire. Rien n'est installé sur la machine hôte.
+# python3 sert au compositeur : il traduit la scène en chaîne de filtres ffmpeg, ce qui évite
+# d'afficher cette scène dans un navigateur pour la recapturer ensuite.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      chromium xvfb pulseaudio pulseaudio-utils ffmpeg procps ca-certificates \
+      chromium xvfb pulseaudio pulseaudio-utils ffmpeg procps ca-certificates python3 \
   && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 1000 capteur
 
+# Source Serif 4 (SIL OFL 1.1), la police de la scène, pour que ffmpeg écrive les mêmes
+# lettres que l'aperçu du centre de contrôle.
+COPY polices/ /usr/local/share/lofi-polices/
+
 COPY base.sh commun.sh navigateur.sh /usr/local/lib/lofi/
-COPY generateur/capturer.sh direct/direct.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/capturer.sh /usr/local/bin/direct.sh
+COPY generateur/capturer.sh direct/direct.sh direct/composition.sh direct/composer.py \
+     /usr/local/bin/
+RUN chmod +x /usr/local/bin/capturer.sh /usr/local/bin/direct.sh /usr/local/bin/composer.py
 
 USER capteur
 ENV HOME=/home/capteur \

@@ -15,6 +15,11 @@ enregistré prend le relais **dans le même puits audio**, si bien que le flux n
 Mesuré sur une panne provoquée : 3,5 s de trou. Sur une heure de diffusion réelle, aucune
 panne ne s'est produite.
 
+**L'image, elle, ne passe plus par le navigateur** : ffmpeg compose la scène lui-même — fond,
+voile, incrustations, texte, horloge — et le navigateur, réduit à la musique, tourne dans un
+écran de 360×240 que personne ne regarde. La diffusion est passée de 306 % de processeur à
+105 %, en 1080p **30** images par seconde au lieu de 25.
+
 ## Nature du dépôt
 Fork de [meel-hd/lofi-engine](https://github.com/meel-hd/lofi-engine) (MIT, Mehdi El Oualy).
 L'amont est déclaré comme remote `upstream` : `git fetch upstream` puis merge pour suivre ses
@@ -69,7 +74,12 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
 | Génération en direct plutôt que corpus en boucle | Choix de Chris. Musique réellement infinie ; le repli sur corpus couvre la fragilité du navigateur | 2026-09-09 |
 | Le corpus est rejoué **dans le même puits audio** | ffmpeg ne s'arrête jamais, donc la connexion RTMP tient et les plateformes ne voient aucune coupure | 2026-09-09 |
 | Surveillance à deux vitesses | Une cadence unique laissait 32 s de silence avant de voir la panne ; séparer la veille du navigateur (2 s) de la mesure de niveau ramène le trou à 3,5 s | 2026-09-09 |
-| La scène est une page web capturée, pas un montage ffmpeg | S'ajuste en éditant du HTML, là où un filtre se réécrit entièrement à chaque retouche | 2026-09-09 |
+| La scène est décrite en HTML mais **composée par ffmpeg** | Le HTML reste la façon d'éditer et de prévisualiser ; l'afficher en 1080p pour le recapturer coûtait 167 % de processeur, contre 83 % en composant directement. Un traducteur lit `scene.json` et en fait une chaîne de filtres | 2026-09-09 |
+| L'encodage passe sur la puce vidéo quand il y en a une | 96 % d'un cœur en logiciel contre 20 % sur la carte, mesuré sur la même source en temps réel. Chaque profil est essayé pour de vrai avant d'être retenu | 2026-09-09 |
+| Le voile et le vignettage sont calculés une fois, pas à chaque image | Les recalculer image par image coûtait 69 points de processeur ; une image transparente superposée fait le même rendu | 2026-09-09 |
+| Une image fixe superposée est lue à 1 image par seconde | La relire à la cadence du flux coûtait 130 points, pour un contenu qui ne change jamais | 2026-09-09 |
+| Un calque que ffmpeg ne sait pas rendre fait repasser par le navigateur | Les accords viennent du moteur musical, que ffmpeg ne voit pas. Mieux vaut une scène complète et chère qu'une scène légère et amputée | 2026-09-09 |
+| La définition s'abaisse d'elle-même sur une machine trop juste | Sans puce vidéo et sous six cœurs, le 1080p logiciel ne décroche pas franchement : il s'étrangle jusqu'à ce que quelque chose meure | 2026-09-09 |
 | `corpus/scene.json` seule source de vérité | Les mêmes réglages dans le `.env` l'écrasaient : un titre changé restait figé à l'écran | 2026-09-09 |
 | Seule la page en mode aperçu accepte d'être pilotée | Sinon n'importe quelle page ouverte pourrait détourner l'antenne | 2026-09-09 |
 | Le son des vidéos est coupé de force | Le flux capture l'audio du navigateur : une bande-son se mélangerait à la musique | 2026-09-09 |
@@ -99,7 +109,9 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
    du chat dès le départ.
 2. **Enregistrer un vrai corpus de secours** — il ne fait qu'un fichier de 40 s, donc le repli
    n'a presque rien à jouer si le navigateur tombe. Une à deux heures suffisent, en temps réel.
-3. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
+3. **Porter le nouveau dessin du centre de contrôle** — les maquettes vivent dans
+   `maquettes/`, la v2 en thème clair et sombre.
+4. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
 
 ## Points en suspens
 - Le README n'est pas tranché.
@@ -109,4 +121,13 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
   déconnecte un jour, c'est là qu'il faut regarder — une reconnexion prend dix secondes.
 - **La suppression d'une rediffusion n'a pas été exercée** : elle est irréversible et sur un
   vrai compte.
-- 60 images/seconde coûtent le double de processeur pour un fond quasi immobile.
+- **Le calque « accords » n'est pas composable par ffmpeg** : sa valeur naît dans le moteur
+  musical, à l'intérieur du navigateur. Une scène qui en contient repasse donc par l'ancien
+  chemin, plus coûteux. Le mécanisme qui le débloquerait existe déjà — la date est écrite dans
+  un fichier que ffmpeg relit à chaque image ; il suffirait que le moteur y écrive l'accord.
+- **VAAPI n'a jamais été exercé sur du vrai matériel Intel** : la machine de développement n'a
+  qu'une carte NVIDIA. Le profil est écrit et testé négativement (il est bien refusé quand la
+  puce est absente), jamais positivement.
+- **Une machine virtuelle Proxmox n'a pas accès à la puce vidéo de son hôte.** Sur ce type
+  d'installation, l'encodage matériel restera indisponible tant que le projet tournera dans une
+  VM plutôt que dans un conteneur LXC.

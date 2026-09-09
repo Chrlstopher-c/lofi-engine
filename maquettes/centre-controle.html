@@ -1,0 +1,904 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LoFi Engine — Régie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Direction : « régie de nuit ». Noir chaud, une seule lumière
+   rouge pour l'antenne, du sable pour la sélection, du sauge pour
+   ce qui tourne. Tout le reste est gris chaud et typographie.
+   ============================================================ */
+:root {
+  color-scheme: dark;
+  --fond-0: #0b0a09;
+  --fond-1: #121110;
+  --fond-2: #191816;
+  --fond-3: #22201d;
+  --ligne: rgba(255, 250, 240, 0.07);
+  --ligne-forte: rgba(255, 250, 240, 0.14);
+  --texte: #ede9e2;
+  --texte-2: #a39e95;
+  --texte-3: #6c675f;
+
+  /* Sémantique — chaque couleur veut dire une chose. */
+  --antenne: #e4553f;            /* à l'antenne, en direct */
+  --antenne-fond: rgba(228, 85, 63, 0.12);
+  --marche: #8fbf8a;             /* un processus tourne */
+  --marche-fond: rgba(143, 191, 138, 0.12);
+  --arret: #6c675f;              /* à l'arrêt, neutre */
+  --alerte: #d9a84e;             /* attention, à vérifier */
+  --alerte-fond: rgba(217, 168, 78, 0.12);
+  --action: #ede9e2;             /* action principale */
+  --action-texte: #0b0a09;
+  --selection: #d8c6a2;          /* sélection courante, focus */
+  --selection-fond: rgba(216, 198, 162, 0.10);
+  --danger: #e4553f;             /* destruction — même rouge, sans halo */
+
+  --sans: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --mono: "DM Mono", "SF Mono", Menlo, monospace;
+  --r: 8px;
+  --r-lg: 14px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--fond-0); color: var(--texte); font: 13.5px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4, p, ul, dl, dd, figure { margin: 0; }
+ul { padding: 0; list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; }
+[hidden] { display: none !important; }
+.mono { font-family: var(--mono); font-size: 12px; letter-spacing: 0.01em; }
+.discret { color: var(--texte-3); }
+.second { color: var(--texte-2); }
+.serif { font-family: var(--serif); font-weight: 400; }
+::selection { background: var(--selection-fond); color: var(--texte); }
+
+/* ---- Coquille --------------------------------------------------------- */
+.regie { min-height: 100vh; display: flex; flex-direction: column; }
+.entete {
+  position: sticky; top: 0; z-index: 20; height: 64px; padding: 0 28px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px;
+  background: rgba(11, 10, 9, 0.86); backdrop-filter: blur(14px); border-bottom: 1px solid var(--ligne);
+}
+.marque { display: flex; align-items: baseline; gap: 12px; }
+.marque h1 { font-family: var(--serif); font-size: 22px; font-weight: 400; letter-spacing: -0.01em; }
+.marque h1 em { font-style: italic; color: var(--texte-2); }
+.marque span { font-size: 12px; color: var(--texte-3); letter-spacing: 0.08em; text-transform: uppercase; }
+
+.onglets { display: flex; gap: 2px; padding: 3px; background: var(--fond-1); border: 1px solid var(--ligne); border-radius: 999px; }
+.onglet { background: none; border: 0; padding: 7px 18px; border-radius: 999px; color: var(--texte-2); font-weight: 500; transition: color .15s, background .15s; }
+.onglet:hover { color: var(--texte); }
+.onglet[aria-selected="true"] { background: var(--fond-3); color: var(--texte); }
+
+/* L'antenne : lisible de l'autre bout de la pièce. */
+.antenne { justify-self: end; display: flex; align-items: center; gap: 18px; }
+.antenne-etat { display: flex; align-items: center; gap: 10px; padding: 8px 16px 8px 12px; border-radius: 999px; border: 1px solid var(--ligne-forte); }
+.antenne-etat .voyant { width: 10px; height: 10px; border-radius: 50%; background: var(--arret); }
+.antenne-etat strong { font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px; color: var(--texte-2); }
+.antenne-etat .mono { color: var(--texte-2); }
+.regie.direct .antenne-etat { border-color: var(--antenne); background: var(--antenne-fond); }
+.regie.direct .antenne-etat .voyant { background: var(--antenne); box-shadow: 0 0 0 4px var(--antenne-fond), 0 0 18px var(--antenne); animation: pulse 2.4s ease-in-out infinite; }
+.regie.direct .antenne-etat strong { color: var(--antenne); }
+.regie.direct .antenne-etat .mono { color: var(--texte); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+.antenne-services { display: flex; gap: 14px; font-size: 12px; color: var(--texte-3); }
+.antenne-services span { display: inline-flex; align-items: center; gap: 6px; }
+.point { width: 6px; height: 6px; border-radius: 50%; background: var(--arret); flex: none; }
+.point.marche { background: var(--marche); }
+.point.antenne { background: var(--antenne); }
+.point.alerte { background: var(--alerte); }
+
+.contenu { flex: 1; padding: 28px 28px 64px; max-width: 1760px; width: 100%; margin: 0 auto; }
+.page[hidden] { display: none; }
+
+/* ---- Blocs ------------------------------------------------------------ */
+.bloc { background: var(--fond-1); border: 1px solid var(--ligne); border-radius: var(--r-lg); padding: 18px 20px 20px; min-width: 0; }
+.bloc-titre { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.bloc-titre h2 { font-family: var(--serif); font-size: 19px; font-weight: 400; letter-spacing: -0.005em; }
+.bloc-titre h2 em { font-style: italic; color: var(--texte-2); }
+.bloc-titre .outils { display: flex; gap: 6px; align-items: center; }
+.sous-titre { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--texte-3); margin: 18px 0 10px; }
+.sous-titre:first-child { margin-top: 0; }
+.pile { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* ---- Contrôles -------------------------------------------------------- */
+.champ { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.libelle { font-size: 12px; color: var(--texte-2); display: flex; justify-content: space-between; gap: 8px; }
+.libelle .mono { color: var(--texte-3); }
+.saisie {
+  width: 100%; background: var(--fond-0); border: 1px solid var(--ligne); border-radius: var(--r);
+  padding: 8px 10px; color: var(--texte); outline: none; min-height: 34px; transition: border-color .15s;
+}
+.saisie:hover { border-color: var(--ligne-forte); }
+.saisie:focus { border-color: var(--selection); }
+.saisie.lecture { color: var(--texte-2); background: var(--fond-2); }
+select.saisie { appearance: none; padding-right: 28px; background-image: linear-gradient(45deg, transparent 50%, var(--texte-3) 50%), linear-gradient(135deg, var(--texte-3) 50%, transparent 50%); background-position: calc(100% - 15px) 14px, calc(100% - 10px) 14px; background-size: 5px 5px; background-repeat: no-repeat; }
+textarea.saisie { resize: vertical; min-height: 60px; }
+.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.trois { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.quatre { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+.curseur { display: grid; grid-template-columns: 1fr 52px; gap: 10px; align-items: center; }
+.curseur output { font-family: var(--mono); font-size: 12px; text-align: right; color: var(--texte-2); }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: none; margin: 0; }
+input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--ligne-forte); border-radius: 1px; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -6px; border-radius: 50%; background: var(--texte); border: 0; box-shadow: 0 0 0 4px var(--fond-1); }
+input[type="range"]::-moz-range-track { height: 2px; background: var(--ligne-forte); }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--texte); border: 0; }
+input[type="range"]:focus-visible { outline: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb { background: var(--selection); }
+
+.bascule { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 13px; }
+.bascule input { position: absolute; opacity: 0; width: 0; height: 0; }
+.piste { width: 32px; height: 18px; border-radius: 9px; background: var(--fond-3); border: 1px solid var(--ligne-forte); position: relative; transition: background .15s, border-color .15s; flex: none; }
+.piste::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--texte-2); transition: transform .15s, background .15s; }
+.bascule input:checked + .piste { background: var(--marche-fond); border-color: var(--marche); }
+.bascule input:checked + .piste::after { transform: translateX(14px); background: var(--marche); }
+.bascule input:focus-visible + .piste { outline: 2px solid var(--selection); outline-offset: 2px; }
+.bascules { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+
+.bouton {
+  border: 1px solid var(--ligne-forte); background: transparent; color: var(--texte); border-radius: var(--r);
+  padding: 7px 14px; white-space: nowrap; line-height: 1.2; font-weight: 500; transition: background .15s, border-color .15s;
+}
+.bouton:hover:not(:disabled) { background: var(--fond-3); }
+.bouton:disabled { opacity: .4; cursor: default; }
+.bouton.principal { background: var(--action); border-color: var(--action); color: var(--action-texte); }
+.bouton.principal:hover:not(:disabled) { background: #fff; }
+.bouton.antenne { background: var(--antenne); border-color: var(--antenne); color: #fff; }
+.bouton.danger { border-color: transparent; color: var(--danger); }
+.bouton.danger:hover:not(:disabled) { background: var(--antenne-fond); }
+.bouton.discret { border-color: transparent; color: var(--texte-2); }
+.bouton.discret:hover:not(:disabled) { color: var(--texte); }
+.bouton.petit { padding: 4px 10px; font-size: 12px; }
+.bouton.icone { padding: 4px 6px; color: var(--texte-3); border-color: transparent; line-height: 1; }
+.bouton.icone:hover:not(:disabled) { color: var(--texte); }
+.actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.etiquette { font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--ligne-forte); color: var(--texte-2); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.etiquette.marche { color: var(--marche); border-color: transparent; background: var(--marche-fond); }
+.etiquette.alerte { color: var(--alerte); border-color: transparent; background: var(--alerte-fond); }
+.etiquette.antenne { color: var(--antenne); border-color: transparent; background: var(--antenne-fond); }
+
+.note { font-size: 12.5px; color: var(--texte-2); line-height: 1.55; }
+.note strong { color: var(--texte); font-weight: 500; }
+.note a { color: var(--texte); text-decoration: underline; text-decoration-color: var(--texte-3); text-underline-offset: 3px; }
+.avis { display: flex; gap: 12px; padding: 12px 14px; border-radius: var(--r); background: var(--alerte-fond); border: 1px solid transparent; }
+.avis .point { margin-top: 6px; }
+
+/* ======================================================================
+   SCÈNE
+   ====================================================================== */
+.scene { display: grid; grid-template-columns: 300px minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+
+/* Aperçu : la pièce maîtresse. */
+.apercu-bloc { display: flex; flex-direction: column; gap: 14px; }
+.apercu-entete { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.apercu-entete h2 { font-family: var(--serif); font-size: 26px; font-weight: 400; letter-spacing: -0.01em; }
+.apercu-entete h2 em { color: var(--texte-2); }
+.modes { display: inline-flex; gap: 2px; padding: 3px; background: var(--fond-1); border: 1px solid var(--ligne); border-radius: 999px; }
+.mode { background: none; border: 0; padding: 5px 14px; border-radius: 999px; color: var(--texte-2); font-size: 12px; font-weight: 500; }
+.mode[aria-pressed="true"] { background: var(--fond-3); color: var(--texte); }
+
+.cadre {
+  position: relative; aspect-ratio: 16 / 9; border-radius: var(--r-lg); overflow: hidden;
+  background: #000; border: 1px solid var(--ligne-forte);
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.9), 0 0 0 6px var(--fond-1);
+}
+.fond-scene {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(60% 50% at 78% 22%, rgba(232, 176, 120, 0.55), transparent 60%),
+    radial-gradient(40% 40% at 22% 75%, rgba(80, 96, 140, 0.55), transparent 65%),
+    radial-gradient(30% 30% at 55% 60%, rgba(140, 90, 110, 0.35), transparent 60%),
+    linear-gradient(180deg, #1d1a2b 0%, #2b2438 45%, #3a2d33 75%, #1a1418 100%);
+  animation: derive 24s ease-in-out infinite alternate;
+}
+@keyframes derive { from { transform: scale(1.04) translate(0, 0); } to { transform: scale(1.08) translate(-1.2%, 0.8%); } }
+.fond-scene::before { /* skyline */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34%;
+  background:
+    linear-gradient(90deg, transparent 0 6%, #0f0d14 6% 12%, transparent 12% 15%, #0f0d14 15% 24%, transparent 24% 27%, #0f0d14 27% 31%, transparent 31% 38%, #0f0d14 38% 47%, transparent 47% 50%, #0f0d14 50% 58%, transparent 58% 61%, #0f0d14 61% 67%, transparent 67% 74%, #0f0d14 74% 80%, transparent 80% 83%, #0f0d14 83% 92%, transparent 92%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 30%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 30%, #000 100%);
+  opacity: .9;
+}
+.fond-scene::after { /* fenêtres */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
+  background-image: radial-gradient(circle, rgba(255, 210, 150, .7) 0 .6px, transparent 1.2px);
+  background-size: 18px 14px; opacity: .55; mix-blend-mode: screen;
+}
+.voile { position: absolute; inset: 0; background: #000; opacity: .35; transition: opacity .2s; }
+.vignettage { position: absolute; inset: 0; background: radial-gradient(70% 70% at 50% 50%, transparent 55%, rgba(0, 0, 0, .75) 100%); transition: opacity .2s; }
+.vignettage.eteint { opacity: 0; }
+
+.calque-scene { position: absolute; color: #fff; text-shadow: 0 2px 20px rgba(0, 0, 0, .5); cursor: grab; transition: opacity .2s; }
+.calque-scene.masque { display: none; }
+.calque-scene.selectionne::after { content: ""; position: absolute; inset: -8px -10px; border: 1px solid var(--selection); border-radius: 6px; }
+.cs-titre { left: 5%; bottom: 10%; font-family: var(--serif); font-size: clamp(18px, 3.4vw, 44px); line-height: 1.05; letter-spacing: -0.01em; }
+.cs-titre small { display: block; font-family: var(--sans); font-size: 0.34em; letter-spacing: 0.18em; text-transform: uppercase; opacity: .8; margin-top: .5em; }
+.cs-horloge { right: 5%; top: 8%; text-align: right; font-family: var(--mono); font-size: clamp(14px, 2.2vw, 28px); font-weight: 500; letter-spacing: .04em; }
+.cs-horloge small { display: block; font-family: var(--sans); font-size: .42em; letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+.cs-accords { right: 5%; bottom: 10%; font-family: var(--mono); font-size: clamp(10px, 1.1vw, 14px); padding: .7em 1em; border: 1px solid rgba(255, 255, 255, .35); border-radius: 6px; background: rgba(0, 0, 0, .25); backdrop-filter: blur(6px); display: flex; gap: 1.2em; opacity: .9; }
+.cs-accords b { font-weight: 500; color: #ffd9a8; }
+.cs-logo { left: 5%; top: 8%; width: clamp(24px, 3vw, 40px); aspect-ratio: 1; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .8); display: grid; place-items: center; }
+.cs-logo::before { content: ""; width: 38%; aspect-ratio: 1; border-radius: 50%; background: #fff; }
+.cs-pluie { left: 42%; top: 40%; width: 16%; aspect-ratio: 16/9; border-radius: 4px; background: repeating-linear-gradient(115deg, rgba(255,255,255,.18) 0 1px, transparent 1px 7px); opacity: .5; }
+
+.apercu-pied { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.profils { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.profil { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--ligne); background: var(--fond-1); color: var(--texte-2); font-size: 12.5px; }
+.profil:hover { border-color: var(--ligne-forte); color: var(--texte); }
+.profil.actif { border-color: var(--selection); color: var(--texte); background: var(--selection-fond); }
+.profil .mono { color: var(--texte-3); font-size: 11px; }
+.profil .point.antenne { margin-left: -2px; }
+
+/* Galerie de fonds */
+.vignettes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.vignette { position: relative; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; border: 1px solid var(--ligne); padding: 0; background: var(--fond-3); }
+.vignette:hover { border-color: var(--ligne-forte); }
+.vignette.active { border-color: var(--selection); box-shadow: 0 0 0 1px var(--selection); }
+.vignette i { position: absolute; inset: 0; }
+.vignette b { position: absolute; left: 6px; bottom: 5px; right: 6px; font-family: var(--mono); font-size: 10px; font-weight: 400; color: #fff; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 4px #000; }
+.vignette em { position: absolute; top: 5px; right: 6px; font: 500 9px/1 var(--mono); font-style: normal; letter-spacing: .08em; color: #fff; background: rgba(0, 0, 0, .55); padding: 3px 5px; border-radius: 3px; }
+.v1 { background: radial-gradient(60% 50% at 78% 22%, #e8b078, transparent 60%), linear-gradient(180deg, #1d1a2b, #3a2d33); }
+.v2 { background: linear-gradient(180deg, #0f1a2a 0%, #1f3b57 60%, #0c141d 100%); }
+.v3 { background: radial-gradient(50% 60% at 30% 40%, #3b5a49, transparent 70%), linear-gradient(180deg, #0f1712, #1a2a1f); }
+.v4 { background: linear-gradient(200deg, #4a2c3a, #1a1220 60%, #0d0a10); }
+.v5 { background: repeating-linear-gradient(90deg, #2a2320 0 14px, #1c1815 14px 28px), linear-gradient(180deg, transparent, rgba(232,176,120,.3)); }
+.v6 { background: radial-gradient(40% 40% at 50% 70%, #6b5a8a, transparent 70%), linear-gradient(180deg, #101018, #1b1830); }
+.v7 { background: linear-gradient(180deg, #2d2a24, #15130f); }
+.v8 { background: radial-gradient(70% 60% at 50% 100%, #b56a4a, transparent 70%), linear-gradient(180deg, #16141c, #2a1d26); }
+.v9 { background: linear-gradient(135deg, #1f2a2e, #0e1416 70%); }
+.depot { margin-top: 10px; padding: 12px; border: 1px dashed var(--ligne-forte); border-radius: var(--r); text-align: center; font-size: 12px; color: var(--texte-3); }
+
+/* Calques */
+.calques { display: flex; flex-direction: column; gap: 2px; }
+.calque { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; padding: 7px 8px; border-radius: var(--r); border: 1px solid transparent; cursor: pointer; }
+.calque:hover { background: var(--fond-2); }
+.calque.actif { background: var(--selection-fond); border-color: rgba(216, 198, 162, .35); }
+.oeil { background: none; border: 0; padding: 0; width: 22px; height: 22px; display: grid; place-items: center; color: var(--texte); }
+.oeil svg { width: 16px; height: 16px; }
+.oeil.ferme { color: var(--texte-3); }
+.calque-nom { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calque-nom small { display: block; font-weight: 400; font-size: 11px; color: var(--texte-3); letter-spacing: .04em; text-transform: uppercase; }
+.calque.masque .calque-nom { color: var(--texte-3); }
+.calque-outils { display: flex; gap: 0; opacity: 0; }
+.calque:hover .calque-outils, .calque.actif .calque-outils { opacity: 1; }
+.ajout { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; }
+
+.ancres { display: grid; grid-template-columns: repeat(3, 24px); gap: 4px; }
+.ancre { width: 24px; height: 18px; border: 1px solid var(--ligne-forte); background: var(--fond-0); border-radius: 3px; padding: 0; }
+.ancre:hover { border-color: var(--texte-2); }
+.ancre.active { background: var(--selection); border-color: var(--selection); }
+.ancre.absente { visibility: hidden; }
+.couleur { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: center; }
+.pastille { width: 34px; height: 34px; border-radius: var(--r); border: 1px solid var(--ligne-forte); }
+.editeur-entete { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.editeur-entete h3 { font-family: var(--serif); font-size: 19px; font-weight: 400; }
+.editeur-entete h3 em { color: var(--texte-2); }
+
+/* ======================================================================
+   DIFFUSION
+   ====================================================================== */
+.diffusion { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; align-items: start; }
+.pilotage { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; padding: 28px 32px; }
+.pilotage-etat { display: flex; flex-direction: column; gap: 6px; }
+.pilotage-etat .sur { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--antenne); display: flex; align-items: center; gap: 8px; }
+.pilotage-etat .sur .voyant { width: 8px; height: 8px; border-radius: 50%; background: var(--antenne); box-shadow: 0 0 12px var(--antenne); animation: pulse 2.4s ease-in-out infinite; }
+.pilotage-etat h2 { font-family: var(--serif); font-size: 56px; font-weight: 400; line-height: 1; letter-spacing: -0.02em; }
+.pilotage-etat h2 em { color: var(--texte-2); }
+.pilotage-etat p { color: var(--texte-2); }
+.pilotage-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.pilotage-actions .bouton { padding: 12px 22px; font-size: 14px; }
+.services { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--ligne); border: 1px solid var(--ligne); border-radius: var(--r-lg); overflow: hidden; }
+.service { background: var(--fond-1); padding: 16px 20px; display: flex; flex-direction: column; gap: 6px; }
+.service .l { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--texte-3); }
+.service .v { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; }
+.service .d { font-size: 12px; color: var(--texte-3); }
+.journal { margin: 0; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; color: var(--texte-2); white-space: pre-wrap; max-height: 260px; overflow: auto; padding: 14px 16px; background: var(--fond-0); border-radius: var(--r); border: 1px solid var(--ligne); }
+.journal b { color: var(--texte-3); font-weight: 400; }
+.journal i { color: var(--marche); font-style: normal; }
+
+.destinations { display: flex; flex-direction: column; gap: 12px; }
+.destination { border: 1px solid var(--ligne); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; background: var(--fond-0); }
+.destination.active { border-color: var(--ligne-forte); }
+.destination-entete { display: flex; align-items: center; justify-content: space-between; }
+.destination-entete .nom { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
+.destination-entete .nom svg { width: 18px; height: 18px; }
+.cle { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.encodage { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.spec { display: flex; flex-direction: column; gap: 2px; }
+.spec .l { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--texte-3); }
+.spec .v { font-family: var(--mono); font-size: 18px; color: var(--texte); }
+.spec .v small { font-size: 12px; color: var(--texte-3); margin-left: 3px; }
+
+/* ======================================================================
+   TWITCH
+   ====================================================================== */
+.twitch { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; align-items: start; }
+.chaine-tete { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; }
+.avatar { width: 46px; height: 46px; border-radius: 50%; background: conic-gradient(from 210deg, #4a3f5c, #2a2a3a, #6b5a8a, #4a3f5c); border: 1px solid var(--ligne-forte); display: grid; place-items: center; font-family: var(--serif); font-size: 20px; }
+.chaine-tete h2 { font-family: var(--serif); font-size: 22px; font-weight: 400; }
+.chaine-tete .droits { display: flex; gap: 6px; margin-top: 4px; }
+.mesures { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--ligne); border: 1px solid var(--ligne); border-radius: var(--r-lg); overflow: hidden; }
+.mesure { background: var(--fond-1); padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+.mesure .l { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--texte-3); }
+.mesure .v { font-family: var(--serif); font-size: 34px; line-height: 1; letter-spacing: -0.01em; }
+.mesure .v small { font-family: var(--mono); font-size: 12px; color: var(--texte-3); margin-left: 4px; letter-spacing: 0; }
+.mesure.principale .v { color: var(--antenne); }
+.courbe svg { display: block; width: 100%; height: 150px; }
+.courbe-aire { fill: url(#degrade-audience); }
+.courbe-trait { fill: none; stroke: var(--texte); stroke-width: 1.5; stroke-linejoin: round; }
+.courbe-grille { stroke: var(--ligne); stroke-width: 1; }
+.courbe-actuel { fill: var(--antenne); }
+.reperes { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--texte-3); margin-top: 6px; }
+.direct-liste { display: grid; grid-template-columns: 160px 1fr; gap: 6px 16px; }
+.direct-liste dt { color: var(--texte-3); }
+.direct-liste dd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rediffusions { display: flex; flex-direction: column; }
+.rediffusion { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--ligne); }
+.rediffusion:first-child { border-top: 0; }
+.rediffusion .titre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rediffusion .titre small { display: block; color: var(--texte-3); font-size: 11.5px; }
+
+/* Chat */
+.chat { display: flex; flex-direction: column; height: calc(100vh - 64px - 56px); min-height: 560px; position: sticky; top: 92px; }
+.chat-flux { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; margin: 0 -8px; padding: 0 8px; }
+.message { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 6px 8px; border-radius: var(--r); align-items: start; }
+.message:hover { background: var(--fond-2); }
+.message .av { width: 26px; height: 26px; border-radius: 50%; background: var(--fond-3); border: 1px solid var(--ligne-forte); display: grid; place-items: center; font-family: var(--serif); font-size: 13px; color: var(--texte-2); margin-top: 1px; }
+.message .corps { min-width: 0; line-height: 1.45; }
+.message .auteur { font-weight: 600; margin-right: 6px; }
+.message .heure { font-family: var(--mono); font-size: 10.5px; color: var(--texte-3); margin-left: 6px; }
+.message .texte { color: var(--texte); overflow-wrap: anywhere; }
+.message.moi .auteur { color: var(--selection); }
+.message.systeme { background: var(--fond-2); }
+.message.systeme .texte { color: var(--texte-2); font-style: italic; }
+.message.systeme .auteur { color: var(--alerte); }
+.chat-saisie { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--ligne); }
+
+@media (max-width: 1400px) {
+  .scene { grid-template-columns: 280px minmax(0, 1fr); }
+  .scene > .pile:last-child { grid-column: 1 / -1; }
+  .diffusion, .twitch { grid-template-columns: 1fr; }
+  .chat { height: 520px; position: static; }
+  .mesures { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1000px) {
+  .entete { grid-template-columns: 1fr auto; height: auto; padding: 12px 20px; }
+  .antenne { grid-column: 1 / -1; justify-self: start; }
+  .scene { grid-template-columns: 1fr; }
+  .pilotage { grid-template-columns: 1fr; }
+  .encodage, .quatre { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="regie direct" id="regie">
+
+  <header class="entete">
+    <div class="marque">
+      <h1>LoFi <em>Engine</em></h1>
+      <span>Régie</span>
+    </div>
+    <nav class="onglets" role="tablist" aria-label="Sections">
+      <button class="onglet" role="tab" aria-selected="true" data-onglet="scene">Scène</button>
+      <button class="onglet" role="tab" aria-selected="false" data-onglet="diffusion">Diffusion</button>
+      <button class="onglet" role="tab" aria-selected="false" data-onglet="twitch">Twitch</button>
+    </nav>
+    <div class="antenne">
+      <div class="antenne-services">
+        <span><i class="point marche"></i>Générateur</span>
+        <span><i class="point marche"></i>Encodeur</span>
+        <span><i class="point marche"></i>Chat</span>
+      </div>
+      <div class="antenne-etat" id="antenne-etat">
+        <i class="voyant"></i>
+        <strong id="antenne-libelle">En direct</strong>
+        <span class="mono" id="antenne-detail">14 h 32 · 128 spect.</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="contenu">
+
+  <!-- =============================== SCÈNE =============================== -->
+  <section class="page scene" id="page-scene">
+
+    <div class="pile">
+      <div class="bloc">
+        <div class="bloc-titre">
+          <h2>Fond</h2>
+          <span class="etiquette">9 fichiers</span>
+        </div>
+        <div class="vignettes">
+          <button class="vignette active"><i class="v1"></i><b>nuit-fenetre.jpg</b></button>
+          <button class="vignette"><i class="v2"></i><em>MP4</em><b>pluie-ville.mp4</b></button>
+          <button class="vignette"><i class="v3"></i><b>foret-brume.jpg</b></button>
+          <button class="vignette"><i class="v4"></i><em>MP4</em><b>neon-ruelle.mp4</b></button>
+          <button class="vignette"><i class="v5"></i><b>bureau-lampe.jpg</b></button>
+          <button class="vignette"><i class="v6"></i><b>lune-toits.jpg</b></button>
+          <button class="vignette"><i class="v7"></i><em>GIF</em><b>chat-dort.gif</b></button>
+          <button class="vignette"><i class="v8"></i><b>coucher-soleil.jpg</b></button>
+          <button class="vignette"><i class="v9"></i><em>MP4</em><b>train-nuit.mp4</b></button>
+        </div>
+        <div class="depot">Déposer une image ou une vidéo ici</div>
+
+        <p class="sous-titre">Réglages</p>
+        <div class="pile" style="gap:12px">
+          <div class="champ">
+            <label class="libelle">Ajustement</label>
+            <select class="saisie"><option>Couvrir (cover)</option><option>Contenir (contain)</option></select>
+          </div>
+          <div class="champ">
+            <label class="libelle" for="voile">Voile sombre <span class="mono">0 = image nue · 1 = noir</span></label>
+            <div class="curseur">
+              <input type="range" id="voile" min="0" max="100" value="35">
+              <output id="voile-valeur">0.35</output>
+            </div>
+          </div>
+          <div class="bascules">
+            <label class="bascule"><input type="checkbox" id="vignettage" checked><span class="piste"></span>Vignettage</label>
+            <label class="bascule"><input type="checkbox" checked><span class="piste"></span>Dérive lente</label>
+          </div>
+        </div>
+
+        <p class="sous-titre">Thème de scène</p>
+        <select class="saisie"><option>Nuit — neutre</option><option>Ambre — chaud</option><option>Brume — froid</option></select>
+      </div>
+    </div>
+
+    <div class="apercu-bloc">
+      <div class="apercu-entete">
+        <h2>À l'antenne <em>· maintenant</em></h2>
+        <div class="modes">
+          <button class="mode" aria-pressed="true">Composition</button>
+          <button class="mode" aria-pressed="false">Rendu direct</button>
+        </div>
+      </div>
+
+      <div class="cadre" id="cadre">
+        <div class="fond-scene"></div>
+        <div class="voile" id="voile-scene"></div>
+        <div class="vignettage" id="vignettage-scene"></div>
+        <div class="calque-scene cs-logo" data-calque="logo"></div>
+        <div class="calque-scene cs-pluie" data-calque="pluie"></div>
+        <div class="calque-scene cs-horloge" data-calque="horloge">23:47<small>mardi 8 septembre</small></div>
+        <div class="calque-scene cs-titre selectionne" data-calque="titre">lofi radio<small>beats to study &amp; relax to</small></div>
+        <div class="calque-scene cs-accords" data-calque="accords"><b>Am7</b><span>Dm7</span><span>Gmaj7</span><span>Cmaj7</span></div>
+      </div>
+
+      <div class="apercu-pied">
+        <div class="profils">
+          <span class="discret" style="font-size:12px;margin-right:4px">Profils</span>
+          <button class="profil actif"><i class="point antenne"></i>Nuit — fenêtre <span class="mono">à l'antenne</span></button>
+          <button class="profil">Pluie urbaine <span class="mono">3 sept.</span></button>
+          <button class="profil">Forêt calme <span class="mono">28 août</span></button>
+          <button class="profil">Ambre studio <span class="mono">14 août</span></button>
+          <button class="bouton petit discret">Enregistrer sous…</button>
+        </div>
+        <div class="actions">
+          <span class="etiquette alerte">Modifié</span>
+          <button class="bouton discret">Annuler</button>
+          <button class="bouton principal">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pile">
+      <div class="bloc">
+        <div class="bloc-titre">
+          <h2>Calques</h2>
+          <span class="discret" style="font-size:12px">avant-plan en haut</span>
+        </div>
+        <ul class="calques" id="calques">
+          <li class="calque" data-calque="accords">
+            <button class="oeil" aria-label="Masquer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <span class="calque-nom">Accords en cours<small>accords</small></span>
+            <span class="calque-outils"><button class="bouton icone">↑</button><button class="bouton icone">↓</button><button class="bouton icone">⧉</button><button class="bouton icone">×</button></span>
+          </li>
+          <li class="calque actif" data-calque="titre">
+            <button class="oeil" aria-label="Masquer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <span class="calque-nom">Titre de la radio<small>texte</small></span>
+            <span class="calque-outils"><button class="bouton icone">↑</button><button class="bouton icone">↓</button><button class="bouton icone">⧉</button><button class="bouton icone">×</button></span>
+          </li>
+          <li class="calque" data-calque="horloge">
+            <button class="oeil" aria-label="Masquer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <span class="calque-nom">Horloge<small>horloge</small></span>
+            <span class="calque-outils"><button class="bouton icone">↑</button><button class="bouton icone">↓</button><button class="bouton icone">⧉</button><button class="bouton icone">×</button></span>
+          </li>
+          <li class="calque" data-calque="pluie">
+            <button class="oeil" aria-label="Masquer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <span class="calque-nom">Pluie sur vitre<small>vidéo · boucle</small></span>
+            <span class="calque-outils"><button class="bouton icone">↑</button><button class="bouton icone">↓</button><button class="bouton icone">⧉</button><button class="bouton icone">×</button></span>
+          </li>
+          <li class="calque" data-calque="logo">
+            <button class="oeil" aria-label="Masquer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <span class="calque-nom">Logo<small>image</small></span>
+            <span class="calque-outils"><button class="bouton icone">↑</button><button class="bouton icone">↓</button><button class="bouton icone">⧉</button><button class="bouton icone">×</button></span>
+          </li>
+        </ul>
+        <div class="ajout">
+          <select class="saisie"><option>Texte</option><option>Horloge</option><option>Accords</option><option>Image</option><option>Vidéo</option></select>
+          <button class="bouton">Ajouter</button>
+        </div>
+      </div>
+
+      <div class="bloc">
+        <div class="editeur-entete">
+          <h3>Titre de la radio <em>· texte</em></h3>
+          <label class="bascule"><input type="checkbox" checked><span class="piste"></span>Visible</label>
+        </div>
+        <div class="pile" style="gap:12px">
+          <div class="champ">
+            <label class="libelle">Nom</label>
+            <input class="saisie" value="Titre de la radio">
+          </div>
+          <div class="champ">
+            <label class="libelle">Texte <span class="mono">240 max</span></label>
+            <textarea class="saisie">lofi radio
+beats to study &amp; relax to</textarea>
+          </div>
+          <div class="deux">
+            <div class="champ">
+              <label class="libelle">Ancre</label>
+              <div class="ancres">
+                <button class="ancre"></button><button class="ancre"></button><button class="ancre"></button>
+                <button class="ancre absente"></button><button class="ancre"></button><button class="ancre absente"></button>
+                <button class="ancre active"></button><button class="ancre"></button><button class="ancre"></button>
+              </div>
+            </div>
+            <div class="champ">
+              <label class="libelle">Graisse</label>
+              <select class="saisie"><option>Légère</option><option>Normale</option></select>
+            </div>
+          </div>
+          <div class="deux">
+            <div class="champ"><label class="libelle">Décalage X <span class="mono">% larg.</span></label><input class="saisie mono" value="5"></div>
+            <div class="champ"><label class="libelle">Décalage Y <span class="mono">% haut.</span></label><input class="saisie mono" value="10"></div>
+          </div>
+          <div class="champ">
+            <label class="libelle" for="taille">Taille <span class="mono">% de la largeur</span></label>
+            <div class="curseur"><input type="range" id="taille" min="1" max="20" value="6"><output id="taille-valeur">6</output></div>
+          </div>
+          <div class="champ">
+            <label class="libelle" for="opacite">Opacité</label>
+            <div class="curseur"><input type="range" id="opacite" min="0" max="100" value="100"><output id="opacite-valeur">1.00</output></div>
+          </div>
+          <div class="champ">
+            <label class="libelle">Couleur</label>
+            <div class="couleur"><i class="pastille" style="background:#ffffff"></i><input class="saisie mono" value="#FFFFFF"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= DIFFUSION ============================= -->
+  <section class="page diffusion" id="page-diffusion" hidden>
+
+    <div class="pile">
+      <div class="bloc pilotage">
+        <div class="pilotage-etat">
+          <span class="sur"><i class="voyant"></i>À l'antenne</span>
+          <h2 class="mono-titre">14 h 32 <em>min</em></h2>
+          <p>Diffusion démarrée le 8 septembre à 09:15 · conteneur <span class="mono">lofi-diffuseur-7c1a</span></p>
+        </div>
+        <div class="pilotage-actions">
+          <button class="bouton danger" id="bouton-arret">Arrêter la diffusion</button>
+          <span class="discret" style="font-size:12px">Les réglages enregistrés seront relus au prochain démarrage.</span>
+        </div>
+      </div>
+
+      <div class="services">
+        <div class="service">
+          <span class="l">Site générateur</span>
+          <span class="v"><i class="point marche"></i>Actif</span>
+          <span class="d">http://127.0.0.1:4707 · répond en 12 ms</span>
+        </div>
+        <div class="service">
+          <span class="l">Corpus de repli</span>
+          <span class="v">312 fichiers</span>
+          <span class="d">4,8 Go · pris si le générateur se tait</span>
+        </div>
+        <div class="service">
+          <span class="l">Encodeur</span>
+          <span class="v"><i class="point marche"></i>1080p60 · 4 500 kb/s</span>
+          <span class="d">0 image perdue depuis le démarrage</span>
+        </div>
+      </div>
+
+      <div class="bloc">
+        <div class="bloc-titre">
+          <h2>Journal</h2>
+          <button class="bouton petit discret">Actualiser</button>
+        </div>
+<pre class="journal"><b>09:15:02</b>  diffuseur      démarrage du conteneur lofi-diffuseur-7c1a
+<b>09:15:04</b>  générateur     page prête, audio en marche (48 kHz)
+<b>09:15:06</b>  encodeur       x264 veryfast · 1920x1080 @ 60 · 4500 kb/s · aac 160 kb/s
+<b>09:15:07</b>  twitch         <i>connecté</i> rtmps://cdg02.contribute.live-video.net/app
+<b>11:40:12</b>  générateur     changement de morceau · Am7 – Dm7 – Gmaj7 – Cmaj7
+<b>18:02:33</b>  encodeur       débit stable, tampon 0,4 s
+<b>23:46:58</b>  twitch         128 spectateurs · aucune image perdue</pre>
+      </div>
+    </div>
+
+    <div class="pile">
+      <div class="bloc">
+        <div class="bloc-titre"><h2>Destinations</h2></div>
+        <div class="destinations">
+          <div class="destination active">
+            <div class="destination-entete">
+              <span class="nom"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2 2 6v14h5v3h3l3-3h4l5-5V2H4Zm16 12-3 3h-5l-3 3v-3H6V4h14v10Zm-4-7h2v5h-2V7Zm-5 0h2v5h-2V7Z"/></svg>Twitch</span>
+              <label class="bascule"><input type="checkbox" checked id="twitch-actif"><span class="piste"></span></label>
+            </div>
+            <div class="champ">
+              <label class="libelle">Serveur d'ingestion</label>
+              <input class="saisie mono" value="rtmps://cdg02.contribute.live-video.net/app">
+            </div>
+            <div class="cle">
+              <span class="etiquette marche" id="twitch-cle"><i class="point marche"></i>Clé enregistrée</span>
+              <button class="bouton petit">Remplacer…</button>
+            </div>
+            <p class="note discret" style="font-size:12px">La clé est écrite dans le .env, jamais réaffichée.</p>
+          </div>
+
+          <div class="destination">
+            <div class="destination-entete">
+              <span class="nom"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12 31 31 0 0 0 1 16.8a3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1c.4-1.6.5-3.2.5-4.8s-.1-3.2-.5-4.8ZM9.8 15.1V8.9l6 3.1-6 3.1Z"/></svg>YouTube</span>
+              <label class="bascule"><input type="checkbox"><span class="piste"></span></label>
+            </div>
+            <div class="champ">
+              <label class="libelle">Serveur d'ingestion</label>
+              <input class="saisie mono" value="rtmp://a.rtmp.youtube.com/live2">
+            </div>
+            <div class="cle">
+              <span class="etiquette">Aucune clé</span>
+              <button class="bouton petit">Enregistrer une clé…</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bloc">
+        <div class="bloc-titre">
+          <h2>Encodage</h2>
+          <span class="etiquette alerte">Relu au démarrage</span>
+        </div>
+        <div class="encodage" style="margin-bottom:16px">
+          <div class="spec"><span class="l">Résolution</span><span class="v">1080<small>p</small></span></div>
+          <div class="spec"><span class="l">Cadence</span><span class="v">60<small>i/s</small></span></div>
+          <div class="spec"><span class="l">Vidéo</span><span class="v">4500<small>kb/s</small></span></div>
+          <div class="spec"><span class="l">Audio</span><span class="v">160<small>kb/s</small></span></div>
+        </div>
+        <div class="deux">
+          <div class="champ"><label class="libelle">Résolution</label><select class="saisie"><option>1920 × 1080</option><option>1280 × 720</option></select></div>
+          <div class="champ"><label class="libelle">Images par seconde</label><select class="saisie"><option>60</option><option>30</option></select></div>
+          <div class="champ"><label class="libelle">Débit vidéo</label><input class="saisie mono" value="4500k"></div>
+          <div class="champ"><label class="libelle">Débit audio</label><input class="saisie mono" value="160k"></div>
+        </div>
+        <div class="actions" style="margin-top:14px;justify-content:flex-end">
+          <button class="bouton discret">Annuler</button>
+          <button class="bouton principal">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== TWITCH =============================== -->
+  <section class="page twitch" id="page-twitch" hidden>
+
+    <div class="pile">
+      <div class="bloc">
+        <div class="chaine-tete">
+          <div class="avatar">n</div>
+          <div>
+            <h2>nocturne_lofi</h2>
+            <div class="droits">
+              <span class="etiquette marche"><i class="point marche"></i>Compte connecté</span>
+              <span class="etiquette">channel:manage:broadcast</span>
+              <span class="etiquette">chat:read</span>
+              <span class="etiquette">chat:edit</span>
+              <span class="etiquette">channel:manage:videos</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="bouton petit discret">Reconnecter</button>
+            <button class="bouton petit discret">Déconnecter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mesures">
+        <div class="mesure principale"><span class="l">Spectateurs</span><span class="v">128</span></div>
+        <div class="mesure"><span class="l">Pic de la session</span><span class="v">211<small>16:40</small></span></div>
+        <div class="mesure"><span class="l">Moyenne des relevés</span><span class="v">96</span></div>
+        <div class="mesure"><span class="l">Abonnés</span><span class="v">3 482<small>+19</small></span></div>
+        <div class="mesure"><span class="l">Durée du direct</span><span class="v">14<small>h</small> 32<small>min</small></span></div>
+      </div>
+
+      <div class="bloc">
+        <div class="bloc-titre">
+          <h2>Audience <em>· 24 dernières heures</em></h2>
+          <span class="discret" style="font-size:12px">un relevé toutes les 5 min</span>
+        </div>
+        <figure class="courbe">
+          <svg viewBox="0 0 800 150" preserveAspectRatio="none" aria-label="Courbe d'audience">
+            <defs>
+              <linearGradient id="degrade-audience" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ede9e2" stop-opacity=".18"/>
+                <stop offset="1" stop-color="#ede9e2" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line class="courbe-grille" x1="0" y1="40" x2="800" y2="40"/>
+            <line class="courbe-grille" x1="0" y1="90" x2="800" y2="90"/>
+            <line class="courbe-grille" x1="0" y1="140" x2="800" y2="140"/>
+            <path class="courbe-aire" d="M0,110 C40,105 60,98 100,96 S170,92 210,84 S280,60 330,52 S400,40 440,30 S520,34 560,46 S640,70 700,64 S770,58 800,60 L800,150 L0,150 Z"/>
+            <path class="courbe-trait" d="M0,110 C40,105 60,98 100,96 S170,92 210,84 S280,60 330,52 S400,40 440,30 S520,34 560,46 S640,70 700,64 S770,58 800,60"/>
+            <circle class="courbe-actuel" cx="800" cy="60" r="4"/>
+          </svg>
+          <div class="reperes"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:45</span></div>
+        </figure>
+      </div>
+
+      <div class="deux" style="gap:20px">
+        <div class="bloc">
+          <div class="bloc-titre"><h2>Chaîne</h2><span class="etiquette antenne"><i class="point antenne"></i>En direct</span></div>
+          <div class="pile" style="gap:12px">
+            <div class="champ">
+              <label class="libelle">Titre du live <span class="mono">140 max</span></label>
+              <input class="saisie" value="lofi radio · beats to study & relax to · 24/7">
+            </div>
+            <div class="champ">
+              <label class="libelle">Catégorie <span class="mono">actuellement : Music</span></label>
+              <input class="saisie" placeholder="Chercher une catégorie…" value="Music">
+            </div>
+            <div class="actions" style="justify-content:flex-end">
+              <button class="bouton principal">Appliquer sur Twitch</button>
+            </div>
+          </div>
+          <p class="sous-titre">Constaté sur la chaîne</p>
+          <dl class="direct-liste">
+            <dt>Titre</dt><dd>lofi radio · beats to study &amp; relax to · 24/7</dd>
+            <dt>Catégorie</dt><dd>Music</dd>
+            <dt>En direct depuis</dt><dd class="mono">09:15 · 14 h 32 min</dd>
+            <dt>Spectateurs</dt><dd class="mono">128</dd>
+            <dt>Dernier relevé</dt><dd class="mono">23:46:58</dd>
+          </dl>
+        </div>
+
+        <div class="bloc">
+          <div class="bloc-titre"><h2>Rediffusions</h2><span class="etiquette alerte">3 archivées</span></div>
+          <div class="avis" style="margin-bottom:14px">
+            <i class="point alerte"></i>
+            <p class="note"><strong>L'archivage ne se règle pas ici.</strong> Twitch n'expose pas « Store past broadcasts » — vérifier <a href="#">les paramètres de diffusion</a> avant de lancer le stream.</p>
+          </div>
+          <label class="bascule" style="margin-bottom:6px"><input type="checkbox" id="suppression"><span class="piste"></span>Supprimer automatiquement les nouvelles rediffusions</label>
+          <p class="note discret" id="suppression-note" style="font-size:12px;margin-bottom:14px">Désactivée. Une fois active, toute rediffusion apparue ensuite est effacée définitivement ; celles déjà présentes restent.</p>
+          <div class="rediffusions">
+            <div class="rediffusion"><span class="titre">lofi radio · 24/7 <small>7 sept. · 09:15</small></span><span class="mono second">23 h 58</span><button class="bouton petit icone">↗</button></div>
+            <div class="rediffusion"><span class="titre">lofi radio · 24/7 <small>6 sept. · 09:14</small></span><span class="mono second">23 h 59</span><button class="bouton petit icone">↗</button></div>
+            <div class="rediffusion"><span class="titre">lofi radio · test de scène pluie <small>3 sept. · 21:02</small></span><span class="mono second">1 h 12</span><button class="bouton petit icone">↗</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bloc chat">
+      <div class="bloc-titre">
+        <h2>Chat</h2>
+        <span class="etiquette marche"><i class="point marche"></i>connecté</span>
+      </div>
+      <div class="chat-flux">
+        <div class="message systeme"><span class="av">·</span><span class="corps"><span class="auteur">système</span><span class="texte">Connecté à #nocturne_lofi</span><span class="heure">23:31</span></span></div>
+        <div class="message"><span class="av">m</span><span class="corps"><span class="auteur">mochi_studies</span><span class="texte">ce morceau est parfait pour réviser 🙏</span><span class="heure">23:32</span></span></div>
+        <div class="message"><span class="av">k</span><span class="corps"><span class="auteur">kaito_beats</span><span class="texte">quelqu'un connaît la prog d'accords là ?</span><span class="heure">23:33</span></span></div>
+        <div class="message"><span class="av">r</span><span class="corps"><span class="auteur">rainy_desk</span><span class="texte">c'est affiché en bas à droite : Am7 Dm7 Gmaj7 Cmaj7</span><span class="heure">23:33</span></span></div>
+        <div class="message"><span class="av">k</span><span class="corps"><span class="auteur">kaito_beats</span><span class="texte">ah oui merci, j'avais pas vu</span><span class="heure">23:34</span></span></div>
+        <div class="message"><span class="av">l</span><span class="corps"><span class="auteur">luna_wtf</span><span class="texte">3h du mat ici, bonne nuit à tous</span><span class="heure">23:36</span></span></div>
+        <div class="message"><span class="av">p</span><span class="corps"><span class="auteur">pablo_ndm</span><span class="texte">le fond avec la pluie était mieux hier je trouve</span><span class="heure">23:38</span></span></div>
+        <div class="message moi"><span class="av">n</span><span class="corps"><span class="auteur">nocturne_lofi</span><span class="texte">il revient ce week-end, promis</span><span class="heure">23:39</span></span></div>
+        <div class="message"><span class="av">p</span><span class="corps"><span class="auteur">pablo_ndm</span><span class="texte">🔥</span><span class="heure">23:39</span></span></div>
+        <div class="message"><span class="av">s</span><span class="corps"><span class="auteur">sleepy_owl_</span><span class="texte">ça fait 14h que ça tourne sans coupure ? impressionnant</span><span class="heure">23:41</span></span></div>
+        <div class="message"><span class="av">a</span><span class="corps"><span class="auteur">aya.codes</span><span class="texte">c'est généré en temps réel ? pas une playlist ?</span><span class="heure">23:43</span></span></div>
+        <div class="message moi"><span class="av">n</span><span class="corps"><span class="auteur">nocturne_lofi</span><span class="texte">généré à la volée, rien n'est joué deux fois</span><span class="heure">23:44</span></span></div>
+        <div class="message"><span class="av">a</span><span class="corps"><span class="auteur">aya.codes</span><span class="texte">ok c'est dingue</span><span class="heure">23:44</span></span></div>
+        <div class="message"><span class="av">m</span><span class="corps"><span class="auteur">mochi_studies</span><span class="texte">l'horloge est à la bonne heure pour Paris 👀</span><span class="heure">23:46</span></span></div>
+      </div>
+      <div class="chat-saisie">
+        <input class="saisie" placeholder="Écrire dans le chat…">
+        <button class="bouton principal">Envoyer</button>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  // Onglets
+  var onglets = document.querySelectorAll(".onglet");
+  onglets.forEach(function (o) {
+    o.addEventListener("click", function () {
+      onglets.forEach(function (x) { x.setAttribute("aria-selected", x === o ? "true" : "false"); });
+      document.querySelectorAll(".page").forEach(function (p) { p.hidden = p.id !== "page-" + o.dataset.onglet; });
+    });
+  });
+
+  // Voile sombre → aperçu
+  var voile = document.getElementById("voile"), voileScene = document.getElementById("voile-scene"), voileValeur = document.getElementById("voile-valeur");
+  voile.addEventListener("input", function () { voileScene.style.opacity = voile.value / 100; voileValeur.textContent = (voile.value / 100).toFixed(2); });
+
+  // Vignettage → aperçu
+  var vign = document.getElementById("vignettage"), vignScene = document.getElementById("vignettage-scene");
+  vign.addEventListener("change", function () { vignScene.classList.toggle("eteint", !vign.checked); });
+
+  // Taille / opacité du calque sélectionné → aperçu
+  var titre = document.querySelector(".cs-titre");
+  var taille = document.getElementById("taille"), tailleValeur = document.getElementById("taille-valeur");
+  taille.addEventListener("input", function () { tailleValeur.textContent = taille.value; titre.style.fontSize = "clamp(12px, " + (taille.value * 0.56) + "vw, 80px)"; });
+  var opacite = document.getElementById("opacite"), opaciteValeur = document.getElementById("opacite-valeur");
+  opacite.addEventListener("input", function () { opaciteValeur.textContent = (opacite.value / 100).toFixed(2); titre.style.opacity = opacite.value / 100; });
+
+  // Sélection et visibilité des calques
+  document.querySelectorAll(".calque").forEach(function (c) {
+    c.addEventListener("click", function () {
+      document.querySelectorAll(".calque").forEach(function (x) { x.classList.toggle("actif", x === c); });
+      document.querySelectorAll(".calque-scene").forEach(function (s) { s.classList.toggle("selectionne", s.dataset.calque === c.dataset.calque); });
+    });
+    c.querySelector(".oeil").addEventListener("click", function (e) {
+      e.stopPropagation();
+      var masque = c.classList.toggle("masque");
+      this.classList.toggle("ferme", masque);
+      var s = document.querySelector('.calque-scene[data-calque="' + c.dataset.calque + '"]');
+      if (s) s.classList.toggle("masque", masque);
+    });
+  });
+
+  // Interrupteur du direct : l'antenne change d'état partout
+  var regie = document.getElementById("regie"), bouton = document.getElementById("bouton-arret");
+  var etatLibelle = document.getElementById("antenne-libelle"), etatDetail = document.getElementById("antenne-detail");
+  var sur = document.querySelector(".pilotage-etat .sur"), titreEtat = document.querySelector(".pilotage-etat h2");
+  bouton.addEventListener("click", function () {
+    var direct = regie.classList.toggle("direct");
+    bouton.textContent = direct ? "Arrêter la diffusion" : "Démarrer la diffusion";
+    bouton.className = direct ? "bouton danger" : "bouton antenne";
+    etatLibelle.textContent = direct ? "En direct" : "À l'arrêt";
+    etatDetail.textContent = direct ? "14 h 32 · 128 spect." : "—";
+    sur.innerHTML = direct ? '<i class="voyant"></i>À l\'antenne' : "Hors antenne";
+    sur.style.color = direct ? "" : "var(--texte-3)";
+    titreEtat.innerHTML = direct ? "14 h 32 <em>min</em>" : "À l'arrêt";
+  });
+
+  // Suppression automatique des rediffusions
+  var supp = document.getElementById("suppression"), note = document.getElementById("suppression-note");
+  supp.addEventListener("change", function () {
+    note.textContent = supp.checked
+      ? "Active depuis le 8 septembre — 0 rediffusion supprimée. Les archives publiées avant cette date ne sont jamais touchées."
+      : "Désactivée. Une fois active, toute rediffusion apparue ensuite est effacée définitivement ; celles déjà présentes restent.";
+  });
+})();
+</script>
+
+<!--
+Direction : « régie de nuit ». Noir chaud (pas le gris-bleu d'admin), surfaces à peine plus claires que le fond,
+une seule lumière — le rouge de l'antenne — et deux signaux discrets : sauge pour ce qui tourne, sable pour la sélection.
+Tout le reste est typographie : Instrument Serif pour les titres et les grands chiffres (le côté « radio », une voix
+plutôt qu'un tableau de bord), Instrument Sans pour l'interface (même dessin, lecture nette en petit), DM Mono pour
+les valeurs techniques (débits, heures, fichiers) — une mono légère qui ne crie pas.
+Réorganisation : l'état de l'antenne quitte le coin de l'en-tête pour devenir une pastille lisible de loin, reprise
+en hero de l'onglet Diffusion (durée en 56 px, un seul bouton). L'aperçu occupe le centre de Scène, éditable, avec les
+profils juste dessous (ils décrivent ce qu'on voit) ; Fond à gauche, Calques + éditeur à droite. Sur Twitch, les cinq
+mesures passent en tête, le chat devient une colonne pleine hauteur, et l'archivage vit avec les rediffusions qu'il gouverne.
+-->
+</body>
+</html>

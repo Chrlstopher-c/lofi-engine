@@ -204,5 +204,9 @@
     surcharger,
     cheminScene: cheminScene(),
     moteurVisible: booleen(param("moteur"), false),
+    // audio=1 : la page ne joue que la musique et ne dessine rien. Sert à la diffusion,
+    // où c'est ffmpeg qui compose la scène — afficher ce qu'on ne capture pas serait payé
+    // pour rien, et cela coûtait 125 points de processeur, mesuré.
+    audioSeul: booleen(param("audio"), false),
   });
 })();

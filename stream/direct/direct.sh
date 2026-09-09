@@ -11,6 +11,8 @@ ETIQUETTE="direct"
 . /usr/local/lib/lofi/commun.sh
 # shellcheck source=/dev/null
 . /usr/local/lib/lofi/navigateur.sh
+# shellcheck source=/dev/null
+. /usr/local/bin/composition.sh
 
 STREAM_SCENE="${STREAM_SCENE:-true}"   # false = image fixe au lieu de la scène animée
 ECRAN=""                 # écran capturé, calé sur la résolution une fois celle-ci arrêtée
@@ -22,6 +24,8 @@ MESURE=4                 # durée d'une mesure de niveau
 SILENCES_TOLERES=2       # contrôles muets consécutifs avant de basculer sur le repli
 CYCLES_AVANT_RETEST=15   # contrôles sous repli avant de retenter le navigateur (~5 min)
 STREAM_ENCODEUR="${STREAM_ENCODEUR:-auto}"   # auto | nvenc | vaapi | x264
+STREAM_COMPOSITEUR="${STREAM_COMPOSITEUR:-auto}"  # auto | ffmpeg | navigateur
+MODE_SCENE="navigateur"  # qui dessine la scène : ffmpeg, ou le navigateur qu on recapture
 NOEUD_RENDU="${NOEUD_RENDU:-/dev/dri/renderD128}"
 STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # abaisser la définition si la machine ne suit pas
 COEURS_POUR_1080P_LOGICIEL=6                 # mesuré : 1080p sans puce vidéo coûte ~3 cœurs pleins
@@ -31,25 +35,37 @@ DIFFUSION_PID=""
 ENTREE_VIDEO=()
 PREFIXE_ENCODEUR=()   # options globales, avant les entrées
 ENCODEUR_VIDEO=()     # codec et mise à l'échelle, remplis par choisir_encodeur
+FILTRE_SORTIE=""      # greffé en bout de composition quand l'encodeur l'exige
 
 # Encoder en logiciel coûte un cœur entier en 1080p ; la puce vidéo d'un GPU le fait pour rien.
 # Chaque profil est essayé pour de vrai avant d'être retenu : une carte visible ne garantit pas
 # que la bibliothèque d'encodage soit là, et découvrir l'échec en direct coûterait le flux.
+# Quand ffmpeg compose lui-même, l'image sort déjà à la bonne taille et le transfert vers
+# une carte VAAPI appartient à la chaîne de composition : plus de -s ni de -vf ici.
 profil_encodeur() {
   local largeur="${STREAM_RESOLUTION%x*}" hauteur="${STREAM_RESOLUTION#*x}"
+  local compose="${2:-navigateur}"
+  local echelle=(-s "$STREAM_RESOLUTION")
+  [ "$compose" = "ffmpeg" ] && echelle=()
   PREFIXE_ENCODEUR=()
+  FILTRE_SORTIE=""
   case "$1" in
     nvenc)
       ENCODEUR_VIDEO=(-c:v h264_nvenc -preset p4 -tune ll -rc cbr -pix_fmt yuv420p
-                      -s "$STREAM_RESOLUTION" -r "$STREAM_FPS") ;;
+                      "${echelle[@]}" -r "$STREAM_FPS") ;;
     vaapi)
       PREFIXE_ENCODEUR=(-vaapi_device "$NOEUD_RENDU")
-      # La mise à l'échelle se fait avant le transfert vers la carte : une seule copie.
-      ENCODEUR_VIDEO=(-vf "scale=${largeur}:${hauteur},format=nv12,hwupload"
-                      -c:v h264_vaapi -rc_mode CBR -r "$STREAM_FPS") ;;
+      if [ "$compose" = "ffmpeg" ]; then
+        FILTRE_SORTIE="format=nv12,hwupload"
+        ENCODEUR_VIDEO=(-c:v h264_vaapi -rc_mode CBR -r "$STREAM_FPS")
+      else
+        # La mise à l'échelle se fait avant le transfert vers la carte : une seule copie.
+        ENCODEUR_VIDEO=(-vf "scale=${largeur}:${hauteur},format=nv12,hwupload"
+                        -c:v h264_vaapi -rc_mode CBR -r "$STREAM_FPS")
+      fi ;;
     x264)
       ENCODEUR_VIDEO=(-c:v libx264 -preset veryfast -tune stillimage -pix_fmt yuv420p
-                      -s "$STREAM_RESOLUTION" -r "$STREAM_FPS" -sc_threshold 0) ;;
+                      "${echelle[@]}" -r "$STREAM_FPS" -sc_threshold 0) ;;
     *) return 1 ;;
   esac
   return 0
@@ -94,6 +110,12 @@ choisir_encodeur() {
 # il s'étrangle — les tampons gonflent jusqu'à ce que quelque chose meure. Mieux vaut diffuser
 # en 1280x720 que crasher au bout d'une minute. Se désactive avec STREAM_ADAPTER=false.
 adapter_charge() {
+  if [ "$MODE_SCENE" = "ffmpeg" ]; then
+    # Personne ne regarde cet écran : il n'existe que parce que le navigateur refuse de
+    # démarrer sans affichage. Le garder en 1080p coûterait un rendu complet pour rien.
+    ECRAN="$ECRAN_MOTEUR"
+    return 0
+  fi
   ECRAN="${ECRAN_DIRECT:-${STREAM_RESOLUTION}x24}"
   vrai "$STREAM_ADAPTER" || return 0
   [ "$ENCODEUR_RETENU" = "x264" ] || return 0
@@ -113,9 +135,12 @@ adapter_charge() {
   profil_encodeur "$ENCODEUR_RETENU"
 }
 
-# Source vidéo : l'écran virtuel où le navigateur affiche la scène, ou une image fixe.
+# Source vidéo : la scène composée par ffmpeg, l'écran virtuel du navigateur, ou une image fixe.
 choisir_entree_video() {
-  if vrai "$STREAM_SCENE"; then
+  if [ "$MODE_SCENE" = "ffmpeg" ]; then
+    ENTREE_VIDEO=()          # tout vient de ARGS_COMPOSITION, qui porte ses propres entrées
+    journal "vidéo : scène composée en ${STREAM_RESOLUTION} @ ${STREAM_FPS} i/s"
+  elif vrai "$STREAM_SCENE"; then
     ENTREE_VIDEO=(-thread_queue_size 512 -f x11grab -draw_mouse 0 -framerate "$STREAM_FPS"
                   -video_size "${ECRAN%x*}" -i "$DISPLAY")
     journal "vidéo : capture de la scène (${ECRAN%x*})"
@@ -125,25 +150,55 @@ choisir_entree_video() {
   fi
 }
 
+# En composition, le puits audio est ouvert en premier : la scène référence ses propres
+# entrées par des index, et elle a été construite en sachant qu'une entrée la précède.
 lancer_diffusion() {
   local gop=$((STREAM_FPS * 2))
-  ( while true; do
-      ffmpeg -hide_banner -loglevel warning -nostdin \
-        "${PREFIXE_ENCODEUR[@]}" \
-        "${ENTREE_VIDEO[@]}" \
-        -thread_queue_size 1024 -f pulse -i "${SINK}.monitor" \
-        -map 0:v -map 1:a \
-        "${ENCODEUR_VIDEO[@]}" \
-        -b:v "$STREAM_VIDEO_BITRATE" -maxrate "$STREAM_VIDEO_BITRATE" \
-        -bufsize "$STREAM_VIDEO_BITRATE" \
-        -g "$gop" -keyint_min "$gop" \
-        -c:a aac -b:a "$STREAM_AUDIO_BITRATE" -ar 44100 -ac 2 \
-        "${FORMAT_SORTIE[@]}"
-      journal "le flux s'est interrompu — reconnexion dans 10 s"
+  local entrees=() maps=()
+  if [ "$MODE_SCENE" = "ffmpeg" ]; then
+    entrees=(-thread_queue_size 1024 -f pulse -i "${SINK}.monitor" "${ARGS_COMPOSITION[@]}")
+    maps=(-map 0:a)
+  else
+    entrees=("${ENTREE_VIDEO[@]}" -thread_queue_size 1024 -f pulse -i "${SINK}.monitor")
+    maps=(-map 0:v -map 1:a)
+  fi
+  # setsid donne au flux son propre groupe de processus : recharger la scène doit pouvoir
+  # arrêter ffmpeg et sa boucle de reconnexion ensemble, sans chercher de PID au jugé.
+  setsid bash -c '
+    while true; do
+      ffmpeg -hide_banner -loglevel warning -nostdin "$@"
+      echo "[direct] le flux s'"'"'est interrompu — reconnexion dans 10 s"
       sleep 10
-    done ) &
+    done' _ \
+    "${PREFIXE_ENCODEUR[@]}" "${entrees[@]}" "${maps[@]}" \
+    "${ENCODEUR_VIDEO[@]}" \
+    -b:v "$STREAM_VIDEO_BITRATE" -maxrate "$STREAM_VIDEO_BITRATE" \
+    -bufsize "$STREAM_VIDEO_BITRATE" \
+    -g "$gop" -keyint_min "$gop" \
+    -c:a aac -b:a "$STREAM_AUDIO_BITRATE" -ar 44100 -ac 2 \
+    "${FORMAT_SORTIE[@]}" &
   DIFFUSION_PID=$!
-  journal "diffusion lancée (PID $DIFFUSION_PID)"
+  journal "diffusion lancée (groupe $DIFFUSION_PID)"
+}
+
+arreter_diffusion() {
+  [ -n "$DIFFUSION_PID" ] || return 0
+  kill -TERM -- "-$DIFFUSION_PID" 2>/dev/null || kill "$DIFFUSION_PID" 2>/dev/null
+  wait "$DIFFUSION_PID" 2>/dev/null
+  DIFFUSION_PID=""
+}
+
+# La scène a changé sous nos pieds : on la recompose et on repart. Quelques secondes de
+# coupure, que les plateformes absorbent — c'est le prix d'un changement de composition.
+recharger_scene() {
+  journal "scène modifiée — recomposition"
+  if ! preparer_composition; then
+    journal "la nouvelle scène ne se compose pas, l'ancienne continue"
+    return 1
+  fi
+  arreter_diffusion
+  lancer_diffusion
+  return 0
 }
 
 demarrer_repli() {
@@ -178,7 +233,7 @@ relancer_navigateur() {
 nettoyer() {
   arreter_repli
   arreter_navigateur
-  [ -n "$DIFFUSION_PID" ] && kill "$DIFFUSION_PID" 2>/dev/null
+  arreter_diffusion
   pulseaudio --kill 2>/dev/null
   return 0
 }
@@ -224,6 +279,12 @@ surveiller() {
       continue
     fi
 
+    if scene_modifiee; then
+      recharger_scene
+      tic=0
+      continue
+    fi
+
     tic=$((tic + 1))
     [ "$tic" -ge "$PULSATIONS_PAR_CONTROLE" ] || continue
     tic=0
@@ -236,6 +297,10 @@ surveiller() {
       fi
       continue
     fi
+
+    # La date est lue dans un fichier à chaque image : la réécrire ici suffit à la voir
+    # changer à minuit, sans minuterie supplémentaire.
+    [ "$MODE_SCENE" = "ffmpeg" ] && ecrire_date
 
     if il_y_a_du_son "$MESURE"; then
       silences=0
@@ -254,6 +319,8 @@ surveiller() {
 construire_url() {
   if [ -n "$LOFI_URL" ]; then echo "$LOFI_URL"; return 0; fi
   if ! vrai "$STREAM_SCENE"; then echo "${LOFI_BASE}/?autoplay=1"; return 0; fi
+  # Quand ffmpeg compose, la page n'a plus qu'à jouer : elle ne dessine rien.
+  if [ "$MODE_SCENE" = "ffmpeg" ]; then echo "${LOFI_BASE}/scene/scene.html?audio=1"; return 0; fi
   # Aucun paramètre : la scène se définit dans scene.json, écrit par le centre de contrôle.
   # Passer des valeurs ici recréerait une seconde source de vérité qui l'écraserait.
   echo "${LOFI_BASE}/scene/scene.html"
@@ -265,7 +332,12 @@ construire_sortie
 # L'encodeur et la définition se décident avant tout le reste : l'écran virtuel, le navigateur
 # et l'annonce des destinations en dépendent tous les trois.
 choisir_encodeur
+vrai "$STREAM_SCENE" && choisir_mode_scene
 adapter_charge
+# Le profil d'encodeur dépend du mode : en composition, l'échelle et le transfert vers la
+# carte appartiennent à la chaîne de filtres, pas aux options de sortie.
+profil_encodeur "$ENCODEUR_RETENU" "$MODE_SCENE"
+[ "$MODE_SCENE" = "ffmpeg" ] && [ -n "$FILTRE_SORTIE" ] && preparer_composition
 annoncer_destinations
 journal "corpus de secours : $(compter_corpus) fichier(s)"
 

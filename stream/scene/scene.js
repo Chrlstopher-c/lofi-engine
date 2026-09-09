@@ -136,6 +136,9 @@
   function appliquerScene(sceneAssainie) {
     const scene = CONFIG.surcharger(sceneAssainie);
     appliquerTheme(scene);
+    // En mode audio seul, le moteur joue et rien d'autre n'est dessiné : ni fond à décoder,
+    // ni calque à composer. Le thème reste appliqué, il ne coûte rien.
+    if (CONFIG.audioSeul) return;
     appliquerFond(scene);
     appliquerCalques(scene);
   }

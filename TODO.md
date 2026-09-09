@@ -2,7 +2,17 @@
 *Dernière mise à jour : 2026-09-09*
 
 ## En cours
-- [ ] Rien en cours.
+- [ ] **Porter le nouveau dessin du centre de contrôle** — maquette validée dans
+      `maquettes/centre-controle-v2.html` : thèmes clair et sombre, échelles typographiques
+      et d'espacement déclarées, calques masquables et verrouillables, aperçu manipulable.
+
+## À faire
+- [ ] **Afficher les accords quand ffmpeg compose** — c'est le seul calque qui force encore
+      la scène à repasser par le navigateur, bien plus coûteux. Le mécanisme existe déjà : la
+      date est écrite dans un fichier que ffmpeg relit à chaque image. Il suffit que le moteur
+      musical écrive l'accord courant dans un fichier du même genre.
+- [ ] **Exercer VAAPI sur du vrai matériel Intel** — le profil n'a jamais encodé une image sur
+      une puce Intel, faute d'en avoir une ici. À faire chez quelqu'un qui en a une.
 
 ## Stream 24/7 — en service
 **Diffuse réellement sur Twitch.** Mode d'emploi et mesures : `docs/STREAM-24-7.md`.
@@ -11,7 +21,9 @@ Licences des échantillons : `CREDITS.md`. Fonds animés : `docs/FONDS-ANIMES.md
 Fait : scène en calques pilotée à chaud · centre de contrôle (scène, diffusion, Twitch) ·
 aperçu en temps réel et mode composition · profils · vidéos et GIF en boucle · repli sur
 corpus en 3,5 s · intégration Twitch complète (compte, clé récupérée automatiquement, titre,
-catégorie, spectateurs, statistiques, chat en direct, rediffusions).
+catégorie, spectateurs, statistiques, chat en direct, rediffusions) · **scène composée par
+ffmpeg** et encodage sur la puce vidéo : 306 % de processeur avant, 105 % après, en 30 images
+par seconde au lieu de 25.
 
 ### Prochain chantier — YouTube au même niveau que Twitch
 Aujourd'hui YouTube n'est qu'une **destination RTMP** : on peut y pousser le flux si on colle

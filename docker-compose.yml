@@ -72,6 +72,8 @@ services:
       STREAM_AUDIO_BITRATE: "${STREAM_AUDIO_BITRATE:-160k}"
       # auto : puce vidéo si elle est accessible, logiciel sinon (voir stream/materiel.sh)
       STREAM_ENCODEUR: "${STREAM_ENCODEUR:-auto}"
+      # auto : ffmpeg compose la scène, le navigateur ne fait plus que la musique
+      STREAM_COMPOSITEUR: "${STREAM_COMPOSITEUR:-auto}"
       # Scène (mode direct uniquement) — le détail vit dans corpus/scene.json,
       # écrit par le centre de contrôle ; ici on ne dit que si la scène est active.
       STREAM_SCENE: "${STREAM_SCENE:-true}"

@@ -1,0 +1,7 @@
+Source Serif 4 — Copyright 2014-2023 Adobe (http://www.adobe.com/), with Reserved
+Font Name 'Source'. Distribuée sous SIL Open Font License 1.1.
+Texte intégral : https://openfontlicense.org
+
+Les deux fichiers de ce dossier sont des sous-ensembles latins de cette police,
+extraits de stream/scene/scene-font.js pour que ffmpeg compose la scène avec le
+même caractère que la page.

@@ -86,13 +86,25 @@ lofi-engine/
 │   ├── assets/background/             fonds d'écran (webp)
 │   └── LofiEngine.png                 logo
 │
+├── docker-compose.nvidia.yml          accès à la carte NVIDIA, ajouté automatiquement
+├── docker-compose.dri.yml             accès à la puce vidéo Intel/AMD, idem
+├── maquettes/                         dessins du centre de contrôle, avant portage
+│   ├── centre-controle.html           première proposition
+│   └── centre-controle-v2.html        version aboutie, thèmes clair et sombre
+│
 ├── stream/                            diffusion en continu (docs/STREAM-24-7.md)
 │   ├── Dockerfile.navigateur          image chromium + écran virtuel + audio + ffmpeg
 │   ├── Dockerfile.diffuseur           image ffmpeg seul, pour le mode sans navigateur
 │   ├── base.sh                        journalisation, partagée par tous les scripts
 │   ├── commun.sh                      config des plateformes, sortie RTMP, playlist
 │   ├── navigateur.sh                  écran virtuel, puits audio, pilotage du navigateur
+│   ├── materiel.sh                    détecte la puce vidéo de la machine hôte
 │   ├── direct/direct.sh               diffusion en direct + repli sur le corpus
+│   ├── direct/composition.sh          choisit qui dessine la scène, ffmpeg ou le navigateur
+│   ├── direct/composer.py             traduit scene.json en chaîne de filtres ffmpeg
+│   ├── polices/scene-titre.ttf        Source Serif 4 Display Light, pour ffmpeg
+│   ├── polices/scene-texte.ttf        Source Serif 4 Regular, pour ffmpeg
+│   ├── polices/LICENCE.txt            SIL OFL 1.1 des deux polices ci-dessus
 │   ├── generateur/capturer.sh         enregistre le corpus en FLAC
 │   └── diffuseur/diffuser.sh          lit le corpus en boucle, sans navigateur
 │
