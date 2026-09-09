@@ -1,7 +1,6 @@
 #!/bin/bash
 # Lance LoFi Engine en conteneur. Fonctionne sur un clone frais : rien n'est
 # requis en local hors d'un client Docker — l'installation et le build ont
-# lieu dans l'image. Sous VM, `vmdocker` est utilisé à la place de `docker`.
 set -uo pipefail
 cd "$(dirname "$0")"
 

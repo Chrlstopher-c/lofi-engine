@@ -12,7 +12,7 @@ lofi-engine/
 ├── Dockerfile                      ⬤ image en deux étapes : build Vite, puis serveur seul
 ├── docker-compose.yml              ⬤ service, port publié sur 0.0.0.0, redémarrage auto
 ├── .dockerignore                   ⬤ exclut node_modules, dist, .git du contexte de build
-├── docker-cli.sh                   ⬤ détecte le client : docker, ou vmdocker sous VM
+├── docker-cli.sh                   ⬤ détecte le client Docker et la commande d'installation
 ├── server.ts                       ⬤ serveur statique Bun, gère les requêtes Range des mp3
 ├── .echoforge.yml                  ⬤ fiche d'identité lue par Atrium
 ├── .env.example                    ⬤ variables d'environnement, sans valeurs sensibles
