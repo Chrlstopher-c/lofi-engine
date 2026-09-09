@@ -1,0 +1,119 @@
+/* Retours à l'utilisateur : avis, états vides, menus, dialogues, toasts, mesures. */
+
+/* Avis : message contextuel, couleur = sens. */
+.avis {
+  display: flex; gap: var(--s-2); padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-ctrl); border: 1px solid transparent;
+  font-size: var(--t-sm); line-height: var(--lh-sm); color: var(--fg-1);
+}
+.avis .ic { margin-top: 0; }
+.avis > span { flex: 1; min-width: 0; }
+.avis.warn { background: var(--warn-bg); color: var(--fg-0); }
+.avis.warn .ic { color: var(--warn); }
+.avis.danger { background: var(--danger-bg); color: var(--fg-0); }
+.avis.danger .ic { color: var(--danger); }
+.avis.info { background: var(--accent-bg); color: var(--fg-0); }
+.avis.info .ic { color: var(--accent); }
+.avis strong { font-weight: 600; }
+
+/* Vide / chargement / squelette */
+.vide {
+  padding: var(--s-6) var(--s-4); text-align: center; color: var(--fg-2);
+  font-size: var(--t-sm); line-height: var(--lh-sm);
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-2);
+}
+.vide .ic { width: 20px; height: 20px; color: var(--fg-2); }
+.squelette {
+  position: relative; overflow: hidden; background: var(--bg-3);
+  border-radius: var(--r-ctrl); color: transparent !important;
+}
+.squelette::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, var(--bg-4), transparent);
+  animation: balayage 1.2s linear infinite;
+}
+@keyframes balayage { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* Menu contextuel / liste déroulante */
+.menu {
+  position: absolute; z-index: 40; min-width: 200px; padding: var(--s-1);
+  background: var(--bg-1); border: 1px solid var(--line-strong);
+  border-radius: var(--r-surface); box-shadow: var(--ombre-2);
+}
+.menu button {
+  display: flex; align-items: center; gap: var(--s-2); width: 100%; height: var(--h-md);
+  padding: 0 var(--s-2); border-radius: var(--r-ctrl); color: var(--fg-0); font-size: var(--t-md);
+}
+.menu button:hover:not(:disabled) { background: var(--bg-3); }
+.menu button:disabled { opacity: .45; }
+.menu button .raccourci { margin-left: auto; font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-2); }
+.menu .sep { height: 1px; background: var(--line); margin: var(--s-1) 0; }
+.menu button.danger { color: var(--danger); }
+
+/* Dialogue : un composant, réutilisé pour confirmation, raccourcis, comparaison. */
+dialog { border: 0; padding: 0; background: transparent; color: inherit; max-width: none; }
+dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+[data-theme="light"] dialog::backdrop { background: rgba(23, 25, 29, 0.35); }
+.dialogue {
+  width: min(520px, calc(100vw - var(--s-8))); background: var(--bg-1);
+  border: 1px solid var(--line-strong); border-radius: var(--r-surface);
+  box-shadow: var(--ombre-2); overflow: hidden;
+}
+.dialogue.large { width: min(760px, calc(100vw - var(--s-8))); }
+.dialogue-tete {
+  display: flex; align-items: center; height: var(--s-12);
+  padding: 0 var(--s-3) 0 var(--s-5); border-bottom: 1px solid var(--line);
+}
+.dialogue-tete h2 { font-size: var(--t-lg); line-height: var(--lh-lg); font-weight: 600; }
+.dialogue-corps { padding: var(--s-5); display: flex; flex-direction: column; gap: var(--s-3); color: var(--fg-1); }
+.dialogue-corps strong { color: var(--fg-0); font-weight: 600; }
+.dialogue-pied {
+  display: flex; justify-content: flex-end; gap: var(--s-2);
+  padding: var(--s-3) var(--s-5); border-top: 1px solid var(--line); background: var(--bg-2);
+}
+
+/* Toast */
+.toasts {
+  position: fixed; left: 50%; bottom: var(--s-6); transform: translateX(-50%); z-index: 50;
+  display: flex; flex-direction: column; gap: var(--s-2); align-items: center; pointer-events: none;
+}
+.toast {
+  pointer-events: auto; display: flex; align-items: center; gap: var(--s-3); height: var(--h-lg);
+  padding: 0 var(--s-2) 0 var(--s-4); background: var(--fg-0); color: var(--fg-inverse);
+  border-radius: var(--r-ctrl); box-shadow: var(--ombre-2);
+  font-size: var(--t-sm); font-weight: 500; animation: monte .18s ease-out;
+}
+.toast .btn { height: var(--h-sm); border-color: transparent; background: transparent; color: inherit; opacity: .8; font-size: var(--t-sm); }
+.toast .btn:hover { opacity: 1; background: rgba(128, 128, 128, .2); }
+@keyframes monte { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Tableau de mesures */
+.mesures {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: var(--r-surface); overflow: hidden;
+}
+.mesure { background: var(--bg-1); padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.mesure .l {
+  font-size: var(--t-xs); line-height: var(--lh-xs); letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--fg-2); font-weight: 600; display: flex; justify-content: space-between;
+}
+.mesure .v {
+  font-family: var(--mono); font-size: var(--t-2xl); line-height: var(--lh-2xl);
+  font-weight: 500; letter-spacing: -0.02em;
+}
+.mesure .v small { font-size: var(--t-sm); color: var(--fg-2); margin-left: var(--s-1); letter-spacing: 0; font-weight: 400; }
+.mesure .d { font-size: var(--t-xs); line-height: var(--lh-xs); color: var(--fg-2); font-family: var(--mono); }
+.mesure.live .v { color: var(--live); }
+.mesure.ok .d { color: var(--ok); }
+
+/* Liste clé / valeur */
+.kv {
+  display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--s-1) var(--s-4);
+  font-size: var(--t-sm); line-height: var(--lh-sm);
+}
+.kv dt { color: var(--fg-2); }
+.kv dd { color: var(--fg-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kv dd.mono { font-size: var(--t-sm); }
+
+@media (max-width: 1500px) { .mesures { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) { .mesures { grid-template-columns: repeat(2, 1fr); } }

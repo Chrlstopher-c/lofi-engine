@@ -1,18 +1,15 @@
-/** Bandeau d'état permanent : diffusion, site, corpus. Rien n'y figure que l'API ne fournisse. */
+/** État de l'antenne, lisible de loin. Rien n'y figure que l'API ne fournisse. */
 import type { ReactNode } from "react";
 import type { EtatDiffusion } from "../../types.ts";
 import type { Etat } from "./useEtat.ts";
-import { dureeDepuis, octetsLisibles } from "../commun/format.ts";
+import { Voyant } from "./composants.tsx";
+import { dureeDepuis, octetsLisibles } from "./format.ts";
 
-function Voyant({ actif, libelle, detail }: { actif: boolean | null; libelle: string; detail?: string }): ReactNode {
-  const classe = actif === null ? "voyant inconnu" : actif ? "voyant actif" : "voyant";
-  return (
-    <span className="etat-item">
-      <span className={classe} aria-hidden="true" />
-      <span>{libelle}</span>
-      {detail ? <span className="discret">{detail}</span> : null}
-    </span>
-  );
+interface Antenne {
+  classe: string;
+  sens: "neutre" | "ok" | "warn" | "live" | "danger";
+  libelle: string;
+  detail: string;
 }
 
 function resumeCorpus(etat: EtatDiffusion): string {
@@ -20,24 +17,50 @@ function resumeCorpus(etat: EtatDiffusion): string {
   return `${etat.corpusFichiers} fichier${pluriel} · ${octetsLisibles(etat.corpusOctets)}`;
 }
 
-export function BarreEtat({ etat, erreur }: Etat): ReactNode {
-  if (erreur && !etat) {
-    return <div className="barre-etat"><span className="etat-item erreur">État indisponible : {erreur}</span></div>;
+/** Le conteneur n'est affiché que si le serveur l'a nommé : rien d'inventé. */
+function detailDirect(etat: EtatDiffusion): string {
+  const duree = dureeDepuis(etat.depuis);
+  return [duree, etat.conteneur].filter(Boolean).join(" · ");
+}
+
+function lireAntenne(etat: EtatDiffusion | null, erreur: string | null): Antenne {
+  if (!etat) {
+    const indisponible = erreur !== null;
+    return {
+      classe: indisponible ? "antenne erreur" : "antenne",
+      sens: indisponible ? "danger" : "neutre",
+      libelle: indisponible ? "État indisponible" : "Lecture…",
+      detail: indisponible && erreur ? erreur : "",
+    };
   }
-  const diffusion = etat ? etat.enMarche : null;
-  const duree = etat?.enMarche ? dureeDepuis(etat.depuis) : "";
+  if (etat.construction) {
+    return { classe: "antenne construction", sens: "warn", libelle: "Construction", detail: "image du diffuseur" };
+  }
+  if (etat.enMarche) {
+    return { classe: "antenne", sens: "live", libelle: "En direct", detail: detailDirect(etat) };
+  }
+  return { classe: "antenne", sens: "neutre", libelle: "À l'arrêt", detail: "" };
+}
+
+export function BarreEtat({ etat, erreur }: Etat): ReactNode {
+  const antenne = lireAntenne(etat, erreur);
   return (
-    <div className="barre-etat">
-      <Voyant actif={diffusion} libelle={diffusion ? "Diffusion en marche" : "Diffusion à l'arrêt"}
-        detail={duree ? `depuis ${duree}` : undefined} />
-      <Voyant actif={etat ? etat.siteEnMarche : null} libelle={etat?.siteEnMarche ? "Site actif" : "Site arrêté"} />
-      <span className="etat-item">
-        <span className="discret">Corpus</span>
-        <span className="mono">
-          {etat ? resumeCorpus(etat) : "…"}
+    <>
+      <div className="services" aria-label="Services">
+        <span title={etat?.siteEnMarche ? "Site générateur en marche" : "Site générateur arrêté"}>
+          <Voyant sens={etat ? (etat.siteEnMarche ? "ok" : "danger") : "neutre"} />
+          Site
         </span>
-      </span>
-      {erreur ? <span className="etat-item erreur">{erreur}</span> : null}
-    </div>
+        <span title="Corpus musical servi au diffuseur">
+          <Voyant sens={etat && etat.corpusFichiers > 0 ? "ok" : "neutre"} />
+          <span className="mono">{etat ? resumeCorpus(etat) : "…"}</span>
+        </span>
+      </div>
+      <div className={antenne.classe} role="status" aria-live="polite">
+        <Voyant sens={antenne.sens} />
+        <span>{antenne.libelle}</span>
+        {antenne.detail ? <span className="detail">{antenne.detail}</span> : null}
+      </div>
+    </>
   );
 }

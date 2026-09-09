@@ -1,0 +1,70 @@
+/* Onglet Twitch : chaîne, courbe d'audience, rediffusions, chat. */
+
+.twitch { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--s-4); align-items: start; }
+
+.chaine-tete { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-4); align-items: center; padding: var(--s-4); }
+.avatar {
+  width: var(--s-12); height: var(--s-12); border-radius: 50%;
+  border: 1px solid var(--line-strong); overflow: hidden; background: var(--bg-3);
+}
+.avatar svg, .avatar img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.chaine-tete h2 { font-size: var(--t-lg); line-height: var(--lh-lg); font-weight: 600; display: flex; align-items: center; gap: var(--s-2); }
+.chaine-tete .droits { display: flex; gap: var(--s-1); margin-top: var(--s-1); flex-wrap: wrap; }
+
+/* Courbe d'audience : tracé SVG, repères en mono sous le cadre. */
+.courbe { position: relative; margin: 0; }
+.courbe svg { display: block; width: 100%; height: 160px; }
+.courbe-aire { fill: var(--accent); opacity: .12; }
+.courbe-trait { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linejoin: round; }
+.courbe-grille { stroke: var(--line); stroke-width: 1; }
+.courbe-actuel { fill: var(--live); }
+.courbe-texte { font: 400 var(--t-xs) var(--mono); fill: var(--fg-2); }
+.reperes {
+  display: flex; justify-content: space-between; font-family: var(--mono);
+  font-size: var(--t-xs); line-height: var(--lh-xs); color: var(--fg-2); margin-top: var(--s-1);
+}
+
+.rediffusion {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: var(--s-3);
+  align-items: center; height: var(--h-lg); padding: 0 var(--s-1); border-top: 1px solid var(--line);
+}
+.rediffusion:first-child { border-top: 0; }
+.rediffusion .titre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-sm); }
+.rediffusion .date { font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-2); }
+
+/* Chat : colonne collante, flux au-dessus, saisie en pied. */
+.chat {
+  position: sticky; top: calc(var(--hauteur-entete) + var(--s-4));
+  height: calc(100vh - var(--hauteur-entete) - var(--s-8)); min-height: 520px;
+}
+.chat-flux { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; padding: var(--s-2); }
+.message {
+  display: grid; grid-template-columns: var(--h-sm) minmax(0, 1fr); gap: var(--s-2);
+  padding: var(--s-1) var(--s-2); border-radius: var(--r-ctrl); align-items: start;
+}
+.message:hover { background: var(--bg-2); }
+.message .av {
+  width: var(--h-sm); height: var(--h-sm); border-radius: 50%; background: var(--bg-3);
+  border: 1px solid var(--line-strong); display: grid; place-items: center;
+  font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-1); align-self: start;
+}
+.message .corps { min-width: 0; font-size: var(--t-sm); line-height: var(--lh-md); }
+.message .auteur { font-weight: 600; margin-right: var(--s-1); }
+.message .heure { font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-2); margin-left: var(--s-2); }
+.message .texte { overflow-wrap: anywhere; }
+.message.moi .auteur { color: var(--accent); }
+.message.systeme .texte { color: var(--fg-2); font-style: italic; }
+.message.systeme .auteur { color: var(--warn); }
+.message .mod { opacity: 0; display: inline-flex; gap: 0; margin-left: var(--s-1); vertical-align: middle; }
+.message:hover .mod { opacity: 1; }
+.chat-saisie { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-2); }
+.chat-saisie .aide { grid-column: 1 / -1; }
+
+@media (max-width: 1500px) {
+  .twitch { grid-template-columns: 1fr; }
+  .chat { position: static; height: 560px; }
+}
+@media (max-width: 760px) {
+  .rediffusion { grid-template-columns: minmax(0, 1fr) auto; height: auto; padding: var(--s-2) var(--s-1); }
+  .chaine-tete { grid-template-columns: auto minmax(0, 1fr); }
+}

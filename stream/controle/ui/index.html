@@ -3,8 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark light">
   <title>LoFi Engine — Centre de contrôle</title>
+  <script>
+    /* Pose le thème avant le premier rendu : sans ça, un utilisateur en clair voit un éclair sombre. */
+    try {
+      var choix = localStorage.getItem("lofi-theme");
+      if (choix !== "clair" && choix !== "sombre") {
+        choix = window.matchMedia("(prefers-color-scheme: light)").matches ? "clair" : "sombre";
+      }
+      document.documentElement.dataset.theme = choix === "clair" ? "light" : "dark";
+    } catch (e) {
+      document.documentElement.dataset.theme = "dark";
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/main.css?v=__VERSION__">
 </head>
 <body>

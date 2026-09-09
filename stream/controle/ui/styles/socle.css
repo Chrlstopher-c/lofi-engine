@@ -1,0 +1,129 @@
+/* Jetons, base et utilitaires. Aucune couleur ne se déclare hors des deux blocs de thème. */
+
+:root {
+  /* Échelle typographique : 7 tailles nommées, interlignes sur la grille de 4. */
+  --t-xs: 11px; --lh-xs: 16px;
+  --t-sm: 12px; --lh-sm: 16px;
+  --t-md: 13px; --lh-md: 20px;
+  --t-lg: 15px; --lh-lg: 20px;
+  --t-xl: 20px; --lh-xl: 24px;
+  --t-2xl: 28px; --lh-2xl: 32px;
+  --t-3xl: 40px; --lh-3xl: 44px;
+
+  /* Espacement, base 4 px. */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px;
+  --s-8: 32px; --s-10: 40px; --s-12: 48px;
+
+  /* Hauteurs de contrôle : tout champ, bouton ou sélecteur d'une densité fait exactement cette hauteur. */
+  --h-sm: 24px; --h-md: 28px; --h-lg: 36px;
+
+  /* Rayons : un par famille. */
+  --r-ctrl: 4px;     /* champs, boutons, badges, vignettes */
+  --r-surface: 8px;  /* panneaux, cartes, dialogues */
+
+  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --largeur-gauche: 288px;
+  --largeur-droite: 328px;
+  --hauteur-entete: 48px;
+
+  /* ---- Thème sombre (défaut) ---- */
+  color-scheme: dark;
+  --bg-0: #121316;
+  --bg-1: #1a1c20;
+  --bg-2: #212429;
+  --bg-3: #2a2e35;
+  --bg-4: #343944;
+  --line: #2a2e35;
+  --line-strong: #3b414b;
+  --fg-0: #e9ebef;
+  --fg-1: #aeb4be;
+  --fg-2: #848b97;
+  --fg-inverse: #121316;
+
+  --accent: #78a4ff;
+  --accent-fg: #0d1a36;
+  --accent-bg: rgba(120, 164, 255, 0.14);
+  --accent-ligne: rgba(120, 164, 255, 0.45);
+
+  --live: #ff5f4f;        --live-bg: rgba(255, 95, 79, 0.14);
+  --ok: #55c98d;          --ok-bg: rgba(85, 201, 141, 0.14);
+  --warn: #e6b54d;        --warn-bg: rgba(230, 181, 77, 0.14);
+  --danger: #ff6b5e;      --danger-bg: rgba(255, 107, 94, 0.14);
+
+  --ombre-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --ombre-2: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--line-strong);
+  --canevas-fond: #0c0d0f;
+  --chrome-scrim: rgba(18, 19, 22, 0.92);
+}
+
+/* ---- Thème clair : conçu à part, contrastes et ombres propres. ---- */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-0: #eef0f3;
+  --bg-1: #ffffff;
+  --bg-2: #f6f7f9;
+  --bg-3: #eaecf0;
+  --bg-4: #dfe3e9;
+  --line: #e1e4e9;
+  --line-strong: #c4cad3;
+  --fg-0: #17191d;
+  --fg-1: #4a515b;
+  --fg-2: #687079;
+  --fg-inverse: #ffffff;
+
+  --accent: #2b62d9;
+  --accent-fg: #ffffff;
+  --accent-bg: rgba(43, 98, 217, 0.10);
+  --accent-ligne: rgba(43, 98, 217, 0.45);
+
+  --live: #d3372a;        --live-bg: rgba(211, 55, 42, 0.10);
+  --ok: #1e8a57;          --ok-bg: rgba(30, 138, 87, 0.12);
+  --warn: #9a6a0f;        --warn-bg: rgba(200, 145, 30, 0.14);
+  --danger: #c4372b;      --danger-bg: rgba(196, 55, 43, 0.10);
+
+  --ombre-1: 0 1px 2px rgba(20, 24, 32, 0.08), 0 0 0 1px rgba(20, 24, 32, 0.04);
+  --ombre-2: 0 12px 32px rgba(20, 24, 32, 0.16), 0 0 0 1px var(--line);
+  --canevas-fond: #d9dde3;
+  --chrome-scrim: rgba(238, 240, 243, 0.92);
+}
+
+/* ---------------------------------------------------------------- BASE */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg-0); color: var(--fg-0);
+  font: 400 var(--t-md)/var(--lh-md) var(--sans);
+  -webkit-font-smoothing: antialiased; font-feature-settings: "tnum";
+}
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure, fieldset { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+fieldset { border: 0; min-width: 0; }
+button, input, select, textarea { font: inherit; color: inherit; margin: 0; }
+button { cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
+button:disabled { cursor: not-allowed; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+[hidden] { display: none !important; }
+::selection { background: var(--accent-bg); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* --------------------------------------------------------- UTILITAIRES */
+svg.ic {
+  width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.mono { font-family: var(--mono); }
+.t-xs { font-size: var(--t-xs); line-height: var(--lh-xs); }
+.t-sm { font-size: var(--t-sm); line-height: var(--lh-sm); }
+.fg-1 { color: var(--fg-1); }
+.fg-2 { color: var(--fg-2); }
+.ok { color: var(--ok); }
+.warn { color: var(--warn); }
+.live { color: var(--live); }
+.danger { color: var(--danger); }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}

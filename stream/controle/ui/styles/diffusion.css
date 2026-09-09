@@ -1,0 +1,82 @@
+/* Onglet Diffusion : pilotage, services, journal, destinations, encodeur. */
+
+.diffusion { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: var(--s-4); align-items: start; }
+
+.pilotage { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-6); align-items: center; padding: var(--s-6); }
+.pilotage-etat { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.pilotage-etat .sur {
+  font-size: var(--t-sm); line-height: var(--lh-sm); font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--fg-2); display: flex; align-items: center; gap: var(--s-2);
+}
+.app.direct .pilotage-etat .sur { color: var(--live); }
+.app.direct .pilotage-etat .sur .voyant { background: var(--live); animation: battement 2s ease-in-out infinite; }
+.pilotage-etat h2 {
+  font-family: var(--mono); font-size: var(--t-3xl); line-height: var(--lh-3xl);
+  font-weight: 500; letter-spacing: -0.02em;
+}
+.pilotage-etat h2 small { font-size: var(--t-lg); color: var(--fg-2); font-weight: 400; letter-spacing: 0; margin: 0 var(--s-1); }
+.pilotage-etat p { color: var(--fg-1); font-size: var(--t-sm); line-height: var(--lh-sm); }
+.pilotage-actions { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-2); }
+
+.services-grille {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: var(--r-surface); overflow: hidden;
+}
+.service { background: var(--bg-1); padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.service .l {
+  font-size: var(--t-xs); line-height: var(--lh-xs); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--fg-2); font-weight: 600;
+}
+.service .v { display: flex; align-items: center; gap: var(--s-2); font-size: var(--t-lg); line-height: var(--lh-lg); font-weight: 500; }
+.service .d {
+  font-size: var(--t-xs); line-height: var(--lh-xs); color: var(--fg-2); font-family: var(--mono);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Journal : les balises portent le sens, pas des classes — le flux vient du serveur. */
+.journal {
+  margin: 0; font-family: var(--mono); font-size: var(--t-xs); line-height: var(--lh-xs);
+  color: var(--fg-1); white-space: pre-wrap; word-break: break-word; max-height: 264px; overflow: auto;
+  padding: var(--s-3) var(--s-4); background: var(--bg-2); border-radius: var(--r-ctrl); border: 1px solid var(--line);
+}
+.journal b { color: var(--fg-2); font-weight: 400; }
+.journal i { color: var(--ok); font-style: normal; }
+.journal u { color: var(--warn); text-decoration: none; }
+.journal s { color: var(--danger); text-decoration: none; }
+
+/* Destinations : une carte par plateforme. */
+.destination {
+  border: 1px solid var(--line); border-radius: var(--r-ctrl); padding: var(--s-3);
+  display: flex; flex-direction: column; gap: var(--s-3); background: var(--bg-2);
+}
+.destination.inactive { opacity: .7; }
+.destination-tete { display: flex; align-items: center; gap: var(--s-2); min-height: var(--h-md); }
+.destination-tete .nom { display: flex; align-items: center; gap: var(--s-2); font-weight: 600; font-size: var(--t-md); }
+.destination-tete .nom svg { width: 16px; height: 16px; fill: currentColor; }
+.cle { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-2); align-items: center; }
+.cle .badge { justify-self: start; }
+
+/* Choix de l'encodeur : deux cartes exclusives, avec la charge mesurée. */
+.encodeur-choix { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+.option-carte {
+  display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line-strong); border-radius: var(--r-ctrl); background: var(--bg-2); cursor: pointer;
+}
+.option-carte:hover { border-color: var(--fg-2); }
+.option-carte.choisie { border-color: var(--accent); background: var(--accent-bg); }
+.option-carte .coche { min-height: var(--h-sm); font-weight: 500; }
+.option-carte .charge { font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-2); padding-left: calc(14px + var(--s-2)); }
+.jauge { height: var(--s-1); background: var(--bg-4); border-radius: 2px; overflow: hidden; margin-left: calc(14px + var(--s-2)); }
+.jauge i { display: block; height: 100%; background: var(--ok); border-radius: 2px; }
+.jauge i.warn { background: var(--warn); }
+
+@media (max-width: 1500px) {
+  .diffusion { grid-template-columns: 1fr; }
+}
+@media (max-width: 1100px) {
+  .pilotage { grid-template-columns: 1fr; }
+  .pilotage-actions { align-items: stretch; }
+  .services-grille { grid-template-columns: 1fr; }
+  .encodeur-choix { grid-template-columns: 1fr; }
+  .grille-4 { grid-template-columns: 1fr 1fr; }
+}

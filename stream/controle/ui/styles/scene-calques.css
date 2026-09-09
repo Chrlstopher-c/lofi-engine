@@ -1,0 +1,155 @@
+/* Scène, seconde moitié : compositions enregistrées, pile de calques, éditeur, historique. */
+
+/* ---------------------------------------------------- COMPOSITIONS */
+.compositions { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: var(--s-3); }
+.composition-carte {
+  position: relative; border: 1px solid var(--line-strong); border-radius: var(--r-surface);
+  background: var(--bg-2); overflow: hidden; display: flex; flex-direction: column;
+  text-align: left; transition: border-color .12s;
+}
+.composition-carte:hover { border-color: var(--fg-2); }
+.composition-carte.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.composition-apercu { position: relative; aspect-ratio: 16 / 9; background: #000; border-bottom: 1px solid var(--line); }
+.composition-apercu i { position: absolute; inset: 0; }
+.composition-apercu img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Miniature schématique d'un calque dans l'aperçu d'une composition : position et taille
+   viennent du calque réel, posées en style inline. */
+.composition-apercu .mini { position: absolute; background: rgba(255, 255, 255, .85); border-radius: 1px; }
+.composition-apercu .mini.contour { background: transparent; border: 1.5px solid rgba(255, 255, 255, .85); }
+.composition-apercu .badges { position: absolute; top: var(--s-1); left: var(--s-1); display: flex; gap: var(--s-1); }
+.composition-corps { padding: var(--s-2) var(--s-3) var(--s-3); display: flex; flex-direction: column; gap: 2px; }
+.composition-nom {
+  font-weight: 500; font-size: var(--t-md); line-height: var(--lh-md);
+  display: flex; align-items: center; gap: var(--s-2);
+}
+.composition-meta { font-family: var(--mono); font-size: var(--t-xs); line-height: var(--lh-xs); color: var(--fg-2); }
+.composition-actions {
+  position: absolute; right: var(--s-1); top: var(--s-1); display: flex; gap: 2px;
+  opacity: 0; transition: opacity .12s;
+}
+.composition-carte:hover .composition-actions,
+.composition-carte:focus-within .composition-actions { opacity: 1; }
+.composition-actions .btn { background: var(--chrome-scrim); border-color: var(--line-strong); }
+.composition-carte.nouvelle {
+  border-style: dashed; background: transparent; align-items: center; justify-content: center;
+  gap: var(--s-2); color: var(--fg-2); min-height: 140px;
+}
+.composition-carte.nouvelle:hover { color: var(--fg-0); }
+.composition-carte.nouvelle .ic { width: 20px; height: 20px; }
+
+/* ------------------------------------------------- PILE DE CALQUES */
+.pile { display: flex; flex-direction: column; gap: 1px; }
+.rangee {
+  display: grid; grid-template-columns: var(--h-sm) var(--h-sm) minmax(0, 1fr) auto;
+  align-items: center; gap: var(--s-1); height: var(--h-lg); padding: 0 var(--s-1);
+  border-radius: var(--r-ctrl); border: 1px solid transparent; cursor: default; position: relative;
+}
+.rangee:hover { background: var(--bg-2); }
+.rangee[aria-selected="true"], .rangee.actif { background: var(--accent-bg); border-color: var(--accent-ligne); }
+.rangee.masque .rangee-nom, .rangee.masque .rangee-type { color: var(--fg-2); }
+.rangee.masque .icone-type { opacity: .4; }
+.rangee.glisse { opacity: .4; }
+.rangee.avant::before, .rangee.apres::after {
+  content: ""; position: absolute; left: var(--s-2); right: var(--s-2);
+  height: 2px; background: var(--accent); border-radius: 1px;
+}
+.rangee.avant::before { top: -2px; }
+.rangee.apres::after { bottom: -2px; }
+.rangee.enfant { padding-left: var(--s-5); }
+.rangee.groupe .rangee-nom { font-weight: 600; }
+.rangee .btn.icone.sm { color: var(--fg-2); opacity: 0; }
+.rangee:hover .btn.icone.sm,
+.rangee[aria-selected="true"] .btn.icone.sm,
+.rangee.actif .btn.icone.sm,
+.rangee .btn.icone.sm[aria-pressed="true"],
+.rangee.masque .btn.oeil,
+.rangee.verrou .btn.cadenas { opacity: 1; }
+.rangee .btn.icone.sm[aria-pressed="true"] { background: transparent; border-color: transparent; color: var(--fg-1); }
+.rangee .btn.icone.sm:hover { color: var(--fg-0); background: var(--bg-3); }
+.rangee-texte { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
+.icone-type {
+  width: var(--h-sm); height: var(--h-sm); border-radius: var(--r-ctrl); background: var(--bg-3);
+  display: grid; place-items: center; color: var(--fg-1); flex: none;
+}
+.icone-type .ic { width: 14px; height: 14px; }
+.rangee-nom { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.rangee-type { font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-2); white-space: nowrap; }
+.rangee-nom input {
+  height: var(--h-sm); width: 100%; padding: 0 var(--s-1); border: 1px solid var(--accent);
+  border-radius: var(--r-ctrl); background: var(--bg-1); color: var(--fg-0); outline: none; font: inherit;
+}
+.rangee-outils { display: flex; align-items: center; gap: 0; }
+.chevron { transition: transform .12s; }
+.rangee.ferme .chevron { transform: rotate(-90deg); }
+.poignee-glisse {
+  color: var(--fg-2); opacity: 0; cursor: grab; display: grid; place-items: center;
+  width: var(--h-sm); height: var(--h-sm);
+}
+.rangee:hover .poignee-glisse { opacity: 1; }
+
+/* --------------------------------------------- ÉDITEUR DU CALQUE */
+.editeur-tete { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
+.editeur-tete h3 {
+  font-size: var(--t-md); line-height: var(--lh-md); font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ancres { display: grid; grid-template-columns: repeat(3, var(--h-sm)); gap: 2px; }
+.ancre {
+  width: var(--h-sm); height: var(--h-sm); border: 1px solid var(--line-strong); background: var(--bg-2);
+  border-radius: var(--r-ctrl); display: grid; place-items: center; padding: 0;
+}
+.ancre::after { content: ""; width: 6px; height: 6px; border-radius: 1px; background: var(--fg-2); }
+.ancre:hover { border-color: var(--fg-2); }
+.ancre[aria-checked="true"], .ancre.active { background: var(--accent); border-color: var(--accent); }
+.ancre[aria-checked="true"]::after, .ancre.active::after { background: var(--accent-fg); }
+.ancre.absente { visibility: hidden; }
+.bloc-position { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-3); align-items: start; }
+.proportions { display: flex; align-items: center; gap: var(--s-1); }
+
+/* ------------------------------------------- HISTORIQUE (POPOVER) */
+.historique {
+  position: absolute; z-index: 40; top: calc(100% + var(--s-1)); left: 0; width: 280px;
+  background: var(--bg-1); border: 1px solid var(--line-strong); border-radius: var(--r-surface);
+  box-shadow: var(--ombre-2); overflow: hidden;
+}
+.historique-tete {
+  display: flex; align-items: center; justify-content: space-between; height: var(--h-lg);
+  padding: 0 var(--s-3); border-bottom: 1px solid var(--line); font-weight: 600; font-size: var(--t-sm);
+}
+.historique ol { max-height: 280px; overflow: auto; padding: var(--s-1); }
+.historique li button {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: var(--s-2);
+  width: 100%; height: var(--h-md); padding: 0 var(--s-2); border-radius: var(--r-ctrl);
+  font-size: var(--t-sm); color: var(--fg-1);
+}
+.historique li button:hover { background: var(--bg-3); }
+.historique li button .ic { width: 12px; height: 12px; color: var(--fg-2); }
+.historique li.courant button { color: var(--fg-0); background: var(--accent-bg); }
+.historique li.futur button { color: var(--fg-2); }
+.historique li button .heure { font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-2); }
+
+/* --------------------------------------- RACCOURCIS ET COMPARAISON */
+.raccourcis { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+.raccourcis h3 {
+  font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .06em;
+  color: var(--fg-2); margin-bottom: var(--s-2); font-weight: 600;
+}
+.raccourcis dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-1) var(--s-3); align-items: center; }
+.raccourcis dt { font-size: var(--t-sm); color: var(--fg-0); height: var(--h-sm); display: flex; align-items: center; }
+.raccourcis dd { display: flex; gap: 2px; justify-content: flex-end; }
+
+.comparaison { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
+.comparaison .cote { display: flex; flex-direction: column; gap: var(--s-2); }
+.comparaison .cote h3 { font-size: var(--t-sm); font-weight: 600; display: flex; align-items: center; gap: var(--s-2); }
+.diff { border: 1px solid var(--line); border-radius: var(--r-ctrl); overflow: hidden; }
+.diff-ligne {
+  display: grid; grid-template-columns: 120px 1fr 1fr; gap: var(--s-3); padding: 0 var(--s-3);
+  height: var(--h-md); align-items: center; font-size: var(--t-sm); border-top: 1px solid var(--line);
+}
+.diff-ligne:first-child {
+  border-top: 0; background: var(--bg-2); font-weight: 600; color: var(--fg-1);
+  font-size: var(--t-xs); text-transform: uppercase; letter-spacing: .06em;
+}
+.diff-ligne .cle { color: var(--fg-2); }
+.diff-ligne .val { font-family: var(--mono); font-size: var(--t-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diff-ligne.change .val:last-child { color: var(--warn); }
