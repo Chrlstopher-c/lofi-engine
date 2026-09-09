@@ -257,3 +257,52 @@ input[type="number"].saisie { width: 100%; }
 
 /* Première mise en route : l'image du diffuseur se construit. */
 .statut.construction { color: var(--ambre, #e0b060); }
+
+/* Vignette d'un fond vidéo : même cadrage que les images. */
+.vignette-image video { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* --- Chat --------------------------------------------------------------- */
+.chat-flux {
+  display: flex; flex-direction: column; gap: 1px; max-height: 340px; overflow-y: auto;
+  background: var(--fond); border: 1px solid var(--bord); border-radius: var(--rayon); padding: 6px;
+}
+.chat-message {
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 8px; align-items: baseline;
+  padding: 2px 4px; border-radius: 3px;
+}
+.chat-message:hover { background: var(--fond-3); }
+.chat-heure { color: var(--texte-3); font-size: 11px; }
+.chat-auteur { color: var(--accent); font-weight: 600; white-space: nowrap; }
+.chat-texte { overflow-wrap: anywhere; word-break: break-word; }
+.chat-message.systeme { background: var(--fond-3); }
+.chat-message.systeme .chat-auteur { color: var(--attention); }
+.chat-message.systeme .chat-texte { color: var(--texte-2); font-style: italic; }
+.chat-saisie { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 10px; }
+
+/* --- Statistiques ------------------------------------------------------- */
+.mesures { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.mesure {
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
+  background: var(--fond); border: 1px solid var(--bord); border-radius: var(--rayon);
+}
+.mesure-libelle { font-size: 11px; color: var(--texte-3); }
+.mesure-valeur { font-size: 18px; color: var(--texte); }
+
+.courbe { margin: 0; }
+.courbe svg {
+  display: block; width: 100%; height: 120px; background: var(--fond);
+  border: 1px solid var(--bord); border-radius: var(--rayon);
+}
+.courbe-aire { fill: var(--accent-fond); }
+.courbe-trait { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linejoin: round; }
+.courbe-reperes { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; font-size: 11px; }
+
+/* --- Archivage ---------------------------------------------------------- */
+.archivage {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px;
+  padding: 10px 12px; background: var(--fond); border: 1px solid var(--bord); border-radius: var(--rayon);
+}
+.archivage-avis { display: flex; flex-direction: column; gap: 8px; }
+.archivage-avis p { color: var(--texte-2); }
+.archivage-avis strong { color: var(--texte); }
+.archivage-option { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--bord); padding-top: 10px; }

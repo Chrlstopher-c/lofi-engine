@@ -1,7 +1,8 @@
 # Stream 24/7 — LoFi Engine vers Twitch et YouTube
 
-*Conçu et construit le 2026-09-09. La chaîne complète a été mesurée de bout en bout ;
-ce qui reste ouvert est listé au §7.*
+*Construit et mis en service le 2026-09-09. **Diffuse réellement sur Twitch** : une heure en
+continu sans incident au moment d'écrire ces lignes. Ce qui a été mesuré est au §4, ce qui
+reste ouvert au §7.*
 
 Diffuser en continu la musique du moteur, avec une image de fond, sur Twitch et/ou YouTube.
 Le choix des plateformes et les identifiants se règlent dans le `.env`, et rien ne s'installe
@@ -48,42 +49,83 @@ Le corpus est mélangé à chaque passe (20 ordres différents avant qu'un ordre
 ## 3. Mode d'emploi
 
 ```bash
-cp .env.example .env      # puis y mettre les clés de diffusion
-
-# 1. Enregistrer un corpus de secours (temps réel : CAPTURE_DUREE en secondes)
-docker compose --profile generateur run --rm -e CAPTURE_DUREE=3600 generateur
-
-# 2. Déposer l'image de fond dans corpus/, et la nommer dans STREAM_IMAGE
-
-# 3. Diffuser en direct
-docker compose --profile direct up -d
-docker compose --profile direct logs -f direct
+./start.sh
 ```
 
-Aucun profil ne démarre avec le site : `docker compose up -d` ne lance que la page.
+Lance le site **et** le centre de contrôle. Tout se pilote ensuite depuis
+**http://localhost:4708** — plus rien à faire en ligne de commande.
+
+- **Scène** : image ou vidéo de fond, calques (texte, horloge, accords, image, vidéo), aperçu
+  en temps réel, mode composition pour déplacer un calque à la souris, profils.
+- **Diffusion** : plateformes, clés, encodage, démarrage et arrêt, journal.
+- **Twitch** : connexion du compte, récupération automatique de la clé, titre et catégorie,
+  état du direct, rediffusions.
+
+Deux choses restent en ligne de commande, parce qu'elles sont ponctuelles :
+
+```bash
+# Enregistrer un corpus de secours (temps réel : une heure de musique = une heure)
+docker compose --profile generateur run --rm -e CAPTURE_DUREE=3600 generateur
+
+# Télécharger des fonds animés depuis Pixabay (voir docs/FONDS-ANIMES.md)
+bun run outils/telecharger-fonds.ts 2
+```
+
+**Première mise en route** : le premier démarrage de la diffusion construit l'image du
+diffuseur — 285 Mo de paquets, cinq à dix minutes. L'interface l'annonce et déroule le journal
+de construction ; la diffusion part d'elle-même ensuite.
 
 ## 4. Ce qui a été mesuré
 
-Toutes ces valeurs viennent d'un flux réellement reçu sur un serveur RTMP local, pas d'une
-lecture de configuration.
+Toutes ces valeurs viennent d'un flux réellement reçu, d'une interface réellement pilotée ou
+d'une réponse réelle de Twitch — jamais d'une lecture de configuration.
+
+### Le flux
 
 | Vérification | Résultat |
 |---|---|
 | Capture d'une minute | 60,0 s de FLAC à **-24,4 dBFS** (crête -4,2 dB, aucun écrêtage) |
 | Flux du mode direct | H.264 1280×720 à 30 i/s · AAC 44,1 kHz stéréo · son à **-24,5 dBFS** |
 | Intervalle entre images-clés | **2,00 s**, la limite que Twitch impose |
-| **Navigateur tué en pleine diffusion** | le flux **n'a pas été coupé** ; trou de son de **3,5 s** avant la reprise par le corpus, puis retour automatique à la génération |
+| **Navigateur tué en pleine diffusion** | flux **non coupé** ; **3,5 s** de trou avant reprise par le corpus, puis retour automatique à la génération |
 | Reconnexion après coupure réseau | relance automatique, vérifiée en coupant le serveur RTMP |
-| Refus si aucune plateforme activée | code 1, message nommant les variables à mettre |
-| Refus si une clé manque | code 1, la clé manquante nommée, avec où la trouver |
+| Scène modifiée pendant la diffusion | titre changé et calque masqué **à l'antenne**, sans redémarrage |
+| Vidéo dans un calque | animée dans le flux — deux images à 3 s d'écart, comparées **sur la zone du calque seule** pour ne pas confondre avec l'horloge |
+| Refus si plateforme ou clé manquante | code 1, message nommant ce qui manque |
+| **Diffusion réelle sur Twitch** | une heure en continu, **aucune panne du navigateur**, aucune bascule sur le repli · 1,7 Go de mémoire, ~370 % de processeur en 1080p60 |
+
+### Le centre de contrôle
+
+| Vérification | Résultat |
+|---|---|
+| Chargement de l'interface | **zéro erreur** de console |
+| Modification puis enregistrement | le fichier de scène change sur le disque, et est servi à la scène |
+| Modification **sans** enregistrer | l'aperçu suit immédiatement, le fichier reste inchangé |
+| Mode composition | un cadre par calque ; cliquer sélectionne bien le calque |
+| Profils | un profil enregistré depuis une édition non enregistrée capte bien l'édition en cours, sans toucher à la scène diffusée |
+| Refus de démarrage sans plateforme | message du serveur affiché tel quel |
+| Clé de diffusion | écrite dans le `.env`, **absente de toute réponse de l'API** (vérifié par recherche de la valeur) |
+
+### Twitch
+
+| Vérification | Résultat |
+|---|---|
+| Autorisation par code d'appareil | aboutie avec un vrai compte |
+| Clé de diffusion | **récupérée automatiquement**, 46 caractères, sans passer par l'affichage |
+| État de la chaîne | en direct, spectateurs et durée lus depuis l'API |
+| Rediffusions | listées depuis l'API |
+| Nombre d'abonnés | accessible sans portée supplémentaire |
 
 Poids du corpus : **environ 400 Mo par heure** en FLAC, sans perte — il n'est encodé qu'une
 fois, à la diffusion.
 
-**Sur la détection de panne.** Une première version contrôlait l'état du moteur toutes les
-30 s : le trou de son mesuré était alors de **32 s**. La surveillance a été séparée en deux
-vitesses — la mort du navigateur est vue en 2 s, la mesure de niveau (qui coûte plusieurs
-secondes d'écoute) reste espacée. C'est ce qui ramène le trou à 3,5 s.
+### Ce qui n'est pas prouvé
+
+- **Le renouvellement du jeton Twitch.** Le flux d'appareil n'a pas de secret client ; le
+  renouvellement est écrit d'après la documentation mais n'a pas été observé. Si l'onglet
+  Twitch annonce un jour que le compte est déconnecté, c'est là qu'il faut regarder — une
+  reconnexion prend dix secondes.
+- **La suppression d'une rediffusion**, irréversible et sur un vrai compte : non exercée.
 
 ## 5. La scène affichée à l'écran
 
@@ -125,6 +167,17 @@ scène est rendue en 1920×1080 réels, et l'accord affiché suit la progression
   ignorée sans erreur et la fenêtre laisse des bandes noires dans le flux.
 - **La bulle de traduction de Chromium résiste aux drapeaux** et s'affichait en plein cadre.
   Elle se coupe dans les préférences du profil, écrites avant le lancement.
+- **Une première mise en route n'est pas un démarrage.** Le premier clic sur « Démarrer »
+  construit l'image du diffuseur : 285 Mo, 291 paquets, bien plus que le délai de trois
+  minutes calibré pour un simple lancement. Le processus était tué en pleine installation et
+  l'interface restait muette. Défaut invisible ici — l'image existait déjà — et découvert sur
+  une autre installation. Construction et démarrage sont désormais deux choses distinctes.
+- **`docker compose down` sans profil supprime le réseau sans arrêter les services des autres
+  profils.** Le conteneur de diffusion survivait en pointant vers un réseau détruit et
+  refusait ensuite de démarrer (« network … not found »), définitivement. L'arrêt englobe
+  maintenant tous les profils, et le démarrage sait recréer un conteneur dans ce cas.
+- **Une vidéo ne s'affiche pas dans une balise image.** La galerie de fonds montrait des
+  vignettes cassées dès qu'on y déposait des vidéos.
 - **Le découpage en segments laisse un résidu vide** : FFmpeg ouvre un dernier fichier juste
   avant de s'arrêter. Les segments trop courts ou silencieux sont écartés après la capture.
 

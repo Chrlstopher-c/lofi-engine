@@ -18,11 +18,26 @@ const ACCEPTE = ".png,.jpg,.jpeg,.webp,.avif";
 
 interface VignetteProps { image: ImageFond; active: boolean; onChoisir: () => void; onSupprimer: () => void; }
 
+/**
+ * Une vidéo ne s'affiche pas dans une balise image : elle apparaîtrait cassée. On montre sa
+ * première image, et on la joue au survol pour voir ce qu'elle donne avant de la choisir.
+ */
+function Apercu({ image }: { image: ImageFond }): ReactNode {
+  if (!image.video) return <img src={urlFond(image.fichier)} alt="" loading="lazy" />;
+  return (
+    <video
+      src={urlFond(image.fichier)} muted playsInline loop preload="metadata"
+      onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})}
+      onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+    />
+  );
+}
+
 function Vignette({ image, active, onChoisir, onSupprimer }: VignetteProps): ReactNode {
   return (
     <li className={active ? "vignette active" : "vignette"}>
       <button type="button" className="vignette-image" onClick={onChoisir} title={image.fichier}>
-        <img src={urlFond(image.fichier)} alt="" loading="lazy" />
+        <Apercu image={image} />
       </button>
       <div className="vignette-pied">
         <span className="vignette-nom" title={image.fichier}>{image.fichier}</span>
@@ -58,7 +73,9 @@ function ZoneDepot({ occupe, onDeposer }: { occupe: boolean; onDeposer: (f: File
         {occupe ? "Dépôt en cours…" : "Déposer une image"}
       </Bouton>
       <input ref={saisie} type="file" accept={ACCEPTE} multiple hidden onChange={surSelection} />
-      <span className="discret">png, jpg, webp, avif — 25 Mo max</span>
+      <span className="discret">
+        Images png, jpg, webp, avif, gif — 25 Mo max · Vidéos mp4, webm — 400 Mo max
+      </span>
     </div>
   );
 }

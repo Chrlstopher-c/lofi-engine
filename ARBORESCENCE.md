@@ -96,7 +96,18 @@ lofi-engine/
 │   ├── generateur/capturer.sh         enregistre le corpus en FLAC
 │   └── diffuseur/diffuser.sh          lit le corpus en boucle, sans navigateur
 │
-├── corpus/                            audio capté + image de fond (ignoré par git)
+├── stream/controle/                   centre de contrôle (interface web, port 4708)
+│   ├── serveur.ts                     API et service de l'interface
+│   ├── scene.ts / profils.ts          scène et scènes nommées
+│   ├── diffusion.ts / pilotage.ts     config des plateformes, démarrage, arrêt, état
+│   ├── fonds.ts                       images et vidéos de fond
+│   ├── twitch/                        compte, clé, chaîne, rediffusions
+│   └── ui/                            interface React (Scène · Diffusion · Twitch)
+│
+├── outils/
+│   └── telecharger-fonds.ts           récupère des boucles depuis l'API Pixabay
+│
+├── corpus/                            audio capté, fonds, scène, profils (ignoré par git)
 │
 ├── CREDITS.md                         origine et licence de chaque échantillon audio
 │
