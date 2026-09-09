@@ -12,10 +12,9 @@ La maquette prévoit des choses que le backend ne sait pas encore dire. Les pann
 laissent de côté plutôt que d'afficher du vide décoratif — chacune est une petite tâche
 serveur, pas un chantier d'interface.
 
-- [ ] **Encodeur retenu et charge du processeur** exposés par l'API — le panneau Diffusion a
-      la place et le dessin, il lui manque la donnée. C'est aussi ce qui manque le plus : on
-      ne voit pas depuis l'interface si la puce vidéo encode ou si le processeur a repris la
-      main.
+- [x] **Encodeur retenu et charge du processeur** — le diffuseur dépose `rendu.json` dans le
+      corpus au démarrage, le centre de contrôle le lit et mesure la charge du conteneur. Deux
+      cases de plus dans le panneau Diffusion : quel encodeur tourne, et ce qu'il coûte.
 - [ ] **État par destination** — « reçoit », « clé refusée ». Aujourd'hui seule l'existence
       d'une clé est affichée.
 - [ ] **Profil appliqué à l'antenne** — le serveur ne dit pas quelle composition est en cours,

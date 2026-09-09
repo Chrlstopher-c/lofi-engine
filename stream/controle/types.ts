@@ -62,6 +62,24 @@ export interface Diffusion {
   bitrateAudio: string;
 }
 
+/** Comment l'image diffusée se fabrique, tel que le diffuseur l'a arrêté à son démarrage. */
+export interface Rendu {
+  /** Identifiant technique : nvenc, vaapi, qsv, x264. */
+  encodeur: string;
+  /** Le même, dit en clair pour l'interface. */
+  encodeurLibelle: string;
+  /** false = le processeur encode, c'est ce qui coûte cher. */
+  materiel: boolean;
+  /** ffmpeg compose la scène, ou le navigateur la dessine et ffmpeg la recapture. */
+  modeScene: "ffmpeg" | "navigateur";
+  resolution: string;
+  fps: string;
+  /** Cœurs vus par le conteneur. 0 si le diffuseur n'a pas su le dire. */
+  coeurs: number;
+  /** Date ISO d'écriture du dépôt, qui sert à écarter celui d'une diffusion précédente. */
+  ecrit: string;
+}
+
 export interface EtatDiffusion {
   enMarche: boolean;
   conteneur: string | null;
@@ -71,4 +89,8 @@ export interface EtatDiffusion {
   siteEnMarche: boolean;
   /** L'image du diffuseur est en cours de construction (première mise en route). */
   construction: boolean;
+  /** null tant qu'aucune diffusion n'a démarré sur cette machine. */
+  rendu: Rendu | null;
+  /** Charge du conteneur de diffusion, en pourcentage d'un cœur. null si non mesurable. */
+  charge: number | null;
 }

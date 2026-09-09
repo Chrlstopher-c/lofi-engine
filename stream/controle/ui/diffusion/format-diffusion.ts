@@ -46,3 +46,21 @@ export function useHorloge(actif: boolean): number {
   }, [actif]);
   return instant;
 }
+
+/**
+ * `docker stats` compte en pourcentage d'UN cœur : 300 % sur une machine à 4 cœurs, c'est trois
+ * cœurs pris sur quatre. Affiché tel quel le chiffre affole pour rien — on le rapporte à ce que
+ * le conteneur voit réellement.
+ */
+export function partDeCharge(charge: number | null, coeurs: number): number | null {
+  if (charge === null || !Number.isFinite(charge) || coeurs <= 0) return null;
+  return Math.min(1, Math.max(0, charge / (coeurs * 100)));
+}
+
+/** « 0,9 cœur sur 4 » quand on connaît la machine, sinon le pourcentage brut. */
+export function chargeLisible(charge: number | null, coeurs: number): string {
+  if (charge === null || !Number.isFinite(charge)) return "—";
+  if (coeurs <= 0) return `${Math.round(charge)} %`;
+  const pris = (charge / 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+  return `${pris} cœur sur ${coeurs}`;
+}

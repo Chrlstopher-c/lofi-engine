@@ -5,6 +5,7 @@
 import { resolve } from "node:path";
 import type { EtatDiffusion } from "./types.ts";
 import { journal } from "./journal.ts";
+import { lireRendu, renduDeCetteDiffusion, chargeProcesseur, oublierCharge } from "./rendu.ts";
 
 const RACINE = resolve(process.env.RACINE_PROJET ?? resolve(import.meta.dir, "../.."));
 const CORPUS = resolve(process.env.CORPUS_DIR ?? resolve(RACINE, "corpus"));
@@ -105,11 +106,12 @@ async function mesurerCorpus(): Promise<{ fichiers: number; octets: number }> {
 }
 
 export async function lireEtat(): Promise<EtatDiffusion> {
-  const [direct, site, corpus, construction] = await Promise.all([
+  const [direct, site, corpus, construction, rendu] = await Promise.all([
     conteneurActif(CONTENEUR),
     conteneurActif("lofi-engine"),
     mesurerCorpus(),
     constructionEnCours(),
+    lireRendu(),
   ]);
   return {
     enMarche: direct.actif,
@@ -119,6 +121,8 @@ export async function lireEtat(): Promise<EtatDiffusion> {
     corpusOctets: corpus.octets,
     siteEnMarche: site.actif,
     construction,
+    rendu: direct.actif ? renduDeCetteDiffusion(rendu, direct.depuis) : null,
+    charge: direct.actif ? chargeProcesseur() : null,
   };
 }
 
@@ -174,6 +178,7 @@ export async function demarrerDiffusion(): Promise<Resultat> {
 
 export async function arreterDiffusion(): Promise<Resultat> {
   journal.info("arrêt de la diffusion");
+  oublierCharge();
   return compose("--profile", "direct", "stop", "direct");
 }
 

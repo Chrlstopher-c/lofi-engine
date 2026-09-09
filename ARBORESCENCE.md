@@ -117,6 +117,7 @@ lofi-engine/
 │   ├── profils.ts                     scènes nommées : enregistrer, charger, supprimer
 │   ├── diffusion.ts                   plateformes, clés et encodage dans le .env
 │   ├── pilotage.ts                    démarrage, arrêt, état, construction de l'image
+│   ├── rendu.ts                       encodeur retenu et charge du diffuseur
 │   ├── fonds.ts                       images et vidéos de fond déposées
 │   ├── twitch/
 │   │   ├── transport.ts               couche HTTP isolée, remplaçable pour les tests

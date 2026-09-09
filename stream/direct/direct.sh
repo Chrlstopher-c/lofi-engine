@@ -326,6 +326,20 @@ construire_url() {
   echo "${LOFI_BASE}/scene/scene.html"
 }
 
+# Le centre de contrôle tourne sur l'hôte et ne lit pas ce journal : sans ce fichier, l'interface
+# ne peut pas dire si la puce vidéo encode ou si le processeur a repris la main. Écrit dans le
+# corpus, seul répertoire partagé — la veille de scène ne regarde que scene.json, rien ne bouge.
+# Ces valeurs sont arrêtées au démarrage et ne changent plus tant que ce processus vit.
+ecrire_rendu() {
+  local fichier="${CORPUS_DIR:-/corpus}/rendu.json" temporaire
+  temporaire="${fichier}.partiel"
+  printf '{"encodeur":"%s","modeScene":"%s","resolution":"%s","fps":"%s","coeurs":%s,"ecrit":"%s"}\n' \
+    "$ENCODEUR_RETENU" "$MODE_SCENE" "$STREAM_RESOLUTION" "$STREAM_FPS" \
+    "$(nproc 2>/dev/null || echo 0)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$temporaire" 2>/dev/null \
+    && mv -f "$temporaire" "$fichier" 2>/dev/null \
+    || journal "ATTENTION : $fichier non écrit — l'interface ne saura pas quel encodeur tourne"
+}
+
 valider_plateformes
 vrai "$STREAM_SCENE" || verifier_image_fixe
 construire_sortie
@@ -339,6 +353,7 @@ adapter_charge
 profil_encodeur "$ENCODEUR_RETENU" "$MODE_SCENE"
 [ "$MODE_SCENE" = "ffmpeg" ] && [ -n "$FILTRE_SORTIE" ] && preparer_composition
 annoncer_destinations
+ecrire_rendu
 journal "corpus de secours : $(compter_corpus) fichier(s)"
 
 demarrer_environnement
