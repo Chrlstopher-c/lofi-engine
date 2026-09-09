@@ -96,13 +96,43 @@ lofi-engine/
 │   ├── generateur/capturer.sh         enregistre le corpus en FLAC
 │   └── diffuseur/diffuser.sh          lit le corpus en boucle, sans navigateur
 │
-├── stream/controle/                   centre de contrôle (interface web, port 4708)
-│   ├── serveur.ts                     API et service de l'interface
-│   ├── scene.ts / profils.ts          scène et scènes nommées
-│   ├── diffusion.ts / pilotage.ts     config des plateformes, démarrage, arrêt, état
-│   ├── fonds.ts                       images et vidéos de fond
-│   ├── twitch/                        compte, clé, chaîne, chat, stats, rediffusions
+├── stream/controle/                   centre de contrôle — interface web, port 4708
+│   ├── serveur.ts                     routes de l'API et service de l'interface
+│   ├── types.ts                       modèle de la scène et de la diffusion
+│   ├── journal.ts                     journalisation (pino)
+│   ├── scene.ts                       lecture, validation et écriture de la scène
+│   ├── scene-defaut.json              scène de référence, livrée avec le projet
+│   ├── profils.ts                     scènes nommées : enregistrer, charger, supprimer
+│   ├── diffusion.ts                   plateformes, clés et encodage dans le .env
+│   ├── pilotage.ts                    démarrage, arrêt, état, construction de l'image
+│   ├── fonds.ts                       images et vidéos de fond déposées
+│   ├── twitch/
+│   │   ├── transport.ts               couche HTTP isolée, remplaçable pour les tests
+│   │   ├── chat-transport.ts          couche WebSocket isolée, idem
+│   │   ├── valider.ts                 lecture défensive des réponses Twitch
+│   │   ├── coffre.ts                  Client ID et jetons, hors dépôt, en 0600
+│   │   ├── jeton.ts                   renouvellement par jeton de rafraîchissement
+│   │   ├── client.ts                  appels Helix, reprise unique sur 401
+│   │   ├── appareil.ts                autorisation par code d'appareil
+│   │   ├── chaine.ts                  titre, catégorie, état du direct
+│   │   ├── cle-diffusion.ts           récupération de la clé vers le .env
+│   │   ├── irc.ts                     analyse du protocole de chat
+│   │   ├── chat.ts                    connexion, reconnexion bornée, état
+│   │   ├── chat-tampon.ts             tampon borné des derniers messages
+│   │   ├── chat-envoi.ts              envoi, avec plafond de débit
+│   │   ├── statistiques.ts            spectateurs, abonnés, pic, moyenne
+│   │   ├── historique.ts              relevés échantillonnés, fenêtre glissante
+│   │   ├── rediffusions.ts            liste et suppression des archives
+│   │   ├── archivage.ts               suppression automatique, non rétroactive
+│   │   └── routes.ts                  bord HTTP du domaine Twitch
 │   └── ui/                            interface React (Scène · Diffusion · Twitch)
+│       ├── App.tsx                    en-tête, onglets, bandeau d'état
+│       ├── styles.css                 thème sombre, jetons sémantiques
+│       ├── commun/                    API, formats, éditeur, composants partagés
+│       ├── scene/                     fond, calques, aperçu, composition
+│       ├── profils/                   enregistrer et charger une scène
+│       ├── diffusion/                 plateformes, encodage, pilotage, journal
+│       └── twitch/                    compte, chaîne, chat, statistiques, archives
 │
 ├── outils/
 │   └── telecharger-fonds.ts           récupère des boucles depuis l'API Pixabay

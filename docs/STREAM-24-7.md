@@ -181,14 +181,50 @@ scène est rendue en 1920×1080 réels, et l'accord affiché suit la progression
 - **Le découpage en segments laisse un résidu vide** : FFmpeg ouvre un dernier fichier juste
   avant de s'arrêter. Les segments trop courts ou silencieux sont écartés après la capture.
 
-## 7. Ce qui reste ouvert
+## 7. Twitch depuis le centre de contrôle
 
-- **Sur quelle machine tourne le diffuseur.** Il faut Docker et une machine allumée en
-  permanence. Le générateur peut tourner ailleurs et le corpus être transféré.
-- **L'image de fond** — c'est l'identité de la chaîne. `corpus/fond-test.png` n'est qu'une
-  mire de validation.
-- **YouTube** exige d'activer le direct sur la chaîne, avec 24 h de délai la première fois.
-- Une seule chaîne ou deux · fond fixe ou animé · afficher ou non le nom du morceau.
+Le compte se connecte par **code d'appareil** : l'interface affiche un code, on le saisit sur
+`twitch.tv/activate`, c'est fini. Pas d'URL de redirection — la console Twitch refuse
+`http://localhost` malgré sa propre documentation, et monter du HTTPS pour une application
+locale n'aurait rien apporté.
 
-Les licences des échantillons sont traitées dans `CREDITS.md` : deux crédits à porter en
-description de chaîne, aucun remplacement nécessaire.
+Le **Client ID est livré avec le projet**. Il n'est pas secret : Twitch le transmet en clair à
+chaque requête. Qui clone n'a donc rien à créer, il connecte simplement son propre compte.
+Chacun peut y substituer sa propre application depuis l'interface.
+
+Ce que ça donne : **clé de diffusion récupérée automatiquement** (elle n'est jamais affichée,
+et ne ressort d'aucune réponse de l'API) · titre et catégorie modifiables · état réel du direct
+· spectateurs, abonnés, pic et moyenne · **chat en direct**, lu et envoyé · rediffusions
+listées et supprimables.
+
+**Le chat est tenu par le serveur**, jamais par le navigateur : le jeton ne quitte pas la
+machine. Tampon borné, reconnexion de 1 s à 30 s puis arrêt explicite — jamais de boucle sans
+fin. Le texte des messages n'est jamais interprété comme du HTML : il est écrit par des
+inconnus.
+
+**L'historique des spectateurs n'existe pas chez Twitch** : il est échantillonné ici, une fois
+par minute et pendant le direct seulement, sur une fenêtre glissante bornée. Une valeur
+indisponible ne s'affiche pas — elle n'est jamais remplacée par un zéro.
+
+**L'archivage des rediffusions ne se pilote pas.** L'API Twitch n'expose pas « Store past
+broadcasts », ni pour l'activer ni pour le couper : l'interface le dit et renvoie au réglage,
+plutôt que de simuler un contrôle inexistant. Le contournement est la suppression automatique,
+désactivée par défaut, sous confirmation, et **non rétroactive** — elle n'efface que ce qui
+paraît après son activation.
+
+**YouTube n'est encore qu'une destination RTMP.** Tout ce qui précède reste à faire, et ce
+n'est pas un copier-coller : voir `TODO.md`.
+
+## 8. Ce qui reste ouvert
+
+- **Le corpus de secours ne fait qu'un fichier de 40 s.** C'est la seule faiblesse réelle du
+  montage : si le navigateur tombe, le repli n'a presque rien à jouer. Une à deux heures de
+  capture suffisent — en temps réel, une heure de musique coûte une heure.
+- **YouTube au même niveau que Twitch** : autorisation Google, obligation de créer une
+  diffusion avant que la clé serve, quota de 10 000 unités par jour. Détail dans `TODO.md`.
+- **Le renouvellement du jeton Twitch n'a jamais été observé** — écrit d'après la
+  documentation, sans secret client. Si le compte se déconnecte, c'est là qu'il faut regarder.
+- **La suppression d'une rediffusion n'a pas été exercée** : irréversible, sur un vrai compte.
+- Les crédits (`CREDITS.md`) restent à porter dans la description de la chaîne : deux
+  attributions dues, aucun remplacement d'échantillon nécessaire.
+- 60 images par seconde coûtent le double de processeur pour un fond quasi immobile.

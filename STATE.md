@@ -3,11 +3,17 @@
 
 ## Résumé de l'état actuel
 Générateur de musique lofi procédurale, en production sur https://lofi.christophercouspeyre.com
-depuis le Raspberry Pi (service systemd `lofi-engine`, port 8794, derrière le tunnel Cloudflare).
-Le dépôt est un fork de meel-hd/lofi-engine sur le compte Chrlstopher-c, mis aux normes Echo et
-reproductible : `./start.sh` en local passe par Docker, `./deploy-pi.sh` reconstruit et redéploie
-la production en vérifiant la réponse publique. Aucune modification fonctionnelle n'a été
-apportée à l'application elle-même.
+depuis le Raspberry Pi, **et diffusé en direct sur Twitch** depuis le PC fixe.
+
+Le projet se pilote entièrement depuis un **centre de contrôle web** (port 4708, lancé par
+`./start.sh` à côté du site) : composition de la scène, calques, fonds, profils, clés de
+diffusion, démarrage et arrêt, et l'intégration Twitch (compte, clé récupérée automatiquement,
+titre, catégorie, spectateurs, statistiques, chat en direct, rediffusions).
+
+La musique est générée note par note dans un navigateur ; si celui-ci tombe, un corpus
+enregistré prend le relais **dans le même puits audio**, si bien que le flux ne se coupe pas.
+Mesuré sur une panne provoquée : 3,5 s de trou. Sur une heure de diffusion réelle, aucune
+panne ne s'est produite.
 
 ## Nature du dépôt
 Fork de [meel-hd/lofi-engine](https://github.com/meel-hd/lofi-engine) (MIT, Mehdi El Oualy).
@@ -21,26 +27,34 @@ version desktop (amont, non utilisée en production) · Bun pour le serveur stat
 le lancement local.
 
 ## Ce qui a été fait — session du 2026-09-09
-- Clone, analyse et mesure de consommation du projet amont avant tout déploiement.
-- Déploiement sur le Pi : service systemd, entrée d'ingress dans le tunnel Cloudflare, création
-  du sous-domaine `lofi.christophercouspeyre.com`.
-- Fork sur Chrlstopher-c, mise aux normes Echo : scripts start/stop/restart, `deploy-pi.sh`,
-  `server.ts`, `.echoforge.yml`, `.env.example` et les quatre fichiers de documentation.
-- Passage du lancement local à Docker : image en deux étapes, conteneur publié sur toutes les
-  interfaces réseau, scripts recâblés, fonctionnels sur un clone vierge.
-- Ajout puis retrait d'une compatibilité `vmdocker` — le binaire n'existe pas (voir plus bas).
-- Le message d'erreur d'absence de Docker donne désormais la commande de la distribution
-  courante, vérifiée sur six familles.
+- Clone, mesure de consommation, déploiement sur le Pi, fork mis aux normes Echo, dockerisation.
+- **Diffusion 24/7** : scène composée en calques, capture du corpus, diffusion en direct avec
+  repli automatique, le tout en conteneurs.
+- **Centre de contrôle web** : scène, calques, fonds, aperçu en temps réel, mode composition,
+  profils, clés, démarrage et arrêt, journal.
+- **Intégration Twitch** : autorisation par code d'appareil, clé de diffusion récupérée
+  automatiquement, titre et catégorie, état du direct, statistiques, chat en direct,
+  rediffusions.
+- **Vidéos et GIF** dans la scène, et un outil de téléchargement de fonds animés par l'API
+  Pixabay, avec traçabilité de chaque fichier.
+- Licences des échantillons audio tracées : deux attributions dues, aucun remplacement.
+- 127 Go libérés sur `/mnt/projects` (caches de compilation Rust de projets dormants).
 
-## Stream 24/7 — construit le 2026-09-09
-Diffusion en direct vers Twitch et/ou YouTube, configurée entièrement par le `.env`, entièrement
-en conteneurs : rien n'est installé sur la machine hôte. Le moteur génère la musique en continu
-dans un navigateur ; si ce navigateur tombe, le corpus enregistré est rejoué **dans le même puits
-audio**, si bien que ffmpeg ne s'arrête pas et que la connexion aux plateformes tient. Trou de son
-mesuré lors d'une panne provoquée : 3,5 s. Détail et mesures : `docs/STREAM-24-7.md`.
+## Stream 24/7 — en service
+Détail, mode d'emploi et tableau des mesures : `docs/STREAM-24-7.md`. Licences des
+échantillons : `CREDITS.md`. Sources de fonds animés : `docs/FONDS-ANIMES.md`.
 
-Trois profils : `generateur` (enregistre le corpus), `direct` (mode retenu), `diffusion`
-(corpus en boucle, sans navigateur). Licences des échantillons : `CREDITS.md`.
+Trois profils Docker : `generateur` (enregistre le corpus), `direct` (le mode retenu), et
+`diffusion` (corpus en boucle, sans navigateur). Rien ne s'installe sur la machine hôte.
+
+Une seule source de vérité pour la scène : `corpus/scene.json`, écrit par le centre de
+contrôle et relu par la scène toutes les 3 secondes — donc une modification se voit à
+l'antenne sans redémarrage. Les réglages de scène ont été retirés du `.env`, où ils
+écrasaient ce fichier.
+
+**Ce qui reste à faire** est dans `TODO.md` : YouTube au même niveau que Twitch (autorisation
+Google, création de diffusion obligatoire, quota de 10 000 unités par jour), et un vrai
+corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
 
 ## Décisions prises
 | Décision | Raison | Date |
@@ -52,6 +66,17 @@ Trois profils : `generateur` (enregistre le corpus), `direct` (mode retenu), `di
 | Conteneur publié sur `0.0.0.0` | Demande explicite : joignable depuis le réseau, pas seulement en localhost | 2026-09-09 |
 | README de l'amont conservé tel quel | Le remplacer par la charte Echo casserait les merges depuis upstream | 2026-09-09 |
 | `console.log` conservé malgré le linter | Même pattern que les autres serveurs statiques du Pi ; systemd capture la sortie. Pino pour deux lignes serait une dépendance pour rien | 2026-09-09 |
+| Génération en direct plutôt que corpus en boucle | Choix de Chris. Musique réellement infinie ; le repli sur corpus couvre la fragilité du navigateur | 2026-09-09 |
+| Le corpus est rejoué **dans le même puits audio** | ffmpeg ne s'arrête jamais, donc la connexion RTMP tient et les plateformes ne voient aucune coupure | 2026-09-09 |
+| Surveillance à deux vitesses | Une cadence unique laissait 32 s de silence avant de voir la panne ; séparer la veille du navigateur (2 s) de la mesure de niveau ramène le trou à 3,5 s | 2026-09-09 |
+| La scène est une page web capturée, pas un montage ffmpeg | S'ajuste en éditant du HTML, là où un filtre se réécrit entièrement à chaque retouche | 2026-09-09 |
+| `corpus/scene.json` seule source de vérité | Les mêmes réglages dans le `.env` l'écrasaient : un titre changé restait figé à l'écran | 2026-09-09 |
+| Seule la page en mode aperçu accepte d'être pilotée | Sinon n'importe quelle page ouverte pourrait détourner l'antenne | 2026-09-09 |
+| Le son des vidéos est coupé de force | Le flux capture l'audio du navigateur : une bande-son se mélangerait à la musique | 2026-09-09 |
+| Flux d'appareil pour Twitch, pas de redirection | La console Twitch refuse `http://localhost` malgré sa documentation ; monter du HTTPS pour une app locale serait disproportionné | 2026-09-09 |
+| Le Client ID est livré avec le projet | Il n'est pas secret, Twitch le transmet en clair. Qui clone n'a rien à créer : il connecte son propre compte | 2026-09-09 |
+| Le centre de contrôle tourne hors conteneur | Il pilote Docker et écrit le `.env` : lui donner le socket dans un conteneur reviendrait à lui donner la machine | 2026-09-09 |
+| Chat relayé par interrogation, pas par flux poussé | Une seconde connexion longue dans le navigateur, avec son cycle de vie, pour une latence dont un chat n'a pas besoin | 2026-09-09 |
 
 ## Contexte non-évident
 - **Ports** : 4707 en local, 8794 en production sur le Pi. Le 4707 a été choisi parce qu'aucun
@@ -67,27 +92,21 @@ Trois profils : `generateur` (enregistre le corpus), `direct` (mode retenu), `di
   L'unité systemd pointe vers ce chemin, plus vers `/home/pi`.
 - Poids par visiteur : 12,5 Mo transférés et 45 requêtes au premier chargement.
 
-## Chantier suivant — stream 24/7
-Diffuser la musique en continu sur Twitch et YouTube, avec une image de fond. Conception
-complète et auto-suffisante dans **`docs/STREAM-24-7.md`**.
-
-Le point dur : la musique est synthétisée dans le navigateur, il n'existe aucun fichier audio
-à diffuser. Et le rendu hors-ligne est inaccessible — le moteur est câblé sur `Tone.Master`,
-un nœud global, donc `Tone.Offline` ne peut pas l'atteindre sans refactoriser du code amont.
-La capture se fera en temps réel.
-
-Architecture retenue : corpus audio pré-généré, diffusé en boucle par un unique FFmpeg. Tout
-passe par des conteneurs Docker — aucun système hôte n'est modifié. Le choix des plateformes et
-les clés de diffusion vivent dans le `.env`, désormais ignoré par git (il ne l'était pas, sur un
-dépôt public). Bloquants à lever : la licence des échantillons audio n'est pas documentée, et la
-machine qui hébergera le diffuseur n'est pas décidée.
-
 ## Prochaines étapes
-1. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
-2. Si la fréquentation monte : cache navigateur explicite sur les mp3.
-3. Éventuellement dockeriser la production — suppose de construire l'image sur le PC et de la
-   pousser vers le Pi par un registre. Chantier distinct, non engagé.
+1. **YouTube au même niveau que Twitch** — le chantier est décrit dans `TODO.md`, avec ce qui
+   diffère réellement : autorisation Google plus lourde, obligation de créer une diffusion
+   avant que la clé serve, et un quota de 10 000 unités par jour qui contraint la conception
+   du chat dès le départ.
+2. **Enregistrer un vrai corpus de secours** — il ne fait qu'un fichier de 40 s, donc le repli
+   n'a presque rien à jouer si le navigateur tombe. Une à deux heures suffisent, en temps réel.
+3. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
 
 ## Points en suspens
 - Le README n'est pas tranché.
-- La production ne passe pas par Docker, contrairement au local — écart assumé et documenté.
+- La production sur le Pi ne passe pas par Docker, contrairement au local — écart assumé.
+- **Le renouvellement du jeton Twitch n'a jamais été observé.** Le flux d'appareil n'a pas de
+  secret client ; le renouvellement est écrit d'après la documentation. Si le compte se
+  déconnecte un jour, c'est là qu'il faut regarder — une reconnexion prend dix secondes.
+- **La suppression d'une rediffusion n'a pas été exercée** : elle est irréversible et sur un
+  vrai compte.
+- 60 images/seconde coûtent le double de processeur pour un fond quasi immobile.
