@@ -6,6 +6,12 @@ services:
     # 0.0.0.0 côté hôte : joignable depuis le réseau, pas seulement en localhost
     ports:
       - "0.0.0.0:${LOFI_PORT:-4707}:4707"
+    # La scène et les fonds sont servis par le site : même origine que le moteur, donc
+    # l'iframe qui produit le son n'est pas bridée. Montés, pas copiés : on peut retoucher
+    # la scène sans reconstruire l'image.
+    volumes:
+      - ./stream/scene:/app/dist/scene:ro
+      - ./corpus:/app/dist/fonds:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "bun", "-e", "await fetch('http://127.0.0.1:4707/').then(r=>process.exit(r.ok?0:1))"]
@@ -64,6 +70,17 @@ services:
       STREAM_FPS: "${STREAM_FPS:-30}"
       STREAM_VIDEO_BITRATE: "${STREAM_VIDEO_BITRATE:-1500k}"
       STREAM_AUDIO_BITRATE: "${STREAM_AUDIO_BITRATE:-160k}"
+      # Scène (mode direct uniquement)
+      STREAM_SCENE: "${STREAM_SCENE:-true}"
+      STREAM_TITRE: "${STREAM_TITRE:-}"
+      STREAM_SOUS_TITRE: "${STREAM_SOUS_TITRE:-}"
+      STREAM_CREDITS: "${STREAM_CREDITS:-}"
+      STREAM_FOND: "${STREAM_FOND:-}"
+      STREAM_HORLOGE: "${STREAM_HORLOGE:-true}"
+      STREAM_ACCORDS: "${STREAM_ACCORDS:-true}"
+      STREAM_THEME: "${STREAM_THEME:-nuit}"
+      # sinon l'horloge de la scène affiche l'heure UTC du conteneur
+      TZ: "${TZ:-Europe/Paris}"
 
   # Permanent, sans navigateur : lit le corpus en boucle. Le mode le plus léger.
   #   docker compose --profile diffusion up -d

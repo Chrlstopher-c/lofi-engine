@@ -39,15 +39,34 @@ demarrer_environnement() {
   journal "environnement prêt — écran $ECRAN, puits $SINK"
 }
 
+# demarrer_navigateur <url> [kiosque]
+# En mode kiosque la page occupe tout l'écran virtuel : c'est ce qui est capturé en vidéo.
+# Les drapeaux ne suffisent pas à faire taire la bulle de traduction : elle se coupe
+# dans les préférences du profil, lues au démarrage.
+preparer_profil() {
+  local d=/tmp/chromium-profil/Default
+  mkdir -p "$d"
+  printf '%s' '{"translate":{"enabled":false},"translate_site_blacklist":["*"],' > "$d/Preferences"
+  printf '%s' '"profile":{"exit_type":"Normal","exited_cleanly":true}}' >> "$d/Preferences"
+}
+
 demarrer_navigateur() {
-  local url="$1"
+  local url="$1" kiosque=() taille ecran_chrome
+  taille="${ECRAN%x*}"          # retire la profondeur de couleur : « 1280x720 »
+  ecran_chrome="${taille/x/,}"  # chromium veut une virgule : « 1280,720 »
+  [ "${2:-}" = "kiosque" ] && kiosque=(--kiosk --window-position=0,0 --hide-scrollbars)
+  preparer_profil
   journal "ouverture de $url"
   chromium \
     --no-sandbox --disable-dev-shm-usage --disable-gpu \
     --autoplay-policy=no-user-gesture-required \
     --user-data-dir=/tmp/chromium-profil \
-    --window-size="${ECRAN%x*}" --start-maximized \
-    --no-first-run --no-default-browser-check --disable-translate \
+    --window-size="$ecran_chrome" --window-position=0,0 \
+    --no-first-run --no-default-browser-check \
+    --disable-translate --disable-features=Translate,TranslateUI \
+    --disable-infobars --noerrdialogs --disable-session-crashed-bubble \
+    --lang=fr-FR \
+    "${kiosque[@]}" \
     "$url" >/tmp/chromium.log 2>&1 &
   NAVIGATEUR_PID=$!
   sleep 3

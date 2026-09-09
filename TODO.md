@@ -19,6 +19,8 @@ Fait :
 - [x] Conteneur de diffusion depuis le corpus, piloté par le `.env` : plateformes activables,
       clés dedans, refus explicite nommant ce qui manque.
 - [x] Conteneur de diffusion en direct avec repli sur le corpus.
+- [x] Scène composée en couches (fond, titre, sous-titre, crédits, horloge, tonalité et
+      accord en cours lus dans le moteur), réglée par le `.env`, capturée à l'écran.
 - [x] Chaîne validée sur un serveur RTMP local : H.264 720p30 + AAC 44,1 kHz stéréo,
       images-clés à 2,00 s (limite Twitch), son présent à -24 dBFS.
 
@@ -27,6 +29,8 @@ Reste :
       permanence). Le corpus pèse ~400 Mo par heure.
 - [ ] **Décision de Chris** — l'image de fond, et vérifier sa licence.
       `corpus/fond-test.png` n'est qu'une mire de validation.
+- [ ] **Décision de Chris** — le rendu de la scène : équilibre, tailles, thème
+      (`nuit` / `ambre` / `brume`). C'est à l'œil, pas à la mesure.
 - [ ] Générer un vrai corpus de secours de quelques heures (temps réel : 1 h = 1 h).
 - [ ] Activer le direct sur YouTube (24 h de délai la première fois) — à anticiper.
 - [ ] Essai sur une chaîne non listée avant toute diffusion publique.

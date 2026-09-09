@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="nuit">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LoFi Engine — scène</title>
+  <script src="scene-font.js"></script>
+  <script src="scene-config.js"></script>
+  <style>
+    /* ---- Jetons : un thème = une teinte de voile, une couleur d'accent, une couleur de texte ---- */
+    :root {
+      --teinte: 12 14 20;
+      --texte: 246 242 234;
+      --accent: 224 198 150;
+      --marge: 4.5vw;
+      --police-titre: "Scene Display", "Source Serif 4 Display", "Iowan Old Style", Georgia, serif;
+      --police-texte: "Scene Texte", "Source Serif 4", "Iowan Old Style", Georgia, serif;
+      --ombre-texte: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 30px rgb(0 0 0 / 0.25);
+    }
+    [data-theme="ambre"] { --teinte: 26 17 10; --accent: 232 182 112; --texte: 250 240 226; }
+    [data-theme="brume"] { --teinte: 10 15 23; --accent: 172 198 216; --texte: 236 242 246; }
+
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: rgb(var(--teinte));
+      color: rgb(var(--texte));
+      font-family: var(--police-texte);
+      font-size: 1.1vw;
+      line-height: 1.4;
+      cursor: none;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    [hidden] { display: none !important; }
+
+    /* ---- Couches : chacune couvre l'écran, empilée par z-index, sans capter la souris ---- */
+    .couche { position: fixed; inset: 0; pointer-events: none; }
+    .couche-fond { z-index: 0; }
+    .couche-voile { z-index: 1; }
+    .couche-moteur { z-index: 2; }
+    .couche-texte { z-index: 3; }
+    .couche-info { z-index: 4; }
+
+    /* Fond : image en cover, légèrement agrandie pour que la dérive n'expose jamais un bord */
+    .couche-fond {
+      background-color: rgb(var(--teinte));
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      transform: scale(1.06);
+      will-change: transform;
+    }
+    @keyframes derive {
+      from { transform: scale(1.06) translate3d(0, 0, 0); }
+      to   { transform: scale(1.06) translate3d(-1.2%, -0.8%); }
+    }
+    .couche-fond.derive { animation: derive 120s ease-in-out infinite alternate; }
+    @media (prefers-reduced-motion: reduce) { .couche-fond.derive { animation: none; } }
+
+    /* Voile : assombrissement vers le bas (là où vit le texte) et vignettage aux bords */
+    .couche-voile {
+      background:
+        radial-gradient(ellipse at center, transparent 50%, rgb(var(--teinte) / 0.55) 100%),
+        linear-gradient(to top, rgb(var(--teinte) / 0.78) 0%, rgb(var(--teinte) / 0.28) 42%,
+          rgb(var(--teinte) / 0.12) 100%);
+    }
+
+    /* Moteur : plein cadre, invisible mais jamais display:none — il produit le son.
+       Le corps porte .moteur-visible (paramètre moteur=1) pour le montrer, à des fins de contrôle. */
+    .couche-moteur { width: 100%; height: 100%; border: 0; opacity: 0; background: transparent; }
+    body.moteur-visible .couche-moteur { opacity: 1; }
+
+    /* ---- Couche texte : bloc bas-gauche ---- */
+    .couche-texte { display: flex; flex-direction: column; justify-content: flex-end; padding: var(--marge); }
+    .titre {
+      margin: 0;
+      max-width: 58vw;
+      font-family: var(--police-titre);
+      font-weight: 300;
+      font-size: 3.7vw;
+      line-height: 1.05;
+      letter-spacing: -0.012em;
+      text-shadow: var(--ombre-texte);
+    }
+    .sous-titre {
+      margin: 0.9vw 0 0;
+      max-width: 50vw;
+      font-size: 1.38vw;
+      color: rgb(var(--texte) / 0.8);
+      text-shadow: var(--ombre-texte);
+    }
+    .credits {
+      margin: 1.6vw 0 0;
+      max-width: 52vw;
+      font-size: 0.98vw;
+      line-height: 1.5;
+      color: rgb(var(--texte) / 0.5);
+      text-shadow: var(--ombre-texte);
+    }
+
+    /* ---- Couche info : horloge haut-droite, accords bas-droite ---- */
+    .horloge {
+      position: absolute;
+      top: var(--marge);
+      right: var(--marge);
+      text-align: right;
+      text-shadow: var(--ombre-texte);
+    }
+    .horloge-heure {
+      display: block;
+      font-family: var(--police-titre);
+      font-weight: 300;
+      font-size: 2.9vw;
+      line-height: 1;
+      letter-spacing: 0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+    .horloge-date {
+      display: block;
+      margin-top: 0.45vw;
+      font-size: 1.05vw;
+      color: rgb(var(--texte) / 0.62);
+    }
+    .horloge-date::first-letter { text-transform: uppercase; }
+
+    .accords {
+      position: absolute;
+      right: var(--marge);
+      bottom: var(--marge);
+      padding: 1.05vw 1.4vw 1.15vw;
+      border: 1px solid rgb(var(--texte) / 0.09);
+      border-radius: 1vw;
+      background: rgb(var(--teinte) / 0.42);
+      box-shadow: 0 12px 40px rgb(0 0 0 / 0.22);
+    }
+    .etiquette {
+      display: block;
+      margin-bottom: 0.55vw;
+      font-size: 0.78vw;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgb(var(--texte) / 0.5);
+    }
+    .accords-ligne { display: flex; align-items: baseline; gap: 1.2vw; }
+    .accords-cle {
+      font-family: var(--police-titre);
+      font-weight: 300;
+      font-size: 2.5vw;
+      line-height: 1;
+      color: rgb(var(--accent));
+      min-width: 2.2vw;
+    }
+    .accords-liste {
+      display: flex;
+      gap: 0.95vw;
+      margin: 0;
+      padding: 0 0 0 1.2vw;
+      list-style: none;
+      border-left: 1px solid rgb(var(--texte) / 0.14);
+      font-size: 1.12vw;
+      font-variant-numeric: tabular-nums;
+    }
+    .accords-liste li {
+      min-width: 1.4vw;
+      text-align: center;
+      color: rgb(var(--texte) / 0.36);
+      transition: color 260ms ease;
+    }
+    .accords-liste li.actif { color: rgb(var(--accent)); }
+  </style>
+</head>
+<body>
+  <div id="fond" class="couche couche-fond"></div>
+  <div class="couche couche-voile"></div>
+
+  <!-- Le moteur : c'est lui qui joue. Même origine que la scène, son DOM est lisible. -->
+  <iframe id="moteur" class="couche couche-moteur" src="/?autoplay=1" allow="autoplay"
+    title="LoFi Engine"></iframe>
+
+  <section class="couche couche-texte">
+    <h1 id="titre" class="titre"></h1>
+    <p id="sousTitre" class="sous-titre"></p>
+    <p id="credits" class="credits"></p>
+  </section>
+
+  <section class="couche couche-info">
+    <div id="horloge" class="horloge" hidden>
+      <span id="horlogeHeure" class="horloge-heure"></span>
+      <span id="horlogeDate" class="horloge-date"></span>
+    </div>
+    <div id="accords" class="accords" hidden>
+      <span class="etiquette">Tonalité</span>
+      <div class="accords-ligne">
+        <span id="accordsCle" class="accords-cle"></span>
+        <ol id="accordsListe" class="accords-liste"></ol>
+      </div>
+    </div>
+  </section>
+
+  <script src="scene.js"></script>
+</body>
+</html>

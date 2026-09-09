@@ -17,8 +17,7 @@ RUN chmod +x /usr/local/bin/capturer.sh /usr/local/bin/direct.sh
 USER capteur
 ENV HOME=/home/capteur \
     CORPUS_DIR=/corpus \
-    LOFI_URL=http://lofi-engine:4707/?autoplay=1 \
-    ECRAN=1280x720x24
+    LOFI_BASE=http://lofi-engine:4707
 
 WORKDIR /corpus
 CMD ["/usr/local/bin/capturer.sh"]

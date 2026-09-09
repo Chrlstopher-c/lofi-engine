@@ -10,7 +10,7 @@ ETIQUETTE="capture"
 . /usr/local/lib/lofi/navigateur.sh
 
 CORPUS_DIR="${CORPUS_DIR:-/corpus}"
-LOFI_URL="${LOFI_URL:-http://lofi-engine:4707/?autoplay=1}"
+LOFI_URL="${LOFI_URL:-${LOFI_BASE:-http://lofi-engine:4707}/?autoplay=1}"
 CAPTURE_DUREE="${CAPTURE_DUREE:-600}"
 SEGMENT_DUREE="${SEGMENT_DUREE:-600}"
 ESSAI_DUREE=15          # essai avant la vraie capture, pour ne pas enregistrer 6 h de silence

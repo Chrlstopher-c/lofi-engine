@@ -36,7 +36,6 @@ valider_plateformes() {
     printf '   et se renseignent dans le .env (jamais versionné).\n' >&2
     exit 1
   fi
-  [ -f "$STREAM_IMAGE" ] || echec "image de fond introuvable : $STREAM_IMAGE (variable STREAM_IMAGE)"
 }
 
 # Une sortie simple, ou le muxer tee vers deux destinations en une seule passe d'encodage.
@@ -61,7 +60,7 @@ annoncer_destinations() {
   vrai "$STREAM_TWITCH"  && journal "destination : Twitch (${TWITCH_INGEST})"
   vrai "$STREAM_YOUTUBE" && journal "destination : YouTube (${YOUTUBE_INGEST})"
   journal "rendu : $STREAM_RESOLUTION @ ${STREAM_FPS} i/s · vidéo $STREAM_VIDEO_BITRATE · audio $STREAM_AUDIO_BITRATE"
-  journal "image de fond : $STREAM_IMAGE"
+  vrai "${STREAM_SCENE:-false}" || journal "image de fond : $STREAM_IMAGE"
 }
 
 # Liste de lecture du corpus, mélangée <n> fois pour retarder la répétition.
@@ -77,4 +76,13 @@ construire_playlist() {
 
 compter_corpus() {
   find "$CORPUS_DIR" -type f \( -name '*.flac' -o -name '*.wav' -o -name '*.ogg' \) | wc -l
+}
+
+verifier_image_fixe() {
+  [ -f "$STREAM_IMAGE" ] || echec "image de fond introuvable : $STREAM_IMAGE (variable STREAM_IMAGE)"
+}
+
+# Encode une valeur pour la passer en paramètre d'URL sans casser la requête.
+encoder_url() {
+  printf '%s' "$1" | od -An -tx1 -v | tr -d '\n ' | sed 's/\(..\)/%\1/g'
 }

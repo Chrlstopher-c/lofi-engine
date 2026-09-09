@@ -12,7 +12,10 @@ ETIQUETTE="direct"
 # shellcheck source=/dev/null
 . /usr/local/lib/lofi/navigateur.sh
 
-LOFI_URL="${LOFI_URL:-http://lofi-engine:4707/?autoplay=1}"
+STREAM_SCENE="${STREAM_SCENE:-true}"   # false = image fixe au lieu de la scène animée
+ECRAN="${ECRAN_DIRECT:-${STREAM_RESOLUTION}x24}"   # l'écran capturé suit la résolution du flux
+LOFI_BASE="${LOFI_BASE:-http://lofi-engine:4707}"
+LOFI_URL="${LOFI_URL:-}"
 PULSATION=2              # secondes entre deux vérifications que le navigateur est vivant
 PULSATIONS_PAR_CONTROLE=10   # une mesure de niveau toutes les 10 pulsations (20 s)
 MESURE=4                 # durée d'une mesure de niveau
@@ -20,12 +23,25 @@ SILENCES_TOLERES=2       # contrôles muets consécutifs avant de basculer sur l
 CYCLES_AVANT_RETEST=15   # contrôles sous repli avant de retenter le navigateur (~5 min)
 REPLI_PID=""
 DIFFUSION_PID=""
+ENTREE_VIDEO=()
+
+# Source vidéo : l'écran virtuel où le navigateur affiche la scène, ou une image fixe.
+choisir_entree_video() {
+  if vrai "$STREAM_SCENE"; then
+    ENTREE_VIDEO=(-thread_queue_size 512 -f x11grab -draw_mouse 0 -framerate "$STREAM_FPS"
+                  -video_size "${ECRAN%x*}" -i "$DISPLAY")
+    journal "vidéo : capture de la scène (${ECRAN%x*})"
+  else
+    ENTREE_VIDEO=(-thread_queue_size 512 -re -loop 1 -framerate "$STREAM_FPS" -i "$STREAM_IMAGE")
+    journal "vidéo : image fixe ($STREAM_IMAGE)"
+  fi
+}
 
 lancer_diffusion() {
   local gop=$((STREAM_FPS * 2))
   ( while true; do
       ffmpeg -hide_banner -loglevel warning -nostdin \
-        -thread_queue_size 512 -re -loop 1 -framerate "$STREAM_FPS" -i "$STREAM_IMAGE" \
+        "${ENTREE_VIDEO[@]}" \
         -thread_queue_size 1024 -f pulse -i "${SINK}.monitor" \
         -map 0:v -map 1:a \
         -c:v libx264 -preset veryfast -tune stillimage -pix_fmt yuv420p \
@@ -67,7 +83,7 @@ arreter_repli() {
 relancer_navigateur() {
   journal "relance du navigateur"
   arreter_navigateur
-  demarrer_navigateur "$LOFI_URL" || return 1
+  demarrer_navigateur "$(construire_url)" kiosque || return 1
   attendre "reprise du moteur" 90 'il_y_a_du_son 3'
 }
 
@@ -145,17 +161,33 @@ surveiller() {
   done
 }
 
+# La scène est servie par le conteneur du site : même origine que le moteur, donc l'iframe
+# qui produit le son n'est pas bridée par la politique inter-origines.
+construire_url() {
+  if [ -n "$LOFI_URL" ]; then echo "$LOFI_URL"; return 0; fi
+  if ! vrai "$STREAM_SCENE"; then echo "${LOFI_BASE}/?autoplay=1"; return 0; fi
+  local q="titre=$(encoder_url "${STREAM_TITRE:-}")"
+  q+="&sousTitre=$(encoder_url "${STREAM_SOUS_TITRE:-}")"
+  q+="&credits=$(encoder_url "${STREAM_CREDITS:-}")"
+  q+="&fond=$(encoder_url "/fonds/${STREAM_FOND:-}")"
+  q+="&horloge=${STREAM_HORLOGE:-true}&accords=${STREAM_ACCORDS:-true}"
+  q+="&theme=${STREAM_THEME:-nuit}"
+  echo "${LOFI_BASE}/scene/scene.html?${q}"
+}
+
 valider_plateformes
+vrai "$STREAM_SCENE" || verifier_image_fixe
 construire_sortie
 annoncer_destinations
 journal "corpus de secours : $(compter_corpus) fichier(s)"
 
 demarrer_environnement
-demarrer_navigateur "$LOFI_URL"
+demarrer_navigateur "$(construire_url)" kiosque
 attendre "chargement des échantillons" 90 'pactl list sink-inputs 2>/dev/null | grep -q .' \
   || echec "le navigateur n'a jamais produit de flux audio (voir /tmp/chromium.log)"
 il_y_a_du_son 10 || echec "silence au démarrage — vérifier que l'URL contient ?autoplay=1"
 journal "moteur en marche — début de la diffusion en direct"
 
+choisir_entree_video
 lancer_diffusion
 surveiller

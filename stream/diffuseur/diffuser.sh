@@ -27,6 +27,7 @@ lancer_ffmpeg() {
 }
 
 valider_plateformes
+verifier_image_fixe
 n=$(compter_corpus)
 [ "$n" -gt 0 ] || echec "corpus vide dans $CORPUS_DIR — lancer d'abord le générateur (profil 'generateur')."
 journal "configuration validée — $n fichier(s) dans le corpus"
