@@ -30,6 +30,12 @@ export function Materiel({ materiel }: { materiel: MaterielEncodage }): ReactNod
       {!disponible && materiel.puce
         ? <p className="aide">Vue sur le bus PCI : {materiel.puce}.</p>
         : null}
+      {!disponible
+        ? <p className="aide">
+            Pour un diagnostic complet et une correction guidée, lancer
+            {" "}<code>./scripts/verifier-gpu.sh</code> sur la machine qui diffuse.
+          </p>
+        : null}
     </Section>
   );
 }

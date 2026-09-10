@@ -235,5 +235,6 @@ lofi-engine/
 │
 ├── scripts/
 │   └── optimize-backgrounds.sh        compression des fonds d'écran
+│   └── verifier-gpu.sh             diagnostique l'accès à la puce vidéo et propose de corriger
 └── screenshots/                       captures utilisées par le README amont
 ```

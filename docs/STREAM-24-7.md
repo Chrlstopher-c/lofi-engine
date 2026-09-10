@@ -217,6 +217,21 @@ genre d'installation, l'encodage restera logiciel tant que le projet tournera da
 plutôt que dans un conteneur LXC. C'est la deuxième ligne du tableau, et de loin la plus
 fréquente.
 
+### Vérifier l'accès à la puce, et combler ce qui manque
+
+`./scripts/verifier-gpu.sh`, lancé **là où tourne la diffusion** — dans le conteneur LXC, la VM
+ou sur la machine physique, jamais sur l'hôte Proxmox. Il déroule neuf contrôles, du bus PCI
+jusqu'à un encodage réel dans l'image du diffuseur, et propose de corriger chaque manque par un
+« o / n ». Rien n'est modifié sans réponse ; `--lire-seul` n'en propose aucune.
+
+Le dernier contrôle est le seul qui compte vraiment : il encode une image **dans le conteneur de
+diffusion**, avec les options exactes que les fichiers compose lui donnent. Tout le reste peut
+être vert et celui-là rouge — c'est alors le groupe du périphérique qui manque.
+
+Ce qu'il ne fait pas, et le dit : dans un conteneur, le périphérique est donné par l'hôte et le
+pilote est chargé par le noyau de l'hôte. Il rend les lignes exactes à coller dans
+`/etc/pve/lxc/<numéro>.conf` plutôt que de faire semblant de les appliquer.
+
 ### Diffuser vers les deux plateformes à la fois
 
 On n'ouvre pas deux flux : ffmpeg encode une fois et distribue avec le muxer `tee`, chaque
