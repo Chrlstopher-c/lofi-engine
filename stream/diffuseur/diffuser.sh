@@ -19,6 +19,7 @@ lancer_ffmpeg() {
     -map 0:v -map 1:a \
     -c:v libx264 -preset veryfast -tune stillimage -pix_fmt yuv420p \
     -vf "scale=${STREAM_RESOLUTION%x*}:${STREAM_RESOLUTION#*x},setsar=1" -r "$STREAM_FPS" \
+    -aspect "${STREAM_RESOLUTION%x*}:${STREAM_RESOLUTION#*x}" \
     -b:v "$STREAM_VIDEO_BITRATE" -maxrate "$STREAM_VIDEO_BITRATE" \
     -bufsize "$STREAM_VIDEO_BITRATE" \
     -g "$gop" -keyint_min "$gop" -sc_threshold 0 \

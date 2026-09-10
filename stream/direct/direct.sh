@@ -175,6 +175,10 @@ lancer_diffusion() {
     entrees=("${ENTREE_VIDEO[@]}" -thread_queue_size 1024 -f pulse -i "${SINK}.monitor")
     maps=(-map 0:v -map 1:a)
   fi
+  # -aspect déclare la forme de l'image sur le flux lui-même, dans les métadonnées que la
+  # plateforme lit. C'est une ceinture par-dessus les bretelles de setsar : la forme ne dépend
+  # alors plus d'aucune source, ni d'aucun filtre en amont. Vérifié : elle survit à la mise en
+  # conteneur FLV, celui réellement poussé en RTMP.
   # setsid donne au flux son propre groupe de processus : recharger la scène doit pouvoir
   # arrêter ffmpeg et sa boucle de reconnexion ensemble, sans chercher de PID au jugé.
   # L'erreur standard de ffmpeg passe par le tamis : il masque la clé de diffusion, que
@@ -190,6 +194,7 @@ lancer_diffusion() {
     done' _ \
     "${PREFIXE_ENCODEUR[@]}" "${entrees[@]}" "${maps[@]}" \
     "${ENCODEUR_VIDEO[@]}" \
+    -aspect "${STREAM_RESOLUTION%x*}:${STREAM_RESOLUTION#*x}" \
     -b:v "$STREAM_VIDEO_BITRATE" -maxrate "$STREAM_VIDEO_BITRATE" \
     -bufsize "$STREAM_VIDEO_BITRATE" \
     -g "$gop" -keyint_min "$gop" \
