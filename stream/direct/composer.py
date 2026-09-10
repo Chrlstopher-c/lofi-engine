@@ -149,7 +149,11 @@ def poser_fond(plan: Plan, fond: dict, larg: int, haut: int, fps: int) -> None:
     else:
         cadrage = f"scale={larg}:{haut}:force_original_aspect_ratio=increase,crop={larg}:{haut}"
 
-    plan.filtres.append(f"[{plan.base}:v]{cadrage},format=yuv420p[fond]")
+    # setsar=1 n'est pas décoratif : le rapport de pixel de la source TRAVERSE scale et crop.
+    # Un fond à pixels non carrés — fréquent sur une vidéo anamorphosée — ressort alors en
+    # 1920x1080 déclaré en 64:27, et la plateforme encadre l'image de noir pour la rendre à la
+    # forme annoncée. Mesuré : une source 1440x1080 en SAR 4:3 donnait exactement ça.
+    plan.filtres.append(f"[{plan.base}:v]{cadrage},setsar=1,format=yuv420p[fond]")
     plan.dernier = "[fond]"
 
 

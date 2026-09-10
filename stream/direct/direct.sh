@@ -43,10 +43,14 @@ FILTRE_SORTIE=""      # greffé en bout de composition quand l'encodeur l'exige
 # que la bibliothèque d'encodage soit là, et découvrir l'échec en direct coûterait le flux.
 # Quand ffmpeg compose lui-même, l'image sort déjà à la bonne taille et le transfert vers
 # une carte VAAPI appartient à la chaîne de composition : plus de -s ni de -vf ici.
+# Le rapport de pixel est remis à 1 partout où l'on met à l'échelle. Il TRAVERSE scale, -s et
+# crop : une source à pixels non carrés ressort à la bonne taille en déclarant la mauvaise
+# forme, et la plateforme encadre l'image de noir pour l'y faire tenir. Mesuré le 2026-09-10 :
+# une source 1440x1080 en SAR 4:3 donnait un 1920x1080 annoncé en 64:27.
 profil_encodeur() {
   local largeur="${STREAM_RESOLUTION%x*}" hauteur="${STREAM_RESOLUTION#*x}"
   local compose="${2:-navigateur}"
-  local echelle=(-s "$STREAM_RESOLUTION")
+  local echelle=(-vf "scale=${largeur}:${hauteur},setsar=1")
   [ "$compose" = "ffmpeg" ] && echelle=()
   PREFIXE_ENCODEUR=()
   FILTRE_SORTIE=""
@@ -61,7 +65,7 @@ profil_encodeur() {
         ENCODEUR_VIDEO=(-c:v h264_vaapi -rc_mode CBR -r "$STREAM_FPS")
       else
         # La mise à l'échelle se fait avant le transfert vers la carte : une seule copie.
-        ENCODEUR_VIDEO=(-vf "scale=${largeur}:${hauteur},format=nv12,hwupload"
+        ENCODEUR_VIDEO=(-vf "scale=${largeur}:${hauteur},setsar=1,format=nv12,hwupload"
                         -c:v h264_vaapi -rc_mode CBR -r "$STREAM_FPS")
       fi ;;
     x264)

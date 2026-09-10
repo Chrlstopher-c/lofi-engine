@@ -18,7 +18,7 @@ lancer_ffmpeg() {
     -re -f concat -safe 0 -stream_loop -1 -i "$liste" \
     -map 0:v -map 1:a \
     -c:v libx264 -preset veryfast -tune stillimage -pix_fmt yuv420p \
-    -s "$STREAM_RESOLUTION" -r "$STREAM_FPS" \
+    -vf "scale=${STREAM_RESOLUTION%x*}:${STREAM_RESOLUTION#*x},setsar=1" -r "$STREAM_FPS" \
     -b:v "$STREAM_VIDEO_BITRATE" -maxrate "$STREAM_VIDEO_BITRATE" \
     -bufsize "$STREAM_VIDEO_BITRATE" \
     -g "$gop" -keyint_min "$gop" -sc_threshold 0 \
