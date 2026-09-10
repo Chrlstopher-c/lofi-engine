@@ -65,8 +65,41 @@ avec la mélodie du moteur, une note tenue s'y pose. Chaîne dans `outils/vox/`,
 définition vaut aussi quand ffmpeg compose ; l'attente du serveur audio passe de 20 à 45 s ; et
 **la clé de diffusion est masquée** dans les journaux, où ffmpeg la recopiait en clair.
 
-**Machine.** Un fond d'écran animé fuyait — `mpvpaper` tenait 11,3 Gio après 39 h. Relancé :
-475 Mo, et le swap est repassé de saturé à 10 Gio libres.
+## Ce qui a été fait — 2026-09-10, soir : rendre une petite machine capable
+
+Toute la soirée sur une seule installation — un NUC à quatre cœurs, en LXC sous Proxmox — et
+sept causes empilées, chacune masquant la suivante. Le fil conducteur : **chaque fois qu'un
+symptôme paraissait venir de la plateforme, il venait de chez nous ; et chaque fois qu'une
+mesure semblait concluante, il fallait vérifier sur quoi elle portait.**
+
+**La puce était inaccessible, à trois niveaux successifs.** L'hôte ne la passait pas au
+conteneur LXC (mappage des groupes) ; le groupe arrivait non mappé, donc le nœud appartenait à
+« nogroup » — visible par root, illisible par le diffuseur ; et l'image Docker n'avait **aucun
+pilote VAAPI**, Debian n'installant que `libva`, l'interface. Chacun de ces trois états produit
+le même symptôme et deux affirmations exactes qui se contredisent : « VAAPI disponible » côté
+interface, « aucune puce accessible » côté diffuseur.
+
+**Sa puce n'encode que par la voie « basse consommation »**, et ce pilote n'accepte aucun
+plafond de débit — VBR, QVBR, ICQ et AVBR essayés un par un, tous refusés. La qualité constante
+est donc le seul mode, et elle déborde : 12 Mbit/s par destination en `qp 24`, sept fois la
+cible, ce qui saturait sa liaison montante. Elle est sortie de la sélection automatique : un
+flux logiciel plafonné vaut mieux qu'un flux matériel qu'une plateforme sur deux refuse.
+
+**Le débit par défaut était trois fois trop bas.** 1500k en 1080p vient d'une époque où la
+scène était une image fixe. Sur des dégradés sombres — ce qu'est une scène lofi — l'image part
+en blocs. Mesuré : 0,999440 à 1500k contre 0,999667 à 4500k. Défaut porté à 4500k, avec un
+avertissement au démarrage en dessous de 3000k.
+
+**Et le garde-fou était calibré sur une mire.** Il exigeait six cœurs pour du 1080p logiciel.
+Mesuré sur la vraie scène, `veryfast` coûte **0,73 cœur**, pas 2,74 : une mire synthétique est
+quatre fois plus chère à encoder qu'une scène de dégradés. Il sacrifiait donc la définition
+pour rien — alors qu'à débit égal le plein 1080p bat toute définition réduite (0,9961 contre
+0,9916 en 1600×900). Seuils recalibrés, préréglage ajusté avant la définition, jamais l'inverse.
+
+**Outillage laissé derrière.** `scripts/verifier-gpu.sh` (neuf contrôles, dont un encodage réel
+dans l'image du diffuseur — le seul qui prouve quelque chose), `scripts/lxc-gpu-hote.sh`
+(mappage calculé sur l'hôte, avec réparation d'un conteneur qui ne démarre plus),
+`scripts/sonder-format.sh` (ce que le flux émet vraiment, sans rien reconstruire).
 
 ## Ce qui a été fait — 2026-09-10, après-midi : la diffusion double
 
@@ -99,25 +132,12 @@ mesure ce que le flux émet vraiment, sans rien reconstruire. L'onglet Twitch mo
 d'aptitude et compare la clé enregistrée à celle de la chaîne connectée, sans jamais en afficher
 aucune. Et le rapport de pixel est remis à 1 partout où l'on met à l'échelle.
 
-**Onglet Pixabay.** Recherche d'images et de vidéos, étoile pour garder de côté sans
-télécharger, téléchargement qui atterrit dans le corpus avec sa provenance, aperçu en grand au
-clic, pagination. La clé d'API s'écrit dans le `.env` et ne ressort jamais. Ce que Pixabay
-renvoie est traité comme une entrée non fiable : URL vérifiées contre ses domaines à la
-recherche **et** au téléchargement, nombres bornés, nom de fichier construit par nous.
+**Onglet Pixabay.** Recherche, étoile pour garder de côté sans télécharger, dépôt dans le
+corpus avec sa provenance, aperçu en grand au clic, pagination. La clé d'API ne ressort par
+aucune route, et les URL que Pixabay rapporte sont revérifiées au téléchargement — entre-temps
+elles ont pu traverser un favori posé sur le disque.
 
-## Ce qui a été fait — session du 2026-09-09
-- Clone, mesure de consommation, déploiement sur le Pi, fork mis aux normes Echo, dockerisation.
-- **Diffusion 24/7** : scène composée en calques, capture du corpus, diffusion en direct avec
-  repli automatique, le tout en conteneurs.
-- **Centre de contrôle web** : scène, calques, fonds, aperçu en temps réel, mode composition,
-  profils, clés, démarrage et arrêt, journal.
-- **Intégration Twitch** : autorisation par code d'appareil, clé de diffusion récupérée
-  automatiquement, titre et catégorie, état du direct, statistiques, chat en direct,
-  rediffusions.
-- **Vidéos et GIF** dans la scène, et un outil de téléchargement de fonds animés par l'API
-  Pixabay, avec traçabilité de chaque fichier.
-- Licences des échantillons audio tracées : deux attributions dues, aucun remplacement.
-- 127 Go libérés sur `/mnt/projects` (caches de compilation Rust de projets dormants).
+*Les sessions antérieures au 2026-09-10 sont archivées dans `docs/history/STATE-archive.md`.*
 
 ## Stream 24/7 — en service
 Détail, mode d'emploi et tableau des mesures : `docs/STREAM-24-7.md`. Licences des
@@ -160,6 +180,9 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
 | Flux d'appareil pour Twitch, pas de redirection | La console Twitch refuse `http://localhost` malgré sa documentation ; monter du HTTPS pour une app locale serait disproportionné | 2026-09-09 |
 | Le Client ID est livré avec le projet | Il n'est pas secret, Twitch le transmet en clair. Qui clone n'a rien à créer : il connecte son propre compte | 2026-09-09 |
 | Le centre de contrôle tourne hors conteneur | Il pilote Docker et écrit le `.env` : lui donner le socket dans un conteneur reviendrait à lui donner la machine | 2026-09-09 |
+| Le préréglage x264 s'ajuste avant la définition | Mesuré sur la vraie scène : `veryfast` coûte 0,73 cœur en 1080p, et à débit égal le plein 1080p bat toute définition réduite. Baisser la définition était le mauvais levier, et le seuil de six cœurs venait d'une mesure sur une mire — quatre fois trop chère | 2026-09-10 |
+| Le débit vidéo par défaut passe à 4500k | 1500k est un héritage de l'époque « image fixe ». Sur des dégradés sombres, l'image part en blocs, et rien dans les journaux ne fait le lien — d'où aussi l'avertissement au démarrage | 2026-09-10 |
+| La qualité constante VAAPI n'est jamais choisie automatiquement | Sans plafond de débit, le poids du flux oscille : Twitch l'accepte, YouTube reste bloqué sur « préparation ». Elle reste accessible en la nommant, pour une diffusion Twitch seule | 2026-09-10 |
 | L'image du diffuseur est en Debian 13, pas 12 | Le muxer `tee` de ffmpeg 5.1 produit un FLV que Twitch refuse en silence : il se connecte, envoie tout, ne signale rien, et la chaîne reste hors ligne. Vérifié en rejouant la même poussée avec ffmpeg 7.1 dans le même réseau | 2026-09-10 |
 | Jamais 25 ni 50 images par seconde vers YouTube | Son transcodeur en tire une échelle entièrement carrée, sans un seul rendu 16:9, alors que l'ingestion est notée « Excellent ». Les cadences PAL restent proposées mais annoncées dans l'interface | 2026-09-10 |
 | Le passage de la puce à un LXC se calcule, il ne se recopie pas | Les groupes `video` et `render` changent d'une machine à l'autre, et un mappage bâti sur les mauvais numéros empêche le conteneur de démarrer — pas à moitié, complètement | 2026-09-10 |
@@ -222,10 +245,12 @@ de navigations restant à 1.
    jour qui contraint la conception du chat dès le départ.
 3. **Enregistrer un vrai corpus de secours** — un seul fichier de 40 s aujourd'hui, donc le repli
    n'a presque rien à jouer si le navigateur tombe. C'est la seule faiblesse réelle du montage.
-4. **Monter le débit vidéo** — 1500k pour du 1080p est bas, et YouTube le signale. Sa scène est
-   faite de dégradés sombres, ce qui est précisément ce qui se dégrade le plus mal. 4500k
-   mettrait dans la fourchette des deux plateformes, au prix d'environ 9,4 Mbit/s montants pour
-   les deux destinations — c'est le tuyau qui décide, pas la machine.
+4. **Passer cette installation à 4500k** — le défaut du projet l'est désormais, mais le `.env`
+   de cette machine fixe encore 1500k, et sa scène a les mêmes dégradés sombres que celle qui
+   partait en blocs. Compter 9,4 Mbit/s montants pour deux destinations.
+5. **Reprendre le blocage YouTube de l'ami à froid** — tout ce qui se mesurait a été mesuré et
+   son flux est conforme. Ce qui reste est du côté de la plateforme, et le centre de contrôle
+   n'a pas les yeux pour le voir : c'est l'API YouTube qui manque (point 2).
 4. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
 
 ## Points en suspens
@@ -248,13 +273,24 @@ de navigations restant à 1.
   recréer le conteneur pour qu'il la prenne.
 - **L'installation de l'ami diffuse.** Sa puce Intel lui est passée par l'hôte Proxmox, il
   encode en matériel et remonte en 1080p. Il n'a toujours aucun corpus de secours.
-- **VAAPI n'a jamais été exercé depuis cette machine** : elle n'a qu'une carte NVIDIA. Le profil
-  tourne en revanche sur l'installation de l'ami, ce qui vaut vérification positive — mais à
-  distance, sans que j'aie pu la mesurer moi-même.
+- **VAAPI n'a jamais été exercé depuis cette machine** : elle n'a qu'une carte NVIDIA. Les
+  variantes « basse consommation » ont été écrites et vérifiées négativement ici, positivement
+  chez l'ami — mais à distance, sans mesure directe.
+- **Les seuils de préréglage sont un comptage de cœurs, pas une mesure de charge.** Quatre
+  cœurs de NUC sont plus lents que quatre cœurs de PC fixe, et rien ne le détecte. Si un flux
+  s'étrangle malgré `veryfast`, le repli est `STREAM_PRESET` — mais personne ne sera prévenu
+  automatiquement.
+- **Le débordement d'un flux sans plafond de débit n'est pas détecté.** La qualité constante est
+  sortie de la sélection automatique, donc le cas ne devrait plus se présenter ; s'il est forcé
+  à la main, rien ne mesure le poids réel du flux à part l'exploitant.
 - **Le carré de YouTube n'a jamais été expliqué, seulement contourné.** On sait que 25 i/s le
   déclenche et que 30 i/s l'évite ; on ne sait pas pourquoi son transcodeur se comporte ainsi, et
   aucune trace publique de ce défaut n'a été trouvée. Si quelqu'un le signale un jour au support,
   les mesures sont dans `docs/STREAM-24-7.md`.
+- **YouTube refuse toujours la diffusion de l'ami**, bloquée sur « préparation du flux », alors
+  que Twitch accepte le même flux. Son flux est pourtant irréprochable, mesuré : H.264 High,
+  yuv420p, images-clés à 0, 2 et 4 s, 1080p30. La piste écartée est le débit variable de la
+  qualité constante — elle n'est plus utilisée. À reprendre à froid s'il persiste.
 - **Le centre de contrôle ne sait rien de YouTube.** Il interroge l'API de Twitch et rend l'état
   réel de la chaîne ; côté YouTube, il faut ouvrir le studio ou les statistiques du lecteur. Une
   demi-journée y a été perdue faute de pouvoir lire ce que la plateforme faisait du flux.

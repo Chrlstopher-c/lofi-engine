@@ -1,5 +1,5 @@
 # Arborescence — LoFi Engine
-*Dernière mise à jour : 2026-09-09*
+*Dernière mise à jour : 2026-09-10*
 
 Les fichiers marqués **⬤** sont les ajouts Echo ; tout le reste vient de l'amont.
 
@@ -29,7 +29,9 @@ lofi-engine/
 ├── vite.config.ts                     configuration Vite + plugin Svelte
 ├── tsconfig.json                      configuration TypeScript
 ├── docs/
-│   └── STREAM-24-7.md              ⬤ conception du stream continu Twitch + YouTube
+│   ├── STREAM-24-7.md              ⬤ conception du stream continu Twitch + YouTube
+│   ├── FONDS-ANIMES.md                où trouver des fonds, et l'onglet Pixabay
+│   └── history/STATE-archive.md       sessions sorties du STATE vivant
 ├── logs/                           ⬤ sortie du serveur local (non versionné)
 ├── dist/                              site construit par Vite (non versionné)
 │

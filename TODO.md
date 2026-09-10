@@ -4,9 +4,13 @@
 ## En cours
 - [ ] **Découper `PlayButton.svelte`** — 753 lignes contre 500. Séparer le moteur musical du
       composant Svelte. Touche à tout ce qui vient d'être vérifié : à faire à froid.
-- [ ] **Monter le débit vidéo** — 1500k pour du 1080p est bas et YouTube le signale. La scène
-      est faite de dégradés sombres, ce qui se dégrade le plus mal. 4500k mettrait dans la
-      fourchette des deux plateformes, au prix d'environ 9,4 Mbit/s montants. Décision de tuyau.
+- [ ] **Passer cette installation à 4500k** — le défaut du projet l'est désormais, mais le
+      `.env` d'ici fixe encore 1500k, et cette scène a les mêmes dégradés sombres que celle qui
+      partait en blocs. Compter 9,4 Mbit/s montants pour deux destinations. Décision de tuyau.
+- [ ] **Reprendre le blocage YouTube de l'ami à froid** — bloqué sur « préparation du flux »
+      alors que Twitch accepte le même flux. Tout ce qui se mesurait de notre côté a été mesuré
+      et son flux est conforme : H.264 High, images-clés à 0, 2 et 4 s, 1080p30. Ce qui reste
+      est chez la plateforme, et on n'a pas les yeux pour le voir sans son API.
 - [ ] **Enregistrer un vrai corpus de secours** — un seul fichier de 40 s, donc le repli n'a
       presque rien à jouer si le navigateur tombe. Seule faiblesse réelle du montage.
 - [ ] **Un corpus de secours chez l'ami** — il diffuse maintenant, mais sans filet.
@@ -28,8 +32,19 @@
       enregistrée avec celle de la chaîne connectée, sans jamais en afficher aucune.
 - [x] **Onglet Pixabay** — recherche images et vidéos, favoris sans téléchargement, dépôt dans
       le corpus avec provenance, aperçu en grand, pagination.
-- [x] **Débloquer l'installation de l'ami** — puce Intel passée par l'hôte Proxmox, encodage
-      matériel, retour en 1080p.
+- [x] **Débloquer l'installation de l'ami** — puce Intel passée par l'hôte Proxmox, groupe
+      mappé, pilotes VAAPI ajoutés à l'image, et 1080p retrouvé.
+- [x] **Pilotes VAAPI dans l'image** — Debian n'installe que `libva` avec ffmpeg. Sans pilote,
+      `h264_vaapi` ne s'initialise jamais et l'encodage retombe en logiciel, pendant que
+      l'interface annonce « VAAPI disponible » parce que l'hôte, lui, en a.
+- [x] **Variantes d'encodage pour les petites puces Intel** — elles n'encodent que par la voie
+      basse consommation, qui n'accepte pas toujours le débit constant. Trois variantes
+      essayées dans l'ordre, la dernière hors sélection automatique.
+- [x] **Débit par défaut porté à 4500k** — 1500k est un héritage de l'époque « image fixe ».
+      Sur des dégradés sombres l'image part en blocs : 0,999440 contre 0,999667, mesuré.
+- [x] **Recalibrer le garde-fou de charge** — il était mesuré sur une mire synthétique, quatre
+      fois plus chère qu'une scène lofi. `veryfast` coûte 0,73 cœur en 1080p, pas 2,74 : le
+      seuil passe de six à quatre cœurs, et le préréglage s'ajuste avant la définition.
 
 ## Ce que le dessin attend du serveur
 La maquette prévoit des choses que le backend ne sait pas encore dire. Les panneaux les
