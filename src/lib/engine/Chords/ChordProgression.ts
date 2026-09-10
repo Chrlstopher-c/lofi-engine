@@ -1,5 +1,6 @@
 import Chords from './Chords';
 import Chord from './Chord';
+import { aleaEntier } from '../Alea';
 
 class ChordProgression {
     static generate(length) {
@@ -7,7 +8,7 @@ class ChordProgression {
             return null;
 
         const progression = [];
-        let chord = Chords[Math.floor(Math.random()*Chords.length)];
+        let chord = Chords[aleaEntier(Chords.length)];
         
         for(let i = 0; i < length; i++) {
             progression.push(new Chord(

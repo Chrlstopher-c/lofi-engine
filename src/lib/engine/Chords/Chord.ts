@@ -1,4 +1,5 @@
 import { singleOct } from './MajorScale';
+import { alea, aleaEntier } from '../Alea';
 
 class Chord {
     constructor(degree,intervals,nextChordIdxs) {
@@ -25,14 +26,14 @@ class Chord {
     }
 
     nextChordIdx() {
-        return this.nextChordIdxs[Math.floor(Math.random()*this.nextChordIdxs.length)];
+        return this.nextChordIdxs[aleaEntier(this.nextChordIdxs.length)];
     }
 
     generateVoicing(size) {
         if(size<3)
             return this.intervals.slice(0,3);
         let voicing = this.intervals.slice(1,size);
-        voicing.sort(() => Math.random()-0.5);
+        voicing.sort(() => alea()-0.5);
         for(let i = 1; i<voicing.length; i++) {
             while(voicing[i] < voicing[i-1]){
                 voicing[i] += 12;

@@ -18,6 +18,16 @@
   import Noise from "../lib/engine/Drums/Noise";
   import Snare from "../lib/engine/Drums/Snare";
   import Piano from "../lib/engine/Piano/Piano";
+  import { alea, aleaEntier, graine, graineEnTexte, semer, graineDepuisTexte } from "../lib/engine/Alea";
+
+  // Une graine passée dans l'URL rejoue la même composition : ?graine=1a2b3c4d.
+  // Sans elle, une graine est tirée au hasard et annoncée — c'est elle qu'on note pour
+  // retrouver un passage réussi.
+  const graineDemandee = graineDepuisTexte(
+    new URLSearchParams(window.location.search).get("graine") ?? "",
+  );
+  if (graineDemandee !== null) semer(graineDemandee);
+  console.info(`[moteur] graine ${graineEnTexte(graine())}`);
 
   const STORAGE_KEY = "Volumes";
   const DEFFAULT_VOLUMES = {
@@ -50,6 +60,7 @@
   // State variables
   let key = "C";
   let progression = [];
+  let accordSonnant = null;
   let scale = [];
   let progress = 0;
   let scalePos = 0;
@@ -102,10 +113,10 @@
     kickLoop = new Tone.Sequence(
       (time, note) => {
         if (!kickOff) {
-          if (note === "C4" && Math.random() < 0.9) {
+          if (note === "C4" && alea() < 0.9) {
             // @ts-ignore
             kick.triggerAttack(note);
-          } else if (note === "." && Math.random() < 0.1) {
+          } else if (note === "." && alea() < 0.1) {
             // @ts-ignore
             kick.triggerAttack("C4");
           }
@@ -118,7 +129,7 @@
     snareLoop = new Tone.Sequence(
       (time, note) => {
         if (!snareOff) {
-          if (note !== "" && Math.random() < 0.8) {
+          if (note !== "" && alea() < 0.8) {
             // @ts-ignore
             snare.triggerAttack(note);
           }
@@ -132,7 +143,7 @@
       (time, note) => {
         if (!hatOff) {
           // @ts-ignore
-          if (note !== "" && Math.random() < 0.8) {
+          if (note !== "" && alea() < 0.8) {
             // @ts-ignore
             hat.triggerAttack(note);
           }
@@ -191,11 +202,11 @@
 
   function nextChord() {
     const nextProgress = progress === progression.length - 1 ? 0 : progress + 1;
-    const nextKickOff = Math.random() < 0.15;
-    const nextSnareOff = Math.random() < 0.2;
-    const nextHatOff = Math.random() < 0.25;
-    const nextMelodyDensity = Math.random() * 0.3 + 0.2;
-    const nextMelodyOff = Math.random() < 0.25;
+    const nextKickOff = alea() < 0.15;
+    const nextSnareOff = alea() < 0.2;
+    const nextHatOff = alea() < 0.25;
+    const nextMelodyDensity = alea() * 0.3 + 0.2;
+    const nextMelodyOff = alea() < 0.25;
 
     if (progress === 4) {
       progress = nextProgress;
@@ -218,7 +229,7 @@
       autoDJTransition();
       // New next transition length
       const barLengthOptions = [16, 20, 24, 28, 32, 48];
-      sectionBarLength = barLengthOptions[Math.floor(Math.random() * barLengthOptions.length)];
+      sectionBarLength = barLengthOptions[aleaEntier(barLengthOptions.length)];
     }
   }
 
@@ -233,19 +244,19 @@
     
     // Original Instrument Logic (Applied in ALL active modes: MUSIC, ATMOSPHERE, WORLD)
     // This was the "current main lofi track generation"
-    melodyDensity = 0.2 + Math.random() * 0.5;
-    kickOff = Math.random() < 0.13;
-    snareOff = Math.random() < 0.17;
-    hatOff = Math.random() < 0.22;
-    melodyOff = Math.random() < 0.25;
+    melodyDensity = 0.2 + alea() * 0.5;
+    kickOff = alea() < 0.13;
+    snareOff = alea() < 0.17;
+    hatOff = alea() < 0.22;
+    melodyOff = alea() < 0.25;
 
     // Smart Effects: Toggle environmental effects randomly
     // Applied in ATMOSPHERE and WORLD
     if (autoDJMode === "ATMOSPHERE" || autoDJMode === "WORLD") {
       const effects = ["rain", "thunder", "jungle", "campfire"];
       // 30% chance to toggle an effect
-      if (Math.random() < 0.3) {
-        const effect = effects[Math.floor(Math.random() * effects.length)];
+      if (alea() < 0.3) {
+        const effect = effects[aleaEntier(effects.length)];
         window.dispatchEvent(new CustomEvent(`lofi-toggle-${effect}`));
       }
     }
@@ -254,8 +265,8 @@
     // Applied ONLY in WORLD
     if (autoDJMode === "WORLD") {
       // 20% chance to toggle a track
-      if (Math.random() < 0.2) {
-        const trackId = Math.floor(Math.random() * 9) + 1; // 1-9
+      if (alea() < 0.2) {
+        const trackId = Math.floor(alea() * 9) + 1; // 1-9
         window.dispatchEvent(new CustomEvent("lofi-toggle-track", { detail: { id: trackId } }));
       }
     }
@@ -280,11 +291,34 @@
       .map((f) => Tone.Frequency(f).toNote());
     // @ts-ignore
     pn.triggerAttackRelease(notes, "1n");
+    accordSonnant = chord;
     nextChord();
   }
 
+  // Combien la mélodie préfère une note de l'accord en cours à une note simplement dans la
+  // gamme. 1 = comme avant, indifférente. Au-delà de 4 elle arpège et cesse de chanter.
+  const PENCHANT_ACCORD = 3;
+
+  /** Les hauteurs de l'accord qui sonne, ramenées à l'octave, relatives à la tonique. */
+  function classesDeLAccord() {
+    if (!accordSonnant) return null;
+    const classes = new Set();
+    for (const intervalle of accordSonnant.intervals) {
+      classes.add((accordSonnant.semitoneDist + intervalle) % 12);
+    }
+    return classes;
+  }
+
+  /** Le degré de la gamme atteint par ce pas est-il dans l'accord ? */
+  function penchant(classes, position) {
+    if (!classes) return 1;
+    const demiTons = fiveToFive[position];
+    if (demiTons === undefined) return 1;
+    return classes.has(((demiTons % 12) + 12) % 12) ? PENCHANT_ACCORD : 1;
+  }
+
   function playMelody() {
-    if (melodyOff || !(Math.random() < melodyDensity)) {
+    if (melodyOff || !(alea() < melodyDensity)) {
       return;
     }
 
@@ -295,7 +329,7 @@
     let ascend = ascendRange > 1;
 
     if (descend && ascend) {
-      if (Math.random() > 0.5) {
+      if (alea() > 0.5) {
         ascend = !descend;
       } else {
         descend = !ascend;
@@ -306,13 +340,20 @@
       ? intervalWeights.slice(0, descendRange)
       : intervalWeights.slice(0, ascendRange);
 
+    // Les petits intervalles restaient les plus probables, mais sans aucun égard pour
+    // l'harmonie : la mélodie se promenait dans la gamme, pas sur l'accord. Elle pouvait donc
+    // tomber sur une note qui frotte — par hasard, jamais par choix. Le poids de chaque pas
+    // est maintenant relevé quand il atterrit sur une note de l'accord qui sonne.
+    const classes = classesDeLAccord();
+    weights = weights.map((w, pas) => w * penchant(classes, scalePos + (descend ? -pas : pas)));
+
     const sum = weights.reduce((prev, curr) => prev + curr, 0);
     weights = weights.map((w) => w / sum);
     for (let i = 1; i < weights.length; i++) {
       weights[i] += weights[i - 1];
     }
 
-    const randomWeight = Math.random();
+    const randomWeight = alea();
     let scaleDist = 0;
     let found = false;
     while (!found) {
@@ -331,14 +372,39 @@
     pn.triggerAttackRelease(scale[newScalePos], "2n");
   }
 
+  // Une tonalité tirée au hasard parmi douze, c'était une chance sur six de sauter d'un
+  // triton — la rupture s'entend. Les tonalités voisines sur le cycle des quintes partagent
+  // presque toutes leurs notes : la modulation devient un glissement, pas une cassure.
+  const POIDS_DISTANCE = [0.04, 0.3, 0.24, 0.16, 0.12, 0.09, 0.05];
+
+  /** Position d'une tonalité sur le cycle des quintes : monter d'une quinte = sept demi-tons. */
+  function placeSurLeCycle(indice) {
+    return (indice * 7) % 12;
+  }
+
+  function tonaliteVoisine(actuelle) {
+    const depart = placeSurLeCycle(Math.max(0, Keys.indexOf(actuelle)));
+    const poids = Keys.map((_, indice) => {
+      const ecart = Math.abs(placeSurLeCycle(indice) - depart);
+      return POIDS_DISTANCE[Math.min(ecart, 12 - ecart)];
+    });
+    const total = poids.reduce((somme, p) => somme + p, 0);
+    let tirage = alea() * total;
+    for (let indice = 0; indice < Keys.length; indice++) {
+      tirage -= poids[indice];
+      if (tirage <= 0) return Keys[indice];
+    }
+    return Keys[Keys.length - 1];
+  }
+
   function generateProgression() {
     const _scale = fiveToFive;
-    const newKey = Keys[Math.floor(Math.random() * Keys.length)];
+    const newKey = tonaliteVoisine(key);
     const newScale = Tone.Frequency(newKey + "5")
       .harmonize(_scale)
       .map((f) => Tone.Frequency(f).toNote());
     const newProgression = ChordProgression.generate(8);
-    const newScalePos = Math.floor(Math.random() * _scale.length);
+    const newScalePos = aleaEntier(_scale.length);
 
     key = newKey;
     progress = 0;
