@@ -119,6 +119,7 @@ lofi-engine/
 │   ├── diffusion.ts                   plateformes, clés et encodage dans le .env
 │   ├── pilotage.ts                    démarrage, arrêt, état, construction de l'image
 │   ├── rendu.ts                       encodeur retenu et charge du diffuseur
+│   ├── moteur.ts                      réglages de la génération musicale
 │   ├── fonds.ts                       images et vidéos de fond déposées
 │   ├── twitch/
 │   │   ├── transport.ts               couche HTTP isolée, remplaçable pour les tests
@@ -193,6 +194,9 @@ lofi-engine/
 │       ├── diffusion/Encodage.tsx     résolution, images par seconde, débits
 │       ├── diffusion/Journal.tsx      sorties du conteneur, relecture
 │       ├── diffusion/format-diffusion.ts  durées et horloge
+│       ├── moteur/PanneauMoteur.tsx  grille de l'onglet Moteur
+│       ├── moteur/Reglages.tsx      curseurs de sonorité et de génération
+│       ├── moteur/useMoteur.ts      lecture, écriture retardée, application à chaud
 │       ├── twitch/PanneauTwitch.tsx   grille de l'onglet Twitch
 │       ├── twitch/Compte.tsx          autorisation par code d'appareil
 │       ├── twitch/Entete.tsx          compte connecté, portées, clé, déconnexion

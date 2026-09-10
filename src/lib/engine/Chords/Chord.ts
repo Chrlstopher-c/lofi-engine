@@ -2,9 +2,11 @@ import { singleOct } from './MajorScale';
 import { alea, aleaEntier } from '../Alea';
 
 class Chord {
-    constructor(degree,intervals,nextChordIdxs) {
+    // `semitoneDist` n'est fourni que pour le mineur : la table majeure ne convient pas,
+    // ses troisième, sixième et septième degrés sont un demi-ton plus haut.
+    constructor(degree,intervals,nextChordIdxs,semitoneDist) {
         this.degree = degree;
-        this.semitoneDist = singleOct[degree-1];
+        this.semitoneDist = semitoneDist === undefined ? singleOct[degree-1] : semitoneDist;
         this.intervals = intervals;
         this.nextChordIdxs = nextChordIdxs;
     }

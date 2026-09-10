@@ -1,0 +1,10 @@
+/* Onglet Moteur : les réglages tiennent en deux colonnes, la seconde plus étroite —
+   les instruments sont moins nombreux que les curseurs de génération. */
+.moteur {
+  display: grid; grid-template-columns: minmax(0, 1fr) 420px;
+  gap: var(--s-4); align-items: start;
+}
+.moteur .colonne { display: flex; flex-direction: column; gap: var(--s-4); min-width: 0; }
+/* Un curseur de moteur a besoin de sa largeur : la valeur chiffrée ne doit pas l'écraser. */
+.moteur .curseur input[type="range"] { min-width: 120px; }
+@media (max-width: 1300px) { .moteur { grid-template-columns: 1fr; } }

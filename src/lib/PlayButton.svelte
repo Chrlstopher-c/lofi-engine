@@ -13,11 +13,16 @@
   import intervalWeights from "../lib/engine/Chords/IntervalWeights";
   import Keys from "../lib/engine/Chords/Keys";
   import { fiveToFive } from "../lib/engine/Chords/MajorScale";
+  import { minorFiveToFive } from "../lib/engine/Chords/MinorScale";
   import Hat from "../lib/engine/Drums/Hat";
   import Kick from "../lib/engine/Drums/Kick";
-  import Noise from "../lib/engine/Drums/Noise";
+  import Noise, { volumeSouffle } from "../lib/engine/Drums/Noise";
   import Snare from "../lib/engine/Drums/Snare";
   import Piano from "../lib/engine/Piano/Piano";
+  import Bass from "../lib/engine/Bass/Bass";
+  import Pad from "../lib/engine/Pad/Pad";
+  import Voix from "../lib/engine/Voix/Voix";
+  import { DEFAUTS, lireReglages } from "../lib/engine/Reglages";
   import { alea, aleaEntier, graine, graineEnTexte, semer, graineDepuisTexte } from "../lib/engine/Alea";
 
   // Une graine passée dans l'URL rejoue la même composition : ?graine=1a2b3c4d.
@@ -27,7 +32,18 @@
     new URLSearchParams(window.location.search).get("graine") ?? "",
   );
   if (graineDemandee !== null) semer(graineDemandee);
+  // ?arrangement=tout force basse, pad et voix à rester en place : sans ça, les entendre tous
+  // les trois dans un même extrait tient de la chance, l'Auto-DJ en coupant à chaque section.
+  const arrangementDemande = new URLSearchParams(window.location.search).get("arrangement");
+  const arrangementImpose = arrangementDemande === "tout";
+  // ?arrangement=voix ne laisse que la nappe de voix : c'est le seul moyen de vérifier
+  // qu'elle sonne, une couche noyée sous le reste ne se mesure pas.
+  const voixSeule = arrangementDemande === "voix";
   console.info(`[moteur] graine ${graineEnTexte(graine())}`);
+
+  // Les réglages viennent du centre de contrôle : assez souvent pour qu'un curseur
+  // déplacé s'entende tout de suite, assez rare pour ne rien coûter.
+  const CADENCE_REGLAGES_MS = 1500;
 
   const STORAGE_KEY = "Volumes";
   const DEFFAULT_VOLUMES = {
@@ -61,6 +77,14 @@
   let key = "C";
   let progression = [];
   let accordSonnant = null;
+  // La gamme sur laquelle la mélodie se promène : elle change avec le mode.
+  let gammeActive = fiveToFive;
+  let modeGamme = "major";
+  let basseOff = false;
+  let padOff = false;
+  // Muette jusqu'à la première section, sauf en démonstration où on veut l'entendre tout de suite.
+  let voixOff = !(arrangementImpose || voixSeule);
+  let reglages = { ...DEFAUTS };
   let scale = [];
   let progress = 0;
   let scalePos = 0;
@@ -84,13 +108,16 @@
 
   // Initialize instruments
   const pn = new Piano(() => (pianoLoaded = true)).sampler;
+  const basse = new Bass().synth;
+  const pad = new Pad().synth;
+  const voix = new Voix().synth;
   const kick = new Kick(() => (kickLoaded = true)).sampler;
   const snare = new Snare(() => (snareLoaded = true)).sampler;
   const hat = new Hat(() => (hatLoaded = true)).sampler;
   const noise = Noise;
 
   // Sequences
-  let chords, melody, kickLoop, snareLoop, hatLoop;
+  let chords, melody, kickLoop, snareLoop, hatLoop, bassLoop;
 
   onMount(() => {
     // Setup sequences
@@ -112,7 +139,7 @@
 
     kickLoop = new Tone.Sequence(
       (time, note) => {
-        if (!kickOff) {
+        if (!kickOff && !voixSeule) {
           if (note === "C4" && alea() < 0.9) {
             // @ts-ignore
             kick.triggerAttack(note);
@@ -126,9 +153,27 @@
       "8n",
     );
 
+    // La fondamentale est jouée dans playChord, où l'accord est certain. Ici, seulement la
+    // seconde moitié de la mesure : une quinte qui relance, une fois sur deux environ.
+    bassLoop = new Tone.Sequence(
+      (time, note) => {
+        if (basseOff || note === "" || !accordSonnant) return;
+        if (alea() > 0.55) return;
+        const quinte = accordSonnant.intervals[2] ?? 7;
+        // @ts-ignore
+        basse.triggerAttackRelease(
+          Tone.Frequency(key + "2").transpose(accordSonnant.semitoneDist + quinte),
+          "4n",
+          time,
+        );
+      },
+      ["", "C4"],
+      "2n",
+    );
+
     snareLoop = new Tone.Sequence(
       (time, note) => {
-        if (!snareOff) {
+        if (!snareOff && !voixSeule) {
           if (note !== "" && alea() < 0.8) {
             // @ts-ignore
             snare.triggerAttack(note);
@@ -141,7 +186,7 @@
 
     hatLoop = new Tone.Sequence(
       (time, note) => {
-        if (!hatOff) {
+        if (!hatOff && !voixSeule) {
           // @ts-ignore
           if (note !== "" && alea() < 0.8) {
             // @ts-ignore
@@ -154,6 +199,7 @@
     );
 
     chords.humanize = true;
+    bassLoop.humanize = true;
     melody.humanize = true;
     kickLoop.humanize = true;
     snareLoop.humanize = true;
@@ -175,14 +221,33 @@
       autoDJMode = e.detail.mode;
     };
 
+    const veilleReglages = window.setInterval(sonderReglages, CADENCE_REGLAGES_MS);
+    void sonderReglages();
+
     window.addEventListener("keydown", handleKeydown);
     window.addEventListener("lofi-toggle-play", handleCustomToggle);
     window.addEventListener("auto-dj-mode-changed", handleAutoDJModeChange);
+
+    // Ce que le moteur est en train de jouer, lisible de l'extérieur. Sert à vérifier
+    // l'arrangement sans avoir à l'écouter — et la scène pourra l'afficher un jour.
+    // @ts-ignore
+    window.__lofiArrangement = () => ({
+      graine: graineEnTexte(graine()),
+      mode: modeGamme,
+      tonalite: key,
+      basse: !basseOff,
+      pad: !padOff,
+      voix: !voixOff,
+      melodie: melodyOff ? 0 : Number(melodyDensity.toFixed(2)),
+      reglages,
+      batterie: { kick: !kickOff, caisse: !snareOff, charleston: !hatOff },
+    });
 
     // Initialize mode
     autoDJMode = localStorage.getItem("AutoDJMode") || "MUSIC";
 
     return () => {
+      window.clearInterval(veilleReglages);
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("lofi-toggle-play", handleCustomToggle);
       window.removeEventListener("auto-dj-mode-changed", handleAutoDJModeChange);
@@ -196,16 +261,41 @@
     }
   });
 
+  /** Ce qui s'entend sans attendre la section suivante : tempo, swing, voile, souffle. */
+  function appliquerReglages(suivants) {
+    if (suivants.tempo !== reglages.tempo) {
+      // Un tempo qui saute s'entend comme une faute. Six secondes de glissé, et personne ne
+      // remarque le changement autrement que par l'énergie du morceau.
+      Tone.Transport.bpm.rampTo(suivants.tempo, 6);
+    }
+    if (suivants.swing !== reglages.swing) Tone.Transport.swing = suivants.swing;
+    if (suivants.voile !== reglages.voile) lpf.frequency.rampTo(suivants.voile, 2);
+    if (suivants.souffle !== reglages.souffle) volumeSouffle.volume.rampTo(suivants.souffle, 2);
+    reglages = suivants;
+  }
+
+  async function sonderReglages() {
+    const suivants = await lireReglages();
+    if (suivants) appliquerReglages(suivants);
+  }
+
+  /** true = l'instrument se tait, en tenant compte du mode imposé par les réglages. */
+  function instrumentCoupe(mode, tirage) {
+    if (mode === "toujours") return false;
+    if (mode === "jamais") return true;
+    return tirage;
+  }
+
   let barCount = 0;
   let sectionBarLength = 32; // change section every 32 bars
   let isTransitioning = false;
 
   function nextChord() {
     const nextProgress = progress === progression.length - 1 ? 0 : progress + 1;
-    const nextKickOff = alea() < 0.15;
-    const nextSnareOff = alea() < 0.2;
-    const nextHatOff = alea() < 0.25;
-    const nextMelodyDensity = alea() * 0.3 + 0.2;
+    const nextKickOff = alea() < reglages.coupureKick;
+    const nextSnareOff = alea() < reglages.coupureCaisse;
+    const nextHatOff = alea() < reglages.coupureCharleston;
+    const nextMelodyDensity = Math.min(1, reglages.densiteMelodie * (0.75 + alea() * 0.5));
     const nextMelodyOff = alea() < 0.25;
 
     if (progress === 4) {
@@ -228,8 +318,8 @@
       barCount = 0;
       autoDJTransition();
       // New next transition length
-      const barLengthOptions = [16, 20, 24, 28, 32, 48];
-      sectionBarLength = barLengthOptions[aleaEntier(barLengthOptions.length)];
+      const etendue = reglages.sectionMax - reglages.sectionMin;
+      sectionBarLength = reglages.sectionMin + aleaEntier(etendue + 1);
     }
   }
 
@@ -244,10 +334,19 @@
     
     // Original Instrument Logic (Applied in ALL active modes: MUSIC, ATMOSPHERE, WORLD)
     // This was the "current main lofi track generation"
-    melodyDensity = 0.2 + alea() * 0.5;
-    kickOff = alea() < 0.13;
-    snareOff = alea() < 0.17;
-    hatOff = alea() < 0.22;
+    melodyDensity = Math.min(1, reglages.densiteMelodie * (0.75 + alea() * 0.5));
+    // La basse se retire rarement : c'est elle qui tient l'ensemble. Le pad, plus souvent.
+    basseOff = voixSeule || (!arrangementImpose
+      && instrumentCoupe(reglages.basse, alea() < 0.08));
+    padOff = voixSeule || (!arrangementImpose
+      && instrumentCoupe(reglages.pad, alea() < 0.3));
+    // La voix est un accent, pas un fond permanent : elle n'est là qu'une section sur trois.
+    voixOff = arrangementImpose || voixSeule
+      ? false
+      : instrumentCoupe(reglages.voix, alea() > 0.34);
+    kickOff = alea() < reglages.coupureKick;
+    snareOff = alea() < reglages.coupureCaisse;
+    hatOff = alea() < reglages.coupureCharleston;
     melodyOff = alea() < 0.25;
 
     // Smart Effects: Toggle environmental effects randomly
@@ -284,20 +383,48 @@
   function playChord() {
     const chord = progression[progress];
     const root = Tone.Frequency(key + "3").transpose(chord.semitoneDist);
-    const size = 4;
+    const size = reglages.notesParAccord;
     const voicing = chord.generateVoicing(size);
     const notes = Tone.Frequency(root)
       .harmonize(voicing)
       .map((f) => Tone.Frequency(f).toNote());
-    // @ts-ignore
-    pn.triggerAttackRelease(notes, "1n");
+    if (!voixSeule) {
+      // @ts-ignore
+      pn.triggerAttackRelease(notes, "1n");
+    }
     accordSonnant = chord;
+
+    if (!basseOff) {
+      // @ts-ignore
+      basse.triggerAttackRelease(Tone.Frequency(key + "2").transpose(chord.semitoneDist), "2n");
+    }
+    if (!voixOff) {
+      // La voix ne prend que la fondamentale et la quinte de l'accord, une octave au-dessus du
+      // piano : deux notes suffisent à poser une couleur, et l'accord complet la rendrait
+      // bavarde là où elle doit rester une ambiance.
+      const socle = [chord.intervals[0], chord.intervals[2] ?? 7]
+        .map((demiTons) => Tone.Frequency(key + "4").transpose(chord.semitoneDist + demiTons))
+        .map((f) => Tone.Frequency(f).toNote());
+      // @ts-ignore
+      voix.triggerAttackRelease(socle, "1n");
+    }
+    if (!padOff) {
+      // Fondamentale, tierce et quinte de l'accord lui-même — jamais une quinte supposée :
+      // le deuxième degré du mineur a une quinte diminuée, et la supposer juste frotterait.
+      const ossature = chord.intervals
+        .slice(0, 3)
+        .map((demiTons) => Tone.Frequency(key + "3").transpose(chord.semitoneDist + demiTons))
+        .map((f) => Tone.Frequency(f).toNote());
+      // @ts-ignore
+      pad.triggerAttackRelease(ossature, "1n");
+    }
     nextChord();
   }
 
   // Combien la mélodie préfère une note de l'accord en cours à une note simplement dans la
   // gamme. 1 = comme avant, indifférente. Au-delà de 4 elle arpège et cesse de chanter.
-  const PENCHANT_ACCORD = 3;
+  // Réglable depuis le centre de contrôle : 1 = la mélodie ignore l'accord, au-delà de 4 elle
+  // arpège et cesse de chanter.
 
   /** Les hauteurs de l'accord qui sonne, ramenées à l'octave, relatives à la tonique. */
   function classesDeLAccord() {
@@ -312,13 +439,13 @@
   /** Le degré de la gamme atteint par ce pas est-il dans l'accord ? */
   function penchant(classes, position) {
     if (!classes) return 1;
-    const demiTons = fiveToFive[position];
+    const demiTons = gammeActive[position];
     if (demiTons === undefined) return 1;
-    return classes.has(((demiTons % 12) + 12) % 12) ? PENCHANT_ACCORD : 1;
+    return classes.has(((demiTons % 12) + 12) % 12) ? reglages.penchantAccord : 1;
   }
 
   function playMelody() {
-    if (melodyOff || !(alea() < melodyDensity)) {
+    if (voixSeule || melodyOff || !(alea() < melodyDensity)) {
       return;
     }
 
@@ -397,13 +524,17 @@
     return Keys[Keys.length - 1];
   }
 
+  // Le moteur ne connaissait que le majeur : sept degrés, une seule couleur. Une section sur
+  // deux environ part maintenant en mineur, qui a sa propre table d'accords et sa propre gamme.
   function generateProgression() {
-    const _scale = fiveToFive;
+    modeGamme = alea() < reglages.partMineur ? "minor" : "major";
+    const _scale = modeGamme === "minor" ? minorFiveToFive : fiveToFive;
+    gammeActive = _scale;
     const newKey = tonaliteVoisine(key);
     const newScale = Tone.Frequency(newKey + "5")
       .harmonize(_scale)
       .map((f) => Tone.Frequency(f).toNote());
-    const newProgression = ChordProgression.generate(8);
+    const newProgression = ChordProgression.generate(8, modeGamme);
     const newScalePos = aleaEntier(_scale.length);
 
     key = newKey;
@@ -426,6 +557,7 @@
       noise.start(0);
       chords.start(0);
       melody.start(0);
+      bassLoop.start(0);
       kickLoop.start(0);
       snareLoop.start(0);
       hatLoop.start(0);

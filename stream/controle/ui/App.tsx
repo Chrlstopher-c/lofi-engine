@@ -1,4 +1,4 @@
-/** Coquille : en-tête, état de l'antenne, basculeur de thème, et les trois onglets. */
+/** Coquille : en-tête, état de l'antenne, basculeur de thème, et les quatre onglets. */
 import { useState, type ReactNode } from "react";
 import { BarreEtat } from "./commun/BarreEtat.tsx";
 import { Segments } from "./commun/composants.tsx";
@@ -8,11 +8,13 @@ import { useTheme } from "./commun/useTheme.ts";
 import { PanneauScene } from "./scene/PanneauScene.tsx";
 import { PanneauDiffusion } from "./diffusion/PanneauDiffusion.tsx";
 import { PanneauTwitch } from "./twitch/PanneauTwitch.tsx";
+import { PanneauMoteur } from "./moteur/PanneauMoteur.tsx";
 
-type Onglet = "scene" | "diffusion" | "twitch";
+type Onglet = "scene" | "moteur" | "diffusion" | "twitch";
 
 const ONGLETS: ReadonlyArray<{ valeur: Onglet; libelle: string }> = [
   { valeur: "scene", libelle: "Scène" },
+  { valeur: "moteur", libelle: "Moteur" },
   { valeur: "diffusion", libelle: "Diffusion" },
   { valeur: "twitch", libelle: "Twitch" },
 ];
@@ -59,8 +61,9 @@ export function App(): ReactNode {
         </div>
       </header>
       <main className="contenu">
-        {/* Les trois panneaux restent montés : changer d'onglet ne perd pas une édition en cours. */}
+        {/* Les quatre panneaux restent montés : changer d'onglet ne perd pas une édition en cours. */}
         <div className="page" hidden={onglet !== "scene"}><PanneauScene /></div>
+        <div className="page" hidden={onglet !== "moteur"}><PanneauMoteur /></div>
         <div className="page" hidden={onglet !== "diffusion"}><PanneauDiffusion etat={etat} /></div>
         <div className="page" hidden={onglet !== "twitch"}><PanneauTwitch /></div>
       </main>

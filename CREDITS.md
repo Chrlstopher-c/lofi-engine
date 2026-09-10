@@ -8,6 +8,26 @@ Two samples require crediting their author. That credit must appear wherever the
 output is published — including a 24/7 stream description. The block to paste is at the
 bottom of this file.
 
+## Voices: searched, not used
+
+The engine's voice layer is **synthesised by formants**, not sampled — so there is nothing to
+licence and nothing to credit for it. That was a fallback, and the reason is worth recording so
+nobody redoes the search.
+
+What was looked for: sustained female vowel notes, sampled chromatically, under a licence that
+allows a 24/7 public stream.
+
+| Source | Verdict |
+|---|---|
+| [VCSL](https://github.com/sgossner/VCSL) (CC0) | No voice at all — 4 550 files, zero vocal. |
+| VSCO 2 Community Edition (CC0) | No choir, orchestral only. Confirmed on the publisher's page. |
+| `sfzinstruments/Discord-SFZ-GM-Bank` (CC0) | `053-Choir Aahs.sfz` and `054-Voice Oohs.sfz` exist but are placeholders — `sample=*sine`, no audio. |
+| Freesound, CC0 filter | Nothing usable: one unrelated hit for sustained soprano vowels. |
+| [`sfzinstruments/legato_vocal_tutorial`](https://github.com/sfzinstruments/legato_vocal_tutorial) (CC0 1.0) | **Genuinely good** — 23 chromatic sustained `a` vowels, 44.1 kHz, ~6 s each. Fundamentals were measured file by file: the range is C2–B3, i.e. **a male voice**, and the filenames are one octave above the sounding pitch. Kept in reserve; not used, because it sits exactly where the bass now lives. |
+
+If a female set ever turns up under a usable licence, the formant layer is a drop-in replacement:
+it plays only the root and fifth of the chord, one octave above the piano.
+
 ## Established
 
 | Sample(s) | Source | Author | Licence | Obligation |

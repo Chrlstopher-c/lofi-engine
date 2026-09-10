@@ -29,6 +29,23 @@ serveur, pas un chantier d'interface.
 - [ ] **`ui/profils/PanneauProfils.tsx` n'est plus importé par personne** — les compositions
       l'ont remplacé. À supprimer une fois qu'on est sûr de ne pas y revenir.
 
+## Moteur musical — ce qui reste
+- [x] **Système de types** — quatre couleurs (Équilibré, Nocturne, Atmosphérique, Énergique)
+      et dix-sept réglages, pilotés depuis un nouvel onglet Moteur. Aucun bouton à valider :
+      le centre de contrôle écrit `corpus/moteur.json`, le moteur le relit toutes les secondes
+      et demie et l'applique sans couper la diffusion. Le tempo glisse sur six secondes.
+- [ ] **`PlayButton.svelte` fait 753 lignes**, au-delà de la limite de 500. C'est moi qui l'y ai
+      amené en y câblant basse, pad, voix, mode mineur et réglages. Le découpage naturel sépare
+      le moteur musical du composant Svelte, mais il touche à tout ce qui vient d'être vérifié :
+      à faire à froid, pas en fin de séance.
+- [ ] **Une voix féminine échantillonnée**, si une bibliothèque paraît sous licence utilisable.
+      La recherche menée et ses impasses sont tracées dans `CREDITS.md`. La couche de formants
+      se remplace sans rien changer d'autre.
+- [ ] **Afficher l'arrangement dans la scène** — `window.__lofiArrangement()` expose déjà
+      tonalité, mode, instruments actifs et densité. La scène pourrait le montrer à l'antenne.
+- [ ] **Vérifier le niveau du flux après la bascule** — la basse et le pad ajoutent de l'énergie.
+      Mesuré et corrigé une fois, à reconfirmer sur le direct.
+
 ## À faire
 - [x] **Afficher les accords quand ffmpeg compose** — la page dépose la progression sur le
       serveur du site (`/progression`), un relais la recopie dans un fichier que ffmpeg relit

@@ -6,6 +6,7 @@ import { resolve, join, normalize } from "node:path";
 import { lireScene, ecrireScene } from "./scene.ts";
 import { lireDiffusion, ecrireDiffusion } from "./diffusion.ts";
 import { lireEtat, demarrerDiffusion, arreterDiffusion, lireJournalDiffusion } from "./pilotage.ts";
+import { lireMoteur, ecrireMoteur } from "./moteur.ts";
 import { listerFonds, deposerFond, supprimerFond } from "./fonds.ts";
 import {
   listerProfils, enregistrerProfil, chargerProfil, supprimerProfil,
@@ -47,6 +48,8 @@ async function routerApi(req: Request, chemin: string): Promise<Response | null>
     return json(await ecrireDiffusion(await corpsJson(req)));
   }
   if (chemin === "/api/etat" && m === "GET") return json(await lireEtat());
+  if (chemin === "/api/moteur" && m === "GET") return json(await lireMoteur());
+  if (chemin === "/api/moteur" && m === "PUT") return json(await ecrireMoteur(await corpsJson(req)));
   if (chemin === "/api/journal" && m === "GET") {
     return json({ texte: await lireJournalDiffusion() });
   }
