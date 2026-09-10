@@ -220,6 +220,7 @@ lofi-engine/
 │       ├── pixabay/Cle.tsx            mode d'emploi de la clé d'API, et sa saisie
 │       ├── pixabay/Resultats.tsx      barre de recherche et grille de vignettes
 │       ├── pixabay/Vignette.tsx       un média : aperçu, étoile, téléchargement
+│       ├── pixabay/Apercu.tsx        l'aperçu en grand au clic, vidéo en lecture
 │       ├── pixabay/usePixabay.ts      état de l'onglet : clé, résultats, favoris
 │       ├── pixabay/api-pixabay.ts     accès aux routes /api/pixabay
 │       ├── twitch/Entete.tsx          compte connecté, portées, clé, déconnexion

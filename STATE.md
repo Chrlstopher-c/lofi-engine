@@ -3,7 +3,8 @@
 
 ## Résumé de l'état actuel
 Générateur de musique lofi procédurale, en production sur https://lofi.christophercouspeyre.com
-depuis le Raspberry Pi, **et diffusé en direct sur Twitch** depuis le PC fixe.
+depuis le Raspberry Pi, **et diffusé en direct sur Twitch et YouTube en même temps** depuis le
+PC fixe — un seul encodage distribué vers les deux par le muxer `tee` de ffmpeg.
 
 Le projet se pilote entièrement depuis un **centre de contrôle web** (port 4708, lancé par
 `./start.sh` à côté du site) : composition de la scène, calques, fonds, profils, clés de
@@ -19,6 +20,10 @@ panne ne s'est produite.
 voile, incrustations, texte, horloge, **et les accords** — et le navigateur, réduit à la
 musique, tourne dans un écran de 360×240 que personne ne regarde. La diffusion est passée de
 306 % de processeur à 105 %.
+
+**Les fonds se cherchent depuis l'interface** : un cinquième onglet interroge Pixabay, garde de
+côté sans télécharger, et dépose ce qu'on retient dans le corpus — c'est-à-dire dans
+l'explorateur de la composition, où le fichier apparaît aussitôt.
 
 **La musique elle-même se pilote à chaud** depuis un quatrième onglet du centre de contrôle :
 dix-sept réglages et quatre couleurs nommées (Équilibré, Nocturne, Atmosphérique, Énergique).
@@ -62,6 +67,43 @@ définition vaut aussi quand ffmpeg compose ; l'attente du serveur audio passe d
 
 **Machine.** Un fond d'écran animé fuyait — `mpvpaper` tenait 11,3 Gio après 39 h. Relancé :
 475 Mo, et le swap est repassé de saturé à 10 Gio libres.
+
+## Ce qui a été fait — 2026-09-10, après-midi : la diffusion double
+
+Trois causes indépendantes empêchaient de diffuser sur les deux plateformes à la fois. Aucune
+n'était devinable ; chacune a demandé d'isoler une variable à la fois, en laissant à la
+plateforme le temps de basculer — un essai de douze secondes ne peut produire aucun positif, ce
+qui a d'abord faussé le diagnostic.
+
+**1. La puce vidéo, inaccessible dans un LXC.** « Aucune puce accessible » recouvrait quatre
+situations sans le même remède. `scripts/verifier-gpu.sh` les distingue en lisant le bus PCI, et
+va jusqu'à encoder une image **dans le conteneur de diffusion** — le seul essai qui prouve
+quelque chose. `scripts/lxc-gpu-hote.sh` fait le reste côté hôte Proxmox : il lit les groupes de
+la machine, calcule un mappage qui couvre exactement les 65 536 groupes, sauvegarde et demande
+avant d'écrire. Les numéros ne se codent pas en dur — 104 sur Debian, 993 sur Proxmox, 983 et
+987 ici — et un mappage faux **empêche le conteneur de démarrer**, ce qui est arrivé.
+
+**2. Le muxer `tee` de ffmpeg 5.1, refusé par Twitch.** Il se connecte, envoie exactement le même
+volume d'octets qu'une sortie simple, ne signale aucune erreur, et la chaîne ne passe jamais en
+direct. Isolé en rejouant la poussée **dans le réseau du conteneur** avec ffmpeg 7.1 et rien
+d'autre de changé. L'image passe donc en Debian 13.
+
+**3. La cadence PAL, carrée par YouTube.** En 25 i/s, YouTube construit une échelle de qualités
+entièrement carrée — sept rendus de 1440×1440 à 144×144, sans un seul 16:9. En 30 i/s, sur la
+même diffusion et la même clé, tout repasse en 16:9. Cinq variables avaient été éliminées avant
+celle-là.
+
+**Ce que la maison en garde.** Le tamis `stream/direct/tamis.sh` masque la clé de diffusion et
+nomme la destination qui tombe — `tee` en abandonne une en silence. `scripts/sonder-format.sh`
+mesure ce que le flux émet vraiment, sans rien reconstruire. L'onglet Twitch monte la sonde
+d'aptitude et compare la clé enregistrée à celle de la chaîne connectée, sans jamais en afficher
+aucune. Et le rapport de pixel est remis à 1 partout où l'on met à l'échelle.
+
+**Onglet Pixabay.** Recherche d'images et de vidéos, étoile pour garder de côté sans
+télécharger, téléchargement qui atterrit dans le corpus avec sa provenance, aperçu en grand au
+clic, pagination. La clé d'API s'écrit dans le `.env` et ne ressort jamais. Ce que Pixabay
+renvoie est traité comme une entrée non fiable : URL vérifiées contre ses domaines à la
+recherche **et** au téléchargement, nombres bornés, nom de fichier construit par nous.
 
 ## Ce qui a été fait — session du 2026-09-09
 - Clone, mesure de consommation, déploiement sur le Pi, fork mis aux normes Echo, dockerisation.
@@ -118,6 +160,12 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
 | Flux d'appareil pour Twitch, pas de redirection | La console Twitch refuse `http://localhost` malgré sa documentation ; monter du HTTPS pour une app locale serait disproportionné | 2026-09-09 |
 | Le Client ID est livré avec le projet | Il n'est pas secret, Twitch le transmet en clair. Qui clone n'a rien à créer : il connecte son propre compte | 2026-09-09 |
 | Le centre de contrôle tourne hors conteneur | Il pilote Docker et écrit le `.env` : lui donner le socket dans un conteneur reviendrait à lui donner la machine | 2026-09-09 |
+| L'image du diffuseur est en Debian 13, pas 12 | Le muxer `tee` de ffmpeg 5.1 produit un FLV que Twitch refuse en silence : il se connecte, envoie tout, ne signale rien, et la chaîne reste hors ligne. Vérifié en rejouant la même poussée avec ffmpeg 7.1 dans le même réseau | 2026-09-10 |
+| Jamais 25 ni 50 images par seconde vers YouTube | Son transcodeur en tire une échelle entièrement carrée, sans un seul rendu 16:9, alors que l'ingestion est notée « Excellent ». Les cadences PAL restent proposées mais annoncées dans l'interface | 2026-09-10 |
+| Le passage de la puce à un LXC se calcule, il ne se recopie pas | Les groupes `video` et `render` changent d'une machine à l'autre, et un mappage bâti sur les mauvais numéros empêche le conteneur de démarrer — pas à moitié, complètement | 2026-09-10 |
+| Un état de destination dit « aucun refus signalé », jamais « reçoit » | Le tamis ne connaît que l'absence d'erreur. Un flux poussé avec la clé d'un autre compte est accepté sans broncher : affirmer la réception serait un faux vert | 2026-09-10 |
+| La clé Pixabay et les URL qu'elle rapporte sont traitées comme du non fiable | La clé ne ressort par aucune route, et les URL de téléchargement sont revérifiées contre les domaines de Pixabay au moment de l'appel — entre-temps elles ont pu traverser un favori posé sur le disque | 2026-09-10 |
+| Le rapport de pixel est remis à 1 partout où l'on met à l'échelle | Il traverse `scale`, `crop` et `-s` : une source à pixels non carrés ressort à la bonne taille en déclarant la mauvaise forme, et la plateforme encadre l'image de noir | 2026-09-10 |
 | Le moteur se pilote par un fichier relu à chaud, comme la scène | Le mécanisme existait déjà pour `scene.json` : en inventer un second (WebSocket, événements) aurait ajouté une infrastructure pour une latence dont un curseur n'a pas besoin | 2026-09-10 |
 | Le schéma des réglages vit dans le moteur, importé par le centre de contrôle | Deux copies de la même table de bornes divergent au premier réglage ajouté, et le serveur accepterait alors une valeur que le moteur refuse sans que personne ne le voie | 2026-09-10 |
 | Un ordre explicite sur un instrument prend effet sur-le-champ | « Toujours » et « jamais » attendaient la section suivante, soit jusqu'à 80 s. « Au gré des sections » continue d'attendre : c'est son sens | 2026-09-10 |
@@ -174,6 +222,10 @@ de navigations restant à 1.
    jour qui contraint la conception du chat dès le départ.
 3. **Enregistrer un vrai corpus de secours** — un seul fichier de 40 s aujourd'hui, donc le repli
    n'a presque rien à jouer si le navigateur tombe. C'est la seule faiblesse réelle du montage.
+4. **Monter le débit vidéo** — 1500k pour du 1080p est bas, et YouTube le signale. Sa scène est
+   faite de dégradés sombres, ce qui est précisément ce qui se dégrade le plus mal. 4500k
+   mettrait dans la fourchette des deux plateformes, au prix d'environ 9,4 Mbit/s montants pour
+   les deux destinations — c'est le tuyau qui décide, pas la machine.
 4. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
 
 ## Points en suspens
@@ -194,12 +246,18 @@ de navigations restant à 1.
 - **Définir un mot de passe Twitch révoque tous les jetons OAuth et fait tourner la clé de
   diffusion.** Après cette opération, il faut réautoriser puis récupérer la nouvelle clé, et
   recréer le conteneur pour qu'il la prenne.
-- **L'installation de l'ami est toujours bloquée** : chaîne locale saine (la définition s'abaisse
-  bien, pulseaudio démarre), Twitch refuse l'ingestion. Piste à vérifier de son côté : numéro
-  vérifié sur *son* compte. Il n'a par ailleurs aucun corpus de secours.
-- **VAAPI n'a jamais été exercé sur du vrai matériel Intel** : la machine de développement n'a
-  qu'une carte NVIDIA. Le profil est écrit et testé négativement (il est bien refusé quand la
-  puce est absente), jamais positivement.
+- **L'installation de l'ami diffuse.** Sa puce Intel lui est passée par l'hôte Proxmox, il
+  encode en matériel et remonte en 1080p. Il n'a toujours aucun corpus de secours.
+- **VAAPI n'a jamais été exercé depuis cette machine** : elle n'a qu'une carte NVIDIA. Le profil
+  tourne en revanche sur l'installation de l'ami, ce qui vaut vérification positive — mais à
+  distance, sans que j'aie pu la mesurer moi-même.
+- **Le carré de YouTube n'a jamais été expliqué, seulement contourné.** On sait que 25 i/s le
+  déclenche et que 30 i/s l'évite ; on ne sait pas pourquoi son transcodeur se comporte ainsi, et
+  aucune trace publique de ce défaut n'a été trouvée. Si quelqu'un le signale un jour au support,
+  les mesures sont dans `docs/STREAM-24-7.md`.
+- **Le centre de contrôle ne sait rien de YouTube.** Il interroge l'API de Twitch et rend l'état
+  réel de la chaîne ; côté YouTube, il faut ouvrir le studio ou les statistiques du lecteur. Une
+  demi-journée y a été perdue faute de pouvoir lire ce que la plateforme faisait du flux.
 - **Une machine virtuelle Proxmox n'a pas accès à la puce vidéo de son hôte.** Sur ce type
   d'installation, l'encodage matériel restera indisponible tant que le projet tournera dans une
   VM plutôt que dans un conteneur LXC.

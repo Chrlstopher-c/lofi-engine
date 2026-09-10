@@ -4,16 +4,32 @@
 ## En cours
 - [ ] **Découper `PlayButton.svelte`** — 753 lignes contre 500. Séparer le moteur musical du
       composant Svelte. Touche à tout ce qui vient d'être vérifié : à faire à froid.
-- [ ] **Aider l'ami à diffuser** — sa chaîne locale est saine (définition abaissée, pulseaudio
-      démarre) et Twitch refuse l'ingestion. À vérifier de son côté : numéro de téléphone
-      **vérifié sur son compte** — celui de la double authentification ne compte pas. Il n'a par
-      ailleurs aucun corpus de secours, donc rien pour prendre le relais.
+- [ ] **Monter le débit vidéo** — 1500k pour du 1080p est bas et YouTube le signale. La scène
+      est faite de dégradés sombres, ce qui se dégrade le plus mal. 4500k mettrait dans la
+      fourchette des deux plateformes, au prix d'environ 9,4 Mbit/s montants. Décision de tuyau.
+- [ ] **Enregistrer un vrai corpus de secours** — un seul fichier de 40 s, donc le repli n'a
+      presque rien à jouer si le navigateur tombe. Seule faiblesse réelle du montage.
+- [ ] **Un corpus de secours chez l'ami** — il diffuse maintenant, mais sans filet.
 
 ## Fait le 2026-09-10
 - [x] **Socle du nouveau dessin** — jetons, thèmes clair et sombre, échelles, briques communes.
 - [x] **Porter les panneaux sur ce socle** — `ui/scene/`, `ui/diffusion/`, `ui/twitch/`.
       Vérifié dans un navigateur, diffusion en cours, zéro erreur en console.
 - [x] **Élaguer `ui/styles/heritage.css`** — 238 → 111 lignes, il ne reste que ce qui sert.
+- [x] **Diffuser sur Twitch et YouTube en même temps** — trois causes indépendantes levées :
+      le muxer `tee` de ffmpeg 5.1 refusé par Twitch (image en Debian 13), la cadence PAL qui
+      fait carrer YouTube (30 i/s), et la puce vidéo inaccessible dans un LXC.
+- [x] **Outiller le diagnostic** — `scripts/verifier-gpu.sh` (neuf contrôles, correction guidée),
+      `scripts/lxc-gpu-hote.sh` (mappage calculé côté Proxmox, avec réparation),
+      `scripts/sonder-format.sh` (ce que le flux émet vraiment, sans reconstruire).
+- [x] **Nommer la destination qui tombe** — `stream/direct/tamis.sh` : `tee` en abandonne une en
+      silence, et masque au passage la clé de diffusion que ffmpeg recopie en clair.
+- [x] **Sonde Twitch dans l'interface** — aptitude du compte, et comparaison de la clé
+      enregistrée avec celle de la chaîne connectée, sans jamais en afficher aucune.
+- [x] **Onglet Pixabay** — recherche images et vidéos, favoris sans téléchargement, dépôt dans
+      le corpus avec provenance, aperçu en grand, pagination.
+- [x] **Débloquer l'installation de l'ami** — puce Intel passée par l'hôte Proxmox, encodage
+      matériel, retour en 1080p.
 
 ## Ce que le dessin attend du serveur
 La maquette prévoit des choses que le backend ne sait pas encore dire. Les panneaux les
