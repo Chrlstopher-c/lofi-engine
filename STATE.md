@@ -1,5 +1,5 @@
 # STATE — LoFi Engine
-*Dernière mise à jour : 2026-09-09*
+*Dernière mise à jour : 2026-09-10*
 
 ## Résumé de l'état actuel
 Générateur de musique lofi procédurale, en production sur https://lofi.christophercouspeyre.com
@@ -16,9 +16,14 @@ Mesuré sur une panne provoquée : 3,5 s de trou. Sur une heure de diffusion ré
 panne ne s'est produite.
 
 **L'image, elle, ne passe plus par le navigateur** : ffmpeg compose la scène lui-même — fond,
-voile, incrustations, texte, horloge — et le navigateur, réduit à la musique, tourne dans un
-écran de 360×240 que personne ne regarde. La diffusion est passée de 306 % de processeur à
-105 %, en 1080p **30** images par seconde au lieu de 25.
+voile, incrustations, texte, horloge, **et les accords** — et le navigateur, réduit à la
+musique, tourne dans un écran de 360×240 que personne ne regarde. La diffusion est passée de
+306 % de processeur à 105 %.
+
+**La musique elle-même se pilote à chaud** depuis un quatrième onglet du centre de contrôle :
+dix-sept réglages et quatre couleurs nommées (Équilibré, Nocturne, Atmosphérique, Énergique).
+Aucun bouton à valider — le centre de contrôle écrit `corpus/moteur.json`, le moteur le relit
+toutes les secondes et demie, le tempo glisse sur six secondes. Rien ne s'interrompt.
 
 ## Nature du dépôt
 Fork de [meel-hd/lofi-engine](https://github.com/meel-hd/lofi-engine) (MIT, Mehdi El Oualy).
@@ -30,6 +35,33 @@ c'est ce qui garde les merges sans conflit.
 Svelte 3 + TypeScript + Vite pour l'interface · Tone.js pour la synthèse audio · Tauri 2 pour la
 version desktop (amont, non utilisée en production) · Bun pour le serveur statique · Docker pour
 le lancement local.
+
+## Ce qui a été fait — session du 2026-09-10
+
+**Interface.** Les trois onglets portés sur le nouveau dessin (deux thèmes, échelles déclarées),
+plus un quatrième, **Moteur**, qui pilote la génération musicale en direct. Le panneau Diffusion
+dit désormais quel encodeur tourne réellement et ce qu'il coûte, en cœurs.
+
+**Moteur musical.** Trois défauts trouvés en le lisant, tous corrigés : la mélodie marchait sur
+la gamme sans savoir quel accord sonnait (elle penche maintenant vers les notes de l'accord) ;
+la tonalité se tirait au hasard parmi douze (elle suit le cycle des quintes) ; rien n'était
+reproductible (les vingt-sept tirages passent par une graine, repassable dans l'URL). Ajoutés
+ensuite : une **basse** synthétisée, une deuxième table d'accords pour le **mineur**, et une
+**banque de nappes vocales générée sur cette machine**.
+
+**Voix.** La synthèse par formants a été essayée, mesurée, écoutée et écartée. La banque est
+produite en local : ACE-Step (Apache 2.0) engendre le chant, demucs n'en garde que la voix, et
+seule la fenêtre où la chanteuse **tient** une note est conservée — une phrase chantée se bat
+avec la mélodie du moteur, une note tenue s'y pose. Chaîne dans `outils/vox/`, provenance dans
+`CREDITS.md`. Aucune licence tierce.
+
+**Diffusion.** L'arrêt du flux attend maintenant que ffmpeg ait vraiment fermé sa connexion
+(sinon deux émetteurs sur la même clé, et Twitch refuse les deux) ; le garde-fou qui abaisse la
+définition vaut aussi quand ffmpeg compose ; l'attente du serveur audio passe de 20 à 45 s ; et
+**la clé de diffusion est masquée** dans les journaux, où ffmpeg la recopiait en clair.
+
+**Machine.** Un fond d'écran animé fuyait — `mpvpaper` tenait 11,3 Gio après 39 h. Relancé :
+475 Mo, et le swap est repassé de saturé à 10 Gio libres.
 
 ## Ce qui a été fait — session du 2026-09-09
 - Clone, mesure de consommation, déploiement sur le Pi, fork mis aux normes Echo, dockerisation.
@@ -86,6 +118,17 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
 | Flux d'appareil pour Twitch, pas de redirection | La console Twitch refuse `http://localhost` malgré sa documentation ; monter du HTTPS pour une app locale serait disproportionné | 2026-09-09 |
 | Le Client ID est livré avec le projet | Il n'est pas secret, Twitch le transmet en clair. Qui clone n'a rien à créer : il connecte son propre compte | 2026-09-09 |
 | Le centre de contrôle tourne hors conteneur | Il pilote Docker et écrit le `.env` : lui donner le socket dans un conteneur reviendrait à lui donner la machine | 2026-09-09 |
+| Le moteur se pilote par un fichier relu à chaud, comme la scène | Le mécanisme existait déjà pour `scene.json` : en inventer un second (WebSocket, événements) aurait ajouté une infrastructure pour une latence dont un curseur n'a pas besoin | 2026-09-10 |
+| Le schéma des réglages vit dans le moteur, importé par le centre de contrôle | Deux copies de la même table de bornes divergent au premier réglage ajouté, et le serveur accepterait alors une valeur que le moteur refuse sans que personne ne le voie | 2026-09-10 |
+| Un ordre explicite sur un instrument prend effet sur-le-champ | « Toujours » et « jamais » attendaient la section suivante, soit jusqu'à 80 s. « Au gré des sections » continue d'attendre : c'est son sens | 2026-09-10 |
+| La mélodie penche vers les notes de l'accord en cours | Elle marchait sur la gamme de la tonalité sans rien savoir de l'harmonie : elle pouvait frotter, par hasard et jamais par choix | 2026-09-10 |
+| Les modulations suivent le cycle des quintes | Tirer parmi douze donnait une chance sur six de sauter d'un triton — la rupture s'entend. Les voisines partagent presque toutes leurs notes | 2026-09-10 |
+| Le cinquième degré du mineur est pris en dominante | C'est le seul accord qui résout vraiment vers le i ; en mineur naturel la progression tourne sans jamais se poser | 2026-09-10 |
+| Les voix sont **générées ici**, pas empruntées | Aucune bibliothèque de voix féminine tenue, échantillonnée note par note, sous une licence autorisant un flux public 24/7 (recherche tracée dans `CREDITS.md`). ACE-Step est en Apache 2.0 : ce qu'il produit ici n'appartient qu'à nous | 2026-09-10 |
+| On extrait la **tenue**, pas la phrase | Une phrase chantée est une mélodie, et deux mélodies qui ne se connaissent pas se bagarrent. Aucun réglage de volume n'y change rien | 2026-09-10 |
+| Le pad de synthé est supprimé, le piano résonne à sa place | C'était une dent de scie désaccordée dans un passe-bas — le son de synthé bon marché, identifié à l'oreille comme gênant. La vraie queue du piano comble le même creux, sans une voix de plus à calculer | 2026-09-10 |
+| La clé de diffusion est masquée à la source dans les journaux | ffmpeg recopie l'URL complète dans ses messages d'erreur ; elle sortait en clair dans `docker logs`, que l'on colle volontiers pour demander de l'aide. C'est arrivé deux fois le même jour | 2026-09-10 |
+| L'arrêt du flux attend que le groupe de processus soit vide | La boucle rend la main avant que ffmpeg ait fermé sa connexion RTMP : repartir à cet instant met deux émetteurs sur la même clé, et la plateforme les refuse tous les deux | 2026-09-10 |
 | Chat relayé par interrogation, pas par flux poussé | Une seconde connexion longue dans le navigateur, avec son cycle de vie, pour une latence dont un chat n'a pas besoin | 2026-09-09 |
 
 ## Contexte non-évident
@@ -102,43 +145,36 @@ corpus de secours — il ne fait aujourd'hui qu'un fichier de 40 secondes.
   L'unité systemd pointe vers ce chemin, plus vers `/home/pi`.
 - Poids par visiteur : 12,5 Mo transférés et 45 requêtes au premier chargement.
 
-## Dessin du centre de contrôle — porté
+## Le centre de contrôle, aujourd'hui
 
-Les trois onglets sont sur le nouveau système visuel : jetons de couleur, thèmes clair et
-sombre, échelles typographiques et d'espacement, hauteurs de contrôle, briques communes
-(`ui/styles/`, `ui/commun/`, `App.tsx`). Le portage des panneaux a été fait par deux agents,
-sous une règle qui reste valable si on relance ce genre de chantier : **ils n'écrivent aucune
-ligne de CSS** — un seul propriétaire du système visuel — et **aucun d'eux ne valide son
-travail**, c'est le rôle du parent.
+Quatre onglets — Scène, **Moteur**, Diffusion, Twitch — sur un système visuel unique : jetons de
+couleur, thèmes clair et sombre, échelles typographiques et d'espacement, hauteurs de contrôle.
+`heritage.css` est tombé de 238 à 111 lignes.
 
-Vérifié par le chemin réel, sur `http://127.0.0.1:4708/`, la diffusion étant en cours :
-zéro erreur en console sur les trois onglets, basculeur de thème dans les deux sens avec le
-choix retenu, galerie et journal alimentés par le serveur, données Twitch réelles (compte,
-spectateurs, titre), sélection d'un calque qui ouvre l'éditeur avec les valeurs de
-`scene.json`. Le bouton « Enregistrer la scène » s'active à la modification et se désactive
-au retour à la valeur d'origine — `scene.json` n'a pas bougé, la diffusion n'a pas été
-recomposée.
+Le portage des trois premiers panneaux a été fait par deux agents, sous une règle qui reste
+valable si on relance ce genre de chantier : **ils n'écrivent aucune ligne de CSS** — un seul
+propriétaire du système visuel, sinon les collisions sont ingérables — et **aucun d'eux ne valide
+son travail**, c'est le rôle du parent. Trois noms étaient entrés en collision et ont été
+arbitrés : `.composition` reste la surcouche d'édition (la carte enregistrée est
+`.composition-carte`), `.etiquette` reste l'ancien badge (celle du canevas est
+`.etiquette-selection`), et `.vignette` a pris le dessin de la maquette.
 
-`heritage.css` est passé de 238 à 111 lignes : n'y restent que les classes encore employées.
-Trois noms étaient entrés en collision avec la maquette et ont été arbitrés — `.composition`
-reste la surcouche d'édition (la carte enregistrée est `.composition-carte`), `.etiquette`
-reste l'ancien badge (celle du canevas est `.etiquette-selection`), et `.vignette` a pris le
-dessin de la maquette.
-
-Ce que les agents ont écarté faute de backend, plutôt que de l'inventer : choix d'encodeur et
-jauge de charge, badge d'état par destination, modération du chat, annuler/rétablir, groupes
-de calques, dimensions en pixels, dupliquer/renommer une composition. La liste complète est
-dans `TODO.md`.
+L'onglet **Moteur** pilote la génération musicale sans rien interrompre : quatre couleurs
+nommées et dix-sept réglages, écrits dans `corpus/moteur.json` et relus par le moteur toutes les
+secondes et demie. Vérifié en direct — une page chargée **une seule fois** est passée de
+*nocturne* à *énergique* puis à *atmosphérique* par la seule réécriture du fichier, son compteur
+de navigations restant à 1.
 
 ## Prochaines étapes
-1. **YouTube au même niveau que Twitch** — le chantier est décrit dans `TODO.md`, avec ce qui
-   diffère réellement : autorisation Google plus lourde, obligation de créer une diffusion
-   avant que la clé serve, et un quota de 10 000 unités par jour qui contraint la conception
-   du chat dès le départ.
-2. **Enregistrer un vrai corpus de secours** — il ne fait qu'un fichier de 40 s, donc le repli
-   n'a presque rien à jouer si le navigateur tombe. Une à deux heures suffisent, en temps réel.
-   C'est aujourd'hui la seule faiblesse réelle du montage.
-3. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
+1. **Découper `PlayButton.svelte`** — 753 lignes contre 500 autorisées. C'est le prix d'y avoir
+   câblé la basse, la voix, le mineur et les réglages. Le découpage naturel sépare le moteur
+   musical du composant Svelte ; il touche à tout, donc à faire à froid.
+2. **YouTube au même niveau que Twitch** — décrit dans `TODO.md` : autorisation Google plus
+   lourde, obligation de créer une diffusion avant que la clé serve, quota de 10 000 unités par
+   jour qui contraint la conception du chat dès le départ.
+3. **Enregistrer un vrai corpus de secours** — un seul fichier de 40 s aujourd'hui, donc le repli
+   n'a presque rien à jouer si le navigateur tombe. C'est la seule faiblesse réelle du montage.
+4. Trancher le sort du README (amont conservé, ou charte Echo via le skill `readme`).
 
 ## Points en suspens
 - Le README n'est pas tranché.
@@ -148,10 +184,19 @@ dans `TODO.md`.
   déconnecte un jour, c'est là qu'il faut regarder — une reconnexion prend dix secondes.
 - **La suppression d'une rediffusion n'a pas été exercée** : elle est irréversible et sur un
   vrai compte.
-- **Le calque « accords » n'est pas composable par ffmpeg** : sa valeur naît dans le moteur
-  musical, à l'intérieur du navigateur. Une scène qui en contient repasse donc par l'ancien
-  chemin, plus coûteux. Le mécanisme qui le débloquerait existe déjà — la date est écrite dans
-  un fichier que ffmpeg relit à chaque image ; il suffirait que le moteur y écrive l'accord.
+- **`PlayButton.svelte` fait 753 lignes** contre 500 autorisées — dette assumée, notée en tête
+  des prochaines étapes.
+- **Twitch exige un numéro de téléphone vérifié pour diffuser**, et le numéro utilisé pour la
+  double authentification ne compte pas : ce sont deux registres distincts. Une heure perdue le
+  2026-09-10 à écarter la clé, le réseau et notre propre chaîne, alors que l'API le disait en une
+  phrase. D'où la sonde `stream/controle/twitch/aptitude.ts`, qui interroge Twitch et rend la
+  vraie cause quand le RTMP ne renvoie qu'« Input/output error ».
+- **Définir un mot de passe Twitch révoque tous les jetons OAuth et fait tourner la clé de
+  diffusion.** Après cette opération, il faut réautoriser puis récupérer la nouvelle clé, et
+  recréer le conteneur pour qu'il la prenne.
+- **L'installation de l'ami est toujours bloquée** : chaîne locale saine (la définition s'abaisse
+  bien, pulseaudio démarre), Twitch refuse l'ingestion. Piste à vérifier de son côté : numéro
+  vérifié sur *son* compte. Il n'a par ailleurs aucun corpus de secours.
 - **VAAPI n'a jamais été exercé sur du vrai matériel Intel** : la machine de développement n'a
   qu'une carte NVIDIA. Le profil est écrit et testé négativement (il est bien refusé quand la
   puce est absente), jamais positivement.

@@ -1,7 +1,15 @@
 # TODO — LoFi Engine
-*Dernière mise à jour : 2026-09-09*
+*Dernière mise à jour : 2026-09-10*
 
 ## En cours
+- [ ] **Découper `PlayButton.svelte`** — 753 lignes contre 500. Séparer le moteur musical du
+      composant Svelte. Touche à tout ce qui vient d'être vérifié : à faire à froid.
+- [ ] **Aider l'ami à diffuser** — sa chaîne locale est saine (définition abaissée, pulseaudio
+      démarre) et Twitch refuse l'ingestion. À vérifier de son côté : numéro de téléphone
+      **vérifié sur son compte** — celui de la double authentification ne compte pas. Il n'a par
+      ailleurs aucun corpus de secours, donc rien pour prendre le relais.
+
+## Fait le 2026-09-10
 - [x] **Socle du nouveau dessin** — jetons, thèmes clair et sombre, échelles, briques communes.
 - [x] **Porter les panneaux sur ce socle** — `ui/scene/`, `ui/diffusion/`, `ui/twitch/`.
       Vérifié dans un navigateur, diffusion en cours, zéro erreur en console.
@@ -49,8 +57,10 @@ serveur, pas un chantier d'interface.
       zéro coupure en l'état.
 - [ ] **Afficher l'arrangement dans la scène** — `window.__lofiArrangement()` expose déjà
       tonalité, mode, instruments actifs et densité. La scène pourrait le montrer à l'antenne.
-- [ ] **Vérifier le niveau du flux après la bascule** — la basse et le pad ajoutent de l'énergie.
-      Mesuré et corrigé une fois, à reconfirmer sur le direct.
+- [x] **Niveau et coupures vérifiés à l'antenne** — mesuré à la source dans le conteneur :
+      **zéro coupure** sur 60 s, voix comprise, contre 0,5 par minute pour l'ancien moteur.
+- [x] **Le pad de synthé est supprimé** — identifié à l'oreille comme le son gênant. La queue du
+      piano, allongée à 1,6 s, comble le même creux sans une voix de plus à calculer.
 
 ## À faire
 - [x] **Afficher les accords quand ffmpeg compose** — la page dépose la progression sur le
@@ -62,6 +72,8 @@ serveur, pas un chantier d'interface.
       une puce Intel, faute d'en avoir une ici. À faire chez quelqu'un qui en a une.
 - [ ] **Passer la diffusion à 30 images par seconde** — le `.env` est encore à 25, hérité de
       l'époque où le processeur encodait. La carte tient les 30 sans effort. Décision de Chris.
+- [ ] **Masquer la clé côté centre de contrôle aussi** — elle est masquée dans le journal du
+      diffuseur, mais rien ne garantit qu'elle ne ressorte pas ailleurs. À balayer une fois.
 - [ ] **Migrer l'installation de l'ami en conteneur LXC** — une VM Proxmox ne voit pas la puce
       vidéo du NUC, donc son encodage restera logiciel tant qu'il tourne en VM.
 

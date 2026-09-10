@@ -42,12 +42,18 @@ lofi-engine/
 │       ├── PlayButton.svelte          bouton lecture/pause principal
 │       ├── localDB.ts                 persistance des réglages dans le navigateur
 │       ├── engine/                    moteur de synthèse audio (Tone.js)
+│       │   ├── Alea.ts                le hasard du moteur, tiré d'une graine
+│       │   ├── Reglages.ts            schéma, bornes et types nommés, relus à chaud
+│       │   ├── Bass/Bass.ts           la fondamentale, deux octaves sous le piano
+│       │   ├── Voix/Voix.ts           nappes vocales : banque, choix, mixage
 │       │   ├── Chords/                génération des progressions d'accords
 │       │   │   ├── Chord.ts           un accord et ses notes
 │       │   │   ├── Chords.ts          fabrique d'accords
 │       │   │   ├── ChordProgression.ts enchaînement des accords dans le temps
 │       │   │   ├── IntervalWeights.ts  pondération des intervalles au tirage
 │       │   │   ├── Keys.ts            tonalités disponibles
+│       │   │   ├── ChordsMinor.ts     les sept degrés du mineur, V en dominante
+│       │   │   ├── MinorScale.ts      gamme mineure naturelle et ses découpes
 │       │   │   └── MajorScale.ts      gamme majeure de référence
 │       │   ├── Drums/                 batterie synthétisée
 │       │   │   ├── Kick.ts            grosse caisse
@@ -103,6 +109,7 @@ lofi-engine/
 │   ├── direct/direct.sh               diffusion en direct + repli sur le corpus
 │   ├── direct/composition.sh          choisit qui dessine la scène, ffmpeg ou le navigateur
 │   ├── direct/composer.py             traduit scene.json en chaîne de filtres ffmpeg
+│   ├── direct/relais-accords.py       recopie la progression jouée pour drawtext
 │   ├── polices/scene-titre.ttf        Source Serif 4 Display Light, pour ffmpeg
 │   ├── polices/scene-texte.ttf        Source Serif 4 Regular, pour ffmpeg
 │   ├── polices/LICENCE.txt            SIL OFL 1.1 des deux polices ci-dessus
@@ -139,6 +146,7 @@ lofi-engine/
 │   │   ├── historique.ts              relevés échantillonnés, fenêtre glissante
 │   │   ├── rediffusions.ts            liste et suppression des archives
 │   │   ├── archivage.ts               suppression automatique, non rétroactive
+│   │   ├── aptitude.ts                pourquoi Twitch refuse la diffusion
 │   │   └── routes.ts                  bord HTTP du domaine Twitch
 │   └── ui/                            interface React (Scène · Diffusion · Twitch)
 │       ├── App.tsx                    en-tête, onglets, bascule de thème, état
