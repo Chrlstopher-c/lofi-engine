@@ -114,9 +114,13 @@ adapter_charge() {
     # Personne ne regarde cet écran : il n'existe que parce que le navigateur refuse de
     # démarrer sans affichage. Le garder en 1080p coûterait un rendu complet pour rien.
     ECRAN="$ECRAN_MOTEUR"
-    return 0
+  else
+    ECRAN="${ECRAN_DIRECT:-${STREAM_RESOLUTION}x24}"
   fi
-  ECRAN="${ECRAN_DIRECT:-${STREAM_RESOLUTION}x24}"
+  # Composer coûte trois fois moins cher que recapturer un navigateur, mais l'encodage, lui,
+  # coûte pareil : sans puce vidéo, 1080p reste hors de portée d'une petite machine dans les
+  # deux modes. Ce garde-fou ne regardait que le mode navigateur — une VM à quatre cœurs
+  # partait donc en 1080p logiciel et s'étranglait au bout d'une minute.
   vrai "$STREAM_ADAPTER" || return 0
   [ "$ENCODEUR_RETENU" = "x264" ] || return 0
   [ "${STREAM_RESOLUTION%x*}" -gt 1280 ] || return 0
@@ -131,8 +135,12 @@ adapter_charge() {
        Pour retrouver la pleine définition, donner une puce vidéo au conteneur : sur Proxmox, un
        conteneur LXC voit /dev/dri de l'hôte, une machine virtuelle non."
   STREAM_RESOLUTION="1280x720"
-  ECRAN="${ECRAN_DIRECT:-1280x720x24}"
-  profil_encodeur "$ENCODEUR_RETENU"
+  [ "$MODE_SCENE" = "ffmpeg" ] || ECRAN="${ECRAN_DIRECT:-1280x720x24}"
+  profil_encodeur "$ENCODEUR_RETENU" "$MODE_SCENE"
+  # La composition a été bâtie à l'ancienne définition : la refaire, sinon ffmpeg dessinerait
+  # toujours une image 1080p pour l'encoder en 720p.
+  [ "$MODE_SCENE" = "ffmpeg" ] && preparer_composition
+  return 0
 }
 
 # Source vidéo : la scène composée par ffmpeg, l'écran virtuel du navigateur, ou une image fixe.
@@ -329,10 +337,11 @@ construire_url() {
 
 # Le centre de contrôle tourne sur l'hôte et ne lit pas ce journal : sans ce fichier, l'interface
 # ne peut pas dire si la puce vidéo encode ou si le processeur a repris la main. Écrit dans le
-# corpus, seul répertoire partagé — la veille de scène ne regarde que scene.json, rien ne bouge.
+# /tmp du conteneur, que ce processus possède toujours — le corpus, lui, est un répertoire de
+# l'hôte dont rien ne garantit qu'il soit accessible en écriture à l'utilisateur du conteneur.
 # Ces valeurs sont arrêtées au démarrage et ne changent plus tant que ce processus vit.
 ecrire_rendu() {
-  local fichier="${CORPUS_DIR:-/corpus}/rendu.json" temporaire
+  local fichier="${FICHIER_RENDU:-/tmp/lofi-rendu.json}" temporaire
   temporaire="${fichier}.partiel"
   printf '{"encodeur":"%s","modeScene":"%s","resolution":"%s","fps":"%s","coeurs":%s,"ecrit":"%s"}\n' \
     "$ENCODEUR_RETENU" "$MODE_SCENE" "$STREAM_RESOLUTION" "$STREAM_FPS" \

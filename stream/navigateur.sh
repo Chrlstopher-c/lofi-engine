@@ -29,7 +29,8 @@ demarrer_environnement() {
   attendre "serveur graphique" 20 '[ -e /tmp/.X11-unix/X99 ]'
 
   pulseaudio --start --exit-idle-time=-1 --log-target=file:/tmp/pulse.log 2>/dev/null
-  attendre "serveur audio" 20 'pactl info >/dev/null 2>&1' \
+  # 20 s suffisaient ici et pas sur une VM à quatre cœurs déjà occupée par l'essai d'encodeur.
+  attendre "serveur audio" 45 'pactl info >/dev/null 2>&1' \
     || echec "pulseaudio ne répond pas (voir /tmp/pulse.log)"
 
   pactl load-module module-null-sink sink_name="$SINK" \

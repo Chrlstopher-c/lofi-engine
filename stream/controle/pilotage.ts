@@ -106,13 +106,13 @@ async function mesurerCorpus(): Promise<{ fichiers: number; octets: number }> {
 }
 
 export async function lireEtat(): Promise<EtatDiffusion> {
-  const [direct, site, corpus, construction, rendu] = await Promise.all([
+  const [direct, site, corpus, construction] = await Promise.all([
     conteneurActif(CONTENEUR),
     conteneurActif("lofi-engine"),
     mesurerCorpus(),
     constructionEnCours(),
-    lireRendu(),
   ]);
+  const rendu = direct.actif ? await lireRendu(direct.depuis ?? "") : null;
   return {
     enMarche: direct.actif,
     conteneur: direct.actif ? CONTENEUR : null,
@@ -121,7 +121,7 @@ export async function lireEtat(): Promise<EtatDiffusion> {
     corpusOctets: corpus.octets,
     siteEnMarche: site.actif,
     construction,
-    rendu: direct.actif ? renduDeCetteDiffusion(rendu, direct.depuis) : null,
+    rendu: renduDeCetteDiffusion(rendu, direct.depuis),
     charge: direct.actif ? chargeProcesseur() : null,
   };
 }

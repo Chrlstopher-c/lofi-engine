@@ -7,14 +7,12 @@
  * fichier l'interface ne pourrait pas dire si la puce vidéo encode ou si le processeur a repris
  * la main — c'est exactement la bascule qu'on veut voir.
  */
-import { resolve } from "node:path";
 import type { Rendu } from "./types.ts";
 import { journal } from "./journal.ts";
 
-const RACINE = resolve(process.env.RACINE_PROJET ?? resolve(import.meta.dir, "../.."));
-const CORPUS = resolve(process.env.CORPUS_DIR ?? resolve(RACINE, "corpus"));
-const FICHIER_RENDU = resolve(CORPUS, "rendu.json");
 const CONTENEUR = "lofi-direct";
+/** Dans le conteneur : le seul endroit dont le diffuseur soit toujours propriétaire. */
+const FICHIER_RENDU = "/tmp/lofi-rendu.json";
 
 /** `docker stats` demande plus d'une seconde : au-delà, on relance une mesure. */
 const FRAICHEUR_MS = 5_000;
@@ -31,13 +29,39 @@ const ENCODEURS: Record<string, string> = {
 
 let charge: { valeur: number | null; mesuree: number } = { valeur: null, mesuree: 0 };
 let mesureEnCours = false;
+/** Le dépôt ne change pas tant que le conteneur vit : une lecture par démarrage suffit. */
+let cacheRendu: { cle: string; valeur: Rendu | null } | null = null;
 
-/** Lit le dépôt du diffuseur. Absent tant qu'aucune diffusion n'a jamais démarré ici. */
-export async function lireRendu(): Promise<Rendu | null> {
+/** Sort le fichier du conteneur. Rien n'est passé en argument qui vienne de l'interface. */
+async function extraire(): Promise<string | null> {
   try {
-    const fichier = Bun.file(FICHIER_RENDU);
-    if (!(await fichier.exists())) return null;
-    const brut = (await fichier.json()) as Record<string, unknown>;
+    const proc = Bun.spawn(["docker", "exec", CONTENEUR, "cat", FICHIER_RENDU],
+                           { stdout: "pipe", stderr: "ignore" });
+    const minuteur = setTimeout(() => proc.kill(), DELAI_MESURE_MS);
+    const [sortie, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
+    clearTimeout(minuteur);
+    return code === 0 ? sortie : null;
+  } catch (erreur) {
+    journal.warn({ erreur }, "dépôt de rendu illisible dans le conteneur");
+    return null;
+  }
+}
+
+/**
+ * Lit le dépôt du diffuseur. `cle` identifie le démarrage en cours : tant qu'elle ne change
+ * pas, la valeur est celle déjà lue — inutile de relancer un `docker exec` à chaque requête.
+ */
+export async function lireRendu(cle: string): Promise<Rendu | null> {
+  if (cacheRendu && cacheRendu.cle === cle) return cacheRendu.valeur;
+  const valeur = analyser(await extraire());
+  cacheRendu = { cle, valeur };
+  return valeur;
+}
+
+function analyser(texte: string | null): Rendu | null {
+  if (!texte) return null;
+  try {
+    const brut = JSON.parse(texte) as Record<string, unknown>;
     const encodeur = typeof brut.encodeur === "string" ? brut.encodeur : "";
     if (!encodeur) return null;
     return {
@@ -51,7 +75,7 @@ export async function lireRendu(): Promise<Rendu | null> {
       ecrit: typeof brut.ecrit === "string" ? brut.ecrit : "",
     };
   } catch (erreur) {
-    journal.warn({ erreur, FICHIER_RENDU }, "rendu.json illisible");
+    journal.warn({ erreur }, "dépôt de rendu illisible");
     return null;
   }
 }
@@ -112,4 +136,5 @@ export function renduDeCetteDiffusion(rendu: Rendu | null, depuis: string | null
 /** Remet le cache à zéro : après un arrêt, l'ancienne charge ne veut plus rien dire. */
 export function oublierCharge(): void {
   charge = { valeur: null, mesuree: 0 };
+  cacheRendu = null;
 }

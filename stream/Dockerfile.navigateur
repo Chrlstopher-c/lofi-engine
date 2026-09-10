@@ -17,7 +17,7 @@ RUN useradd --create-home --uid 1000 capteur
 COPY polices/ /usr/local/share/lofi-polices/
 
 COPY base.sh commun.sh navigateur.sh /usr/local/lib/lofi/
-COPY generateur/capturer.sh direct/direct.sh direct/composition.sh direct/composer.py \
+COPY generateur/capturer.sh direct/direct.sh direct/composition.sh direct/composer.py direct/relais-accords.py \
      /usr/local/bin/
 RUN chmod +x /usr/local/bin/capturer.sh /usr/local/bin/direct.sh /usr/local/bin/composer.py
 

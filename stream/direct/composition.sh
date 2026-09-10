@@ -9,6 +9,7 @@ COMPOSITEUR="${COMPOSITEUR:-/usr/local/bin/composer.py}"
 FICHIER_DATE="${FICHIER_DATE:-/tmp/lofi-date.txt}"
 FICHIER_ACCORDS="${FICHIER_ACCORDS:-/tmp/lofi-accords.txt}"
 CADENCE_ACCORDS=0.5       # les accords changent à la mesure : la boucle doit suivre
+RELAIS_ACCORDS="${RELAIS_ACCORDS:-/usr/local/bin/relais-accords.py}"
 RELAIS_ACCORDS_PID=""
 FICHIER_SCENE="${FICHIER_SCENE:-${CORPUS_DIR:-/corpus}/scene.json}"
 ECRAN_MOTEUR="${ECRAN_MOTEUR:-360x240x24}"   # le navigateur ne sert plus qu'à jouer, pas à montrer
@@ -36,15 +37,8 @@ ecrire_date() {
 demarrer_relais_accords() {
   [ -n "$RELAIS_ACCORDS_PID" ] && return 0
   : > "$FICHIER_ACCORDS"
-  setsid bash -c '
-    fichier="$1"; base="$2"; cadence="$3"
-    while true; do
-      if ligne=$(curl -fsS --max-time 2 "${base}/progression" 2>/dev/null); then
-        printf "%s" "$ligne" > "${fichier}.partiel" && mv -f "${fichier}.partiel" "$fichier"
-      fi
-      sleep "$cadence"
-    done
-  ' _ "$FICHIER_ACCORDS" "$LOFI_BASE" "$CADENCE_ACCORDS" >/dev/null 2>&1 &
+  FICHIER_ACCORDS="$FICHIER_ACCORDS" LOFI_BASE="$LOFI_BASE" CADENCE_ACCORDS="$CADENCE_ACCORDS" \
+    setsid python3 "$RELAIS_ACCORDS" >/tmp/relais-accords.log 2>&1 &
   RELAIS_ACCORDS_PID=$!
   journal "relais d'accords en marche (PID $RELAIS_ACCORDS_PID)"
 }
