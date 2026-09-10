@@ -22,7 +22,6 @@ export interface Reglages {
   sectionMin: number;
   sectionMax: number;
   basse: ModeInstrument;
-  pad: ModeInstrument;
   voix: ModeInstrument;
   coupureKick: number;
   coupureCaisse: number;
@@ -45,7 +44,6 @@ export const DEFAUTS: Reglages = {
   sectionMin: 16,
   sectionMax: 48,
   basse: 'auto',
-  pad: 'auto',
   voix: 'auto',
   coupureKick: 0.13,
   coupureCaisse: 0.17,
@@ -93,14 +91,14 @@ export const TYPES: Record<string, Partial<Reglages>> = {
   },
   atmospherique: {
     tempo: 112, swing: 0.8, notesParAccord: 5, densiteMelodie: 0.14, penchantAccord: 5,
-    partMineur: 0.55, sectionMin: 32, sectionMax: 80, basse: 'auto', pad: 'toujours',
+    partMineur: 0.55, sectionMin: 32, sectionMax: 80, basse: 'auto',
     voix: 'toujours', coupureKick: 0.55, coupureCaisse: 0.6, coupureCharleston: 0.5,
     voixNiveau: -20, voixVoile: 2400, voixEsquive: 0.3,
     voile: 1100, souffle: -26,
   },
   energique: {
     tempo: 172, swing: 0.55, notesParAccord: 4, densiteMelodie: 0.72, penchantAccord: 2,
-    partMineur: 0.3, sectionMin: 12, sectionMax: 28, basse: 'toujours', pad: 'auto',
+    partMineur: 0.3, sectionMin: 12, sectionMax: 28, basse: 'toujours',
     voix: 'jamais', coupureKick: 0.04, coupureCaisse: 0.06, coupureCharleston: 0.08,
     voile: 3200, souffle: -36,
   },
@@ -128,7 +126,6 @@ export function nettoyer(brut: unknown): Reglages {
     sortie[nom] = borner(nom, objet[nom], socle[nom] as number);
   }
   sortie.basse = mode(objet.basse, socle.basse);
-  sortie.pad = mode(objet.pad, socle.pad);
   sortie.voix = mode(objet.voix, socle.voix);
   // Une section ne peut pas finir avant d'avoir commencé.
   if (sortie.sectionMax < sortie.sectionMin) sortie.sectionMax = sortie.sectionMin;

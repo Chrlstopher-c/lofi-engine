@@ -68,8 +68,7 @@ const MODES = [
 
 const INSTRUMENTS: Array<{ champ: Champ; libelle: string; note: string }> = [
   { champ: "basse", libelle: "Basse", note: "L'assise. Se retire rarement d'elle-même." },
-  { champ: "pad", libelle: "Pad", note: "Comble le creux entre deux accords." },
-  { champ: "voix", libelle: "Voix", note: "Nappe de formants, fondamentale et quinte." },
+  { champ: "voix", libelle: "Voix", note: "Vraies tenues, choisies dans la banque." },
 ];
 
 interface Props {
@@ -129,7 +128,7 @@ export function MixageVoix(props: Props): ReactNode {
 export function Instruments({ valeurs, modifier }: Props): ReactNode {
   return (
     <Section titre="Instruments">
-      <div className="grille-3">
+      <div className="grille-2">
         {INSTRUMENTS.map((i) => (
           <Champ key={i.champ} libelle={i.libelle} note={i.note}>
             <Selection

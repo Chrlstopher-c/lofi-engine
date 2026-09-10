@@ -20,7 +20,6 @@
   import Snare from "../lib/engine/Drums/Snare";
   import Piano from "../lib/engine/Piano/Piano";
   import Bass from "../lib/engine/Bass/Bass";
-  import Pad from "../lib/engine/Pad/Pad";
   import Voix from "../lib/engine/Voix/Voix";
   import { DEFAUTS, lireReglages } from "../lib/engine/Reglages";
   import { alea, aleaEntier, graine, graineEnTexte, semer, graineDepuisTexte } from "../lib/engine/Alea";
@@ -39,9 +38,7 @@
   // ?arrangement=voix ne laisse que la nappe de voix : c'est le seul moyen de vérifier
   // qu'elle sonne, une couche noyée sous le reste ne se mesure pas.
   const voixSeule = arrangementDemande === "voix";
-  // Même chose pour le pad : le distinguer à l'oreille de la voix demande de l'entendre seul.
-  const padSeul = arrangementDemande === "pad";
-  const isole = voixSeule || padSeul;
+  const isole = voixSeule;
   console.info(`[moteur] graine ${graineEnTexte(graine())}`);
 
   // Les réglages viennent du centre de contrôle : assez souvent pour qu'un curseur
@@ -84,7 +81,6 @@
   let gammeActive = fiveToFive;
   let modeGamme = "major";
   let basseOff = false;
-  let padOff = false;
   // Muette jusqu'à la première section, sauf en démonstration où on veut l'entendre tout de suite.
   let voixOff = !(arrangementImpose || voixSeule);
   let reglages = { ...DEFAUTS };
@@ -112,7 +108,6 @@
   // Initialize instruments
   const pn = new Piano(() => (pianoLoaded = true)).sampler;
   const basse = new Bass().synth;
-  const pad = new Pad().synth;
   let voixPrete = false;
   const voix = new Voix(() => (voixPrete = true));
   const kick = new Kick(() => (kickLoaded = true)).sampler;
@@ -240,7 +235,6 @@
       mode: modeGamme,
       tonalite: key,
       basse: !basseOff,
-      pad: !padOff,
       voix: !voixOff,
       melodie: melodyOff ? 0 : Number(melodyDensity.toFixed(2)),
       reglages,
@@ -276,12 +270,25 @@
     if (suivants.voile !== reglages.voile) lpf.frequency.rampTo(suivants.voile, 2);
     if (suivants.souffle !== reglages.souffle) volumeSouffle.volume.rampTo(suivants.souffle, 2);
     voix.regler(suivants.voixNiveau, suivants.voixVoile);
+    imposerInstruments(suivants);
     reglages = suivants;
   }
 
   async function sonderReglages() {
     const suivants = await lireReglages();
     if (suivants) appliquerReglages(suivants);
+  }
+
+  /**
+   * « Toujours » et « jamais » prennent effet SUR-LE-CHAMP, pas à la section suivante.
+   * L'état des instruments n'était recalculé qu'aux transitions : cliquer « Voix → Jamais »
+   * ne s'entendait qu'au bout d'une minute, parfois plus. Un ordre explicite ne se met pas en
+   * file d'attente. « Au gré des sections », lui, attend bien la section — c'est son sens.
+   */
+  function imposerInstruments(suivants) {
+    if (arrangementImpose || voixSeule) return;
+    if (suivants.basse !== "auto") basseOff = suivants.basse === "jamais";
+    if (suivants.voix !== "auto") voixOff = suivants.voix === "jamais";
   }
 
   /** true = l'instrument se tait, en tenant compte du mode imposé par les réglages. */
@@ -343,12 +350,10 @@
     // La basse se retire rarement : c'est elle qui tient l'ensemble. Le pad, plus souvent.
     basseOff = isole || (!arrangementImpose
       && instrumentCoupe(reglages.basse, alea() < 0.08));
-    padOff = voixSeule || (!padSeul && !arrangementImpose
-      && instrumentCoupe(reglages.pad, alea() < 0.3));
     // La voix est un accent, pas un fond permanent : elle n'est là qu'une section sur trois.
-    voixOff = padSeul ? true : (arrangementImpose || voixSeule
+    voixOff = arrangementImpose || voixSeule
       ? false
-      : instrumentCoupe(reglages.voix, alea() > 0.34));
+      : instrumentCoupe(reglages.voix, alea() > 0.34);
     kickOff = alea() < reglages.coupureKick;
     snareOff = alea() < reglages.coupureCaisse;
     hatOff = alea() < reglages.coupureCharleston;
@@ -436,16 +441,6 @@
     if (voixPrete && !voixOff && barCount % MESURES_ENTRE_NAPPES === 0
         && (voixSeule || arrangementImpose || alea() < PART_VOIX)) {
       chanter(chord);
-    }
-    if (!padOff) {
-      // Fondamentale, tierce et quinte de l'accord lui-même — jamais une quinte supposée :
-      // le deuxième degré du mineur a une quinte diminuée, et la supposer juste frotterait.
-      const ossature = chord.intervals
-        .slice(0, 3)
-        .map((demiTons) => Tone.Frequency(key + "3").transpose(chord.semitoneDist + demiTons))
-        .map((f) => Tone.Frequency(f).toNote());
-      // @ts-ignore
-      pad.triggerAttackRelease(ossature, "1n");
     }
     nextChord();
   }
