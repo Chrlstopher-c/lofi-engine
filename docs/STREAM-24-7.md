@@ -254,11 +254,26 @@ Le défaut est donc 4500k, ce que recommandent les deux plateformes, et le diffu
 démarrage quand on descend sous 3000k en 1080p. Ce débit se compte **par destination** : deux
 plateformes actives demandent le double en montant.
 
-**Quand le processeur encode, on allège le préréglage avant de toucher à la définition.**
-Mesuré en 1080p30 sur une source difficile : `veryfast` coûte 2,74 cœurs, `ultrafast` 1,63 —
-40 % de moins pour une image à peine plus molle, alors qu'une définition divisée par deux se
-voit immédiatement. Le garde-fou choisit donc `ultrafast` en dessous de six cœurs et ne
-descend en 1280×720 qu'en dessous de trois. `STREAM_PRESET` permet de trancher soi-même.
+**Quand le processeur encode, on allège le préréglage — jamais la définition.** Mesuré sur la
+vraie scène, en 1080p30 à 4500k, sur un seul fil :
+
+| Préréglage | Coût pour tenir le direct | Qualité (SSIM) |
+|---|---|---|
+| `ultrafast` | 0,40 cœur | 0,9909 |
+| `superfast` | 0,59 cœur | 0,9929 |
+| `veryfast` | 0,73 cœur | **0,9961** |
+| `faster` | 1,28 cœur | — |
+
+Et à débit égal, **le plein 1080p bat toute définition réduite** : 0,9961 en 1080p `veryfast`
+contre 0,9916 en 1600×900 `veryfast` et 0,9878 en 1280×720. Réduire la définition est le
+mauvais levier — c'est le préréglage qu'il faut ajuster.
+
+☠ **Le piège de calibration.** La première version de ces seuils était mesurée sur une mire
+synthétique : elle donnait 2,74 cœurs pour `veryfast`, quatre fois le coût réel. Une mire est
+pleine de détail fin, une scène lofi n'est que dégradés — le contenu change le coût d'un
+facteur quatre. Le garde-fou exigeait six cœurs pour du 1080p là où il en faut moins d'un, et
+sacrifiait la définition pour rien. Mesurer sur ce qu'on diffuse vraiment, jamais sur un
+substitut.
 
 **Les petites puces Intel n'encodent que par la voie « basse consommation ».** Leur pilote
 n'expose H.264 que par `VAEntrypointEncSliceLP`, qui n'accepte pas toujours le débit constant.

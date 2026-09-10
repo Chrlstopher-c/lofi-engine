@@ -28,10 +28,17 @@ STREAM_COMPOSITEUR="${STREAM_COMPOSITEUR:-auto}"  # auto | ffmpeg | navigateur
 MODE_SCENE="navigateur"  # qui dessine la scène : ffmpeg, ou le navigateur qu on recapture
 NOEUD_RENDU="${NOEUD_RENDU:-/dev/dri/renderD128}"
 STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # adapter la charge si la machine ne suit pas
-# Préréglage x264, déduit du nombre de cœurs quand il vaut « auto ». C'est le premier levier
-# quand la machine est juste : mesuré en 1080p30 sur une source difficile, veryfast coûte
-# 2,74 cœurs et ultrafast 1,63 — 40 % de moins pour une image à peine plus molle, alors qu'une
-# définition divisée par deux se voit immédiatement.
+# Préréglage x264, déduit du nombre de cœurs quand il vaut « auto ».
+#
+# Les seuils viennent d'une mesure sur la VRAIE scène, pas sur une mire — la nuance a coûté
+# cher. Encoder 10 s de scène lofi en 1080p30 à 4500k, sur un seul fil : ultrafast 4,0 s,
+# superfast 6,0 s, veryfast 7,3 s. Soit, pour tenir le direct, 0,40 / 0,59 / 0,73 cœur. La même
+# mesure sur une mire synthétique donnait 2,74 cœurs pour veryfast : quatre fois trop, parce
+# qu'une mire est pleine de détail fin là où une scène lofi n'est que dégradés.
+#
+# Et la qualité va dans l'autre sens, mesurée à débit égal : 0,9909 en ultrafast, 0,9929 en
+# superfast, 0,9961 en veryfast. Le plein 1080p en veryfast bat même un 1600x900 en veryfast
+# (0,9916) — réduire la définition est le mauvais levier.
 STREAM_PRESET="${STREAM_PRESET:-auto}"
 PRESET_X264="veryfast"
 # Qualité constante VAAPI : plus le nombre est haut, plus l'image est compressée et le flux
@@ -41,8 +48,9 @@ PRESET_X264="veryfast"
 # Chaque palier de six divise approximativement le poids par deux, d'où 36 par défaut, qui
 # vise environ 4 Mbit/s. À ajuster : c'est la liaison montante qui décide, pas la machine.
 STREAM_VAAPI_QP="${STREAM_VAAPI_QP:-36}"
-COEURS_POUR_1080P_RAPIDE=6    # au-delà, veryfast tient sans se poser de question
-COEURS_POUR_1080P_MINIMAL=3   # en dessous, même ultrafast ne suffit plus : la définition tombe
+COEURS_POUR_1080P_RAPIDE=4    # au-delà, veryfast tient : il ne coûte que 0,73 cœur
+COEURS_POUR_1080P_MOYEN=3     # à 3, superfast — 0,59 cœur, et bien mieux qu'ultrafast
+COEURS_POUR_1080P_MINIMAL=2   # en dessous, même ultrafast ne suffit plus : la définition tombe
 ENCODEUR_RETENU=""
 DEBIT_VIDEO=()        # vide en qualité constante, rempli par regler_debit
 REPOS_INGESTION=2      # secondes laissées à la plateforme avant de renvoyer un flux
@@ -180,6 +188,8 @@ choisir_preset() {
   coeurs=$(nproc 2>/dev/null || echo 4)
   if [ "$coeurs" -ge "$COEURS_POUR_1080P_RAPIDE" ]; then
     PRESET_X264="veryfast"
+  elif [ "$coeurs" -ge "$COEURS_POUR_1080P_MOYEN" ]; then
+    PRESET_X264="superfast"
   else
     PRESET_X264="ultrafast"
   fi
@@ -208,9 +218,9 @@ adapter_charge() {
   # Premier levier : le préréglage, choisi plus haut. La définition est préservée.
   if [ "$coeurs" -ge "$COEURS_POUR_1080P_MINIMAL" ]; then
     journal "${coeurs} cœur(s) et pas de puce vidéo utilisable : la pleine définition est
-       conservée, l'encodage passe en « $PRESET_X264 ». Mesuré en 1080p30 : 1,63 cœur contre
-       2,74 en « veryfast ». L'image est à peine plus molle, là où une définition divisée par
-       deux se verrait tout de suite. Pour choisir soi-même : STREAM_PRESET dans le .env."
+       conservée, l'encodage passe en « $PRESET_X264 ». Réduire la définition rendrait moins
+       bien, mesuré : un 1080p en veryfast bat un 1600x900 en veryfast à débit égal. Si le flux
+       saccade malgré tout, imposer un préréglage plus rapide par STREAM_PRESET dans le .env."
     return 0
   fi
 
