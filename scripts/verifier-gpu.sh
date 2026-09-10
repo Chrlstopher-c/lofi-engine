@@ -231,8 +231,16 @@ verifier_droits() {
     bon "$(id -un) peut ouvrir $noeud."
     return 0
   fi
-  local groupe; groupe=$(groupe_du_noeud)
+  local groupe gid
+  groupe=$(groupe_du_noeud); gid=$(stat -c '%g' "$noeud" 2>/dev/null)
   manque "$(id -un) ne peut pas ouvrir $noeud — il appartient au groupe « ${groupe:-inconnu} »."
+  if [ "$gid" = "65534" ] || [ "$groupe" = "nogroup" ]; then
+    note "65534 (« nogroup ») signifie que le groupe du périphérique N'EST PAS MAPPÉ dans ce"
+    note "conteneur. L'hôte le passe bien, mais son identifiant de groupe ne correspond à rien"
+    note "ici — root s'en accommode, un utilisateur normal non, et le conteneur Docker en est un."
+    marche_a_suivre_hote
+    return 1
+  fi
   if [ -z "$groupe" ] || [ "$groupe" = "UNKNOWN" ]; then
     note "Le groupe propriétaire n'existe pas dans cette machine : c'est la signature d'un"
     note "conteneur non privilégié dont l'identifiant de groupe n'est pas mappé. Le mappage"
@@ -271,9 +279,12 @@ essai_encodeur() {
     "${args[@]}" -f null - >/dev/null 2>&1
 }
 
+# Les mêmes paquets que ceux embarqués dans l'image du diffuseur. La variante « non-free »
+# d'intel-media n'est pas dans les dépôts par défaut de Debian : la proposer donnait
+# « has no installation candidate », mesuré chez un utilisateur le 2026-09-10.
 paquets_pilote() {
   case "$puce" in
-    Intel) printf '%s\n' vainfo intel-media-va-driver-non-free i965-va-driver ;;
+    Intel) printf '%s\n' vainfo intel-media-va-driver i965-va-driver ;;
     AMD)   printf '%s\n' vainfo mesa-va-drivers ;;
   esac
 }
@@ -390,7 +401,12 @@ verifier_docker() {
     note "  · le pilote VAAPI manque dans l'image — libva seul ne suffit pas, il faut un"
     note "    pilote (iHD, i965, radeonsi). Vérifier : docker run --rm lofi-navigateur:local"
     note "    ls /usr/lib/x86_64-linux-gnu/dri/ — si le répertoire n'existe pas, reconstruire."
-    note "  · le groupe ${gid:-?} propriétaire du nœud, que le conteneur doit rejoindre."
+    if [ "${gid:-}" = "65534" ]; then
+      note "  · le groupe du nœud vaut 65534 (« nogroup ») : il n'est PAS mappé dans ce"
+      note "    conteneur LXC. C'est la cause la plus probable ici — voir l'étape 5."
+    else
+      note "  · le groupe ${gid:-?} propriétaire du nœud, que le conteneur doit rejoindre."
+    fi
   fi
   return 1
 }

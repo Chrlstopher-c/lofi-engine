@@ -75,14 +75,26 @@ fi
 if [ "$materiel" = "aucun" ]; then
   noeud_rendu=$(ls "$RACINE_DEV"/dri/renderD* 2>/dev/null | head -1)
   if [ -n "$noeud_rendu" ]; then
-    materiel="dri"
-    overrides="docker-compose.dri.yml"
     gid_render=$(stat -c '%g' "$noeud_rendu" 2>/dev/null)
+    # 65534 (« nogroup ») : le périphérique est bien là, mais son groupe n'est pas mappé dans
+    # ce conteneur. root s'en accommode, un utilisateur normal non — et le conteneur de
+    # diffusion en est un. Annoncer « VAAPI disponible » ici serait un faux vert : mesuré le
+    # 2026-09-10, l'interface disait « Nœud de rendu ouvert » pendant que le diffuseur écrivait
+    # « aucune puce vidéo accessible » et retombait en 1280x720.
+    if [ "$gid_render" = "65534" ]; then
+      cause="Le nœud de rendu ${noeud_rendu} existe, mais son groupe (65534, « nogroup ») n'est pas mappé dans ce conteneur : le diffuseur ne pourra pas l'ouvrir."
+      remede="Sur l'hôte Proxmox : bash scripts/lxc-gpu-hote.sh <numéro du conteneur>, qui calcule le mappage des groupes, puis pct stop et pct start."
+      gid_render=""
+      noeud_rendu=""
+    else
+      materiel="dri"
+      overrides="docker-compose.dri.yml"
+    fi
   fi
 fi
 
 # Nommer ce qui manque. Chaque branche correspond à une action différente de l'utilisateur.
-if [ "$materiel" = "aucun" ]; then
+if [ "$materiel" = "aucun" ] && [ -z "$cause" ]; then
   if $carte_nvidia && ! $pont_nvidia; then
     cause="Une carte NVIDIA est présente, mais le pont nvidia-container n'est pas installé : Docker ne peut pas la donner au conteneur."
     remede="Installer nvidia-container-toolkit, puis « sudo nvidia-ctk runtime configure --runtime=docker » et redémarrer Docker."
