@@ -38,9 +38,15 @@ serveur, pas un chantier d'interface.
       amené en y câblant basse, pad, voix, mode mineur et réglages. Le découpage naturel sépare
       le moteur musical du composant Svelte, mais il touche à tout ce qui vient d'être vérifié :
       à faire à froid, pas en fin de séance.
-- [ ] **Une voix féminine échantillonnée**, si une bibliothèque paraît sous licence utilisable.
-      La recherche menée et ses impasses sont tracées dans `CREDITS.md`. La couche de formants
-      se remplace sans rien changer d'autre.
+- [x] **Une voix féminine** — plus besoin d'en chercher une : elle est **générée ici**, par
+      ACE-Step (Apache 2.0), voix isolée par demucs, tenue extraite par suivi de hauteur.
+      Deux couleurs, quatre tonalités, trois prises. Chaîne dans `outils/vox/`, provenance
+      dans `CREDITS.md`. Aucune licence tierce.
+- [ ] **Élargir la banque** si les 24 nappes finissent par se reconnaître à l'oreille : la
+      chaîne se relance en vingt minutes, les invites sont dans `outils/vox/banque.py`.
+- [ ] **Alléger les échantillons** — mono et 22 kHz suffiraient à une nappe passée dans un
+      passe-bas à 2,4 kHz, et diviseraient par quatre le décodage. Pas urgent : le flux mesure
+      zéro coupure en l'état.
 - [ ] **Afficher l'arrangement dans la scène** — `window.__lofiArrangement()` expose déjà
       tonalité, mode, instruments actifs et densité. La scène pourrait le montrer à l'antenne.
 - [ ] **Vérifier le niveau du flux après la bascule** — la basse et le pad ajoutent de l'énergie.

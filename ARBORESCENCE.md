@@ -213,6 +213,9 @@ lofi-engine/
 │       └── twitch/format-twitch.ts    durées, nombres, dates du domaine
 │
 ├── outils/
+├── outils/vox/banque.py               fabrique la banque de nappes vocales
+├── outils/vox/isoler.py               demucs : ne garder que la voix, recadrer
+├── outils/vox/tenir.py                garder la fenêtre où la voix tient sa note
 │   └── telecharger-fonds.ts           récupère des boucles depuis l'API Pixabay
 │
 ├── corpus/                            audio capté, fonds, scène, profils (ignoré par git)
