@@ -25,7 +25,6 @@ LIRE_SEUL=false
 [ "${1:-}" = "--lire-seul" ] && LIRE_SEUL=true
 
 RACINE_PROJET="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MAJEUR_DRM=226          # le numéro de périphérique des cartes graphiques sous Linux
 manques=0               # ce qui reste cassé à la fin
 materiel_projet="aucun" # ce que le projet déduira, renseigné à l'étape 9
 lieu=""                 # lxc | vm | physique
@@ -171,21 +170,21 @@ verifier_pilote() {
 
 # ------------------------------------------------------- 4. le nœud de rendu
 
-# Les lignes à coller dans /etc/pve/lxc/<numéro>.conf, sur l'hôte Proxmox. On ne peut pas les
-# appliquer d'ici : la configuration d'un conteneur n'est pas visible depuis son intérieur.
-extrait_proxmox() {
-  cat <<EXTRAIT
-lxc.cgroup2.devices.allow: c ${MAJEUR_DRM}:* rwm
-lxc.mount.entry: /dev/dri dev/dri none bind,optional,create=dir
-EXTRAIT
-}
-
-ecrire_extrait() {
-  local fichier="$RACINE_PROJET/logs/lxc-gpu.conf"
-  mkdir -p "$(dirname "$fichier")" || return 1
-  extrait_proxmox > "$fichier" || return 1
-  note "écrit dans $fichier — à recopier dans /etc/pve/lxc/<numéro>.conf sur l'hôte,"
-  note "puis « pct stop <numéro> && pct start <numéro> » (un redémarrage à chaud ne suffit pas)."
+# Ce qu'il faut faire côté hôte. On n'imprime plus de recette à recopier : les numéros des
+# groupes « video » et « render » changent d'une machine à l'autre — 104 sur Debian, 993 sur
+# Proxmox — et un mappage bâti sur les mauvais numéros EMPÊCHE le conteneur de démarrer.
+# Mesuré le 2026-09-10 sur l'installation d'un utilisateur : « newgidmap failed to write
+# mapping, gid range [44-45] not allowed », conteneur mort. Le script d'hôte lit les vrais
+# numéros sur la machine où il tourne, ce qu'aucune recette écrite d'avance ne peut faire.
+marche_a_suivre_hote() {
+  note "Sur l'HÔTE Proxmox, pas ici :"
+  note "  1. y copier scripts/lxc-gpu-hote.sh de ce dépôt"
+  note "  2. bash lxc-gpu-hote.sh <numéro du conteneur>"
+  note "     il lit les groupes de la machine, calcule le mappage et demande avant d'écrire"
+  note "  3. pct stop <numéro> && pct start <numéro>"
+  note "  4. relancer ce script ici : l'étape 4 doit passer au vert"
+  note "Si le conteneur ne démarre plus après une tentative manuelle :"
+  note "  bash lxc-gpu-hote.sh <numéro> --nettoyer"
   return 0
 }
 
@@ -205,11 +204,10 @@ verifier_noeud() {
   fi
   case "$lieu" in
     lxc)
-      note "L'hôte doit passer le périphérique au conteneur. Lignes à ajouter :"
-      extrait_proxmox | sed 's/^/      /'
-      proposer "écrire ces lignes dans un fichier à recopier sur l'hôte" ecrire_extrait || true
-      note "Conteneur non privilégié : le groupe du périphérique doit aussi être mappé,"
-      note "sinon il reste visible mais impossible à ouvrir (voir l'étape 5)." ;;
+      note "L'hôte doit passer le périphérique au conteneur, et — s'il n'est pas privilégié,"
+      note "ce qui est le défaut de Proxmox — mapper le groupe du périphérique. Sans ce"
+      note "mappage, il apparaît dans le conteneur sans pouvoir être ouvert."
+      marche_a_suivre_hote ;;
     vm) note "Une VM ne recevra jamais ce nœud sans passage PCI de la puce." ;;
     *)  note "Sur une machine physique, c'est le pilote de l'étape 3 qui le crée." ;;
   esac
