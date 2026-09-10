@@ -27,6 +27,8 @@ const DELAI_MESURE_MS = 10_000;
 const ENCODEURS: Record<string, string> = {
   nvenc: "NVENC — puce vidéo NVIDIA",
   vaapi: "VAAPI — puce vidéo Intel ou AMD",
+  "vaapi-lp": "VAAPI basse consommation — puce Intel",
+  "vaapi-cqp": "VAAPI basse consommation, qualité constante",
   qsv: "Quick Sync — puce vidéo Intel",
   x264: "libx264 — le processeur encode",
 };

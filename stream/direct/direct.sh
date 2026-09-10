@@ -30,6 +30,7 @@ NOEUD_RENDU="${NOEUD_RENDU:-/dev/dri/renderD128}"
 STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # abaisser la définition si la machine ne suit pas
 COEURS_POUR_1080P_LOGICIEL=6                 # mesuré : 1080p sans puce vidéo coûte ~3 cœurs pleins
 ENCODEUR_RETENU=""
+DEBIT_VIDEO=()        # vide en qualité constante, rempli par regler_debit
 REPOS_INGESTION=2      # secondes laissées à la plateforme avant de renvoyer un flux
 REPLI_PID=""
 DIFFUSION_PID=""
@@ -58,15 +59,29 @@ profil_encodeur() {
     nvenc)
       ENCODEUR_VIDEO=(-c:v h264_nvenc -preset p4 -tune ll -rc cbr -pix_fmt yuv420p
                       "${echelle[@]}" -r "$STREAM_FPS") ;;
-    vaapi)
+    vaapi|vaapi-lp|vaapi-cqp)
+      # Trois variantes de la même puce, essayées dans cet ordre par choisir_encodeur.
+      # Les petites puces Intel n'exposent l'encodage que par l'entrée « basse consommation »
+      # (VAEntrypointEncSliceLP), qui n'accepte pas toujours le débit constant. Mesuré le
+      # 2026-09-10 sur un NUC : « Driver does not support any RC mode compatible with selected
+      # options (supported modes: CQP) », et l'encodage retombait en logiciel alors que la puce
+      # savait très bien encoder.
+      local qualite=()
+      case "$1" in
+        vaapi)      qualite=(-rc_mode CBR) ;;
+        vaapi-lp)   qualite=(-low_power 1 -rc_mode CBR) ;;
+        # Sans débit constant, le poids du flux suit la complexité de l'image. Sur une scène
+        # lofi presque fixe, il reste bien en dessous du plafond des plateformes.
+        vaapi-cqp)  qualite=(-low_power 1 -rc_mode CQP -qp 24) ;;
+      esac
       PREFIXE_ENCODEUR=(-vaapi_device "$NOEUD_RENDU")
       if [ "$compose" = "ffmpeg" ]; then
         FILTRE_SORTIE="format=nv12,hwupload"
-        ENCODEUR_VIDEO=(-c:v h264_vaapi -rc_mode CBR -r "$STREAM_FPS")
+        ENCODEUR_VIDEO=(-c:v h264_vaapi "${qualite[@]}" -r "$STREAM_FPS")
       else
         # La mise à l'échelle se fait avant le transfert vers la carte : une seule copie.
         ENCODEUR_VIDEO=(-vf "scale=${largeur}:${hauteur},setsar=1,format=nv12,hwupload"
-                        -c:v h264_vaapi -rc_mode CBR -r "$STREAM_FPS")
+                        -c:v h264_vaapi "${qualite[@]}" -r "$STREAM_FPS")
       fi ;;
     x264)
       ENCODEUR_VIDEO=(-c:v libx264 -preset veryfast -tune stillimage -pix_fmt yuv420p
@@ -77,15 +92,27 @@ profil_encodeur() {
 }
 
 # Encode une image noire avec le profil demandé. Silencieux : seul le code de sortie compte.
+# En qualité constante, un débit imposé n'a pas de sens — et le passer quand même fait refuser
+# l'encodeur, ce qui remettrait exactement le défaut qu'on vient de corriger.
+regler_debit() {
+  if [ "${1:-}" = "vaapi-cqp" ]; then
+    DEBIT_VIDEO=()
+  else
+    DEBIT_VIDEO=(-b:v "$STREAM_VIDEO_BITRATE" -maxrate "$STREAM_VIDEO_BITRATE"
+                 -bufsize "$STREAM_VIDEO_BITRATE")
+  fi
+}
+
 essayer_encodeur() {
   profil_encodeur "$1" || return 1
+  regler_debit "$1"
   ffmpeg -hide_banner -loglevel error -nostdin "${PREFIXE_ENCODEUR[@]}" \
     -f lavfi -i "color=c=black:s=${STREAM_RESOLUTION}:r=${STREAM_FPS}" -frames:v 1 \
-    "${ENCODEUR_VIDEO[@]}" -b:v "$STREAM_VIDEO_BITRATE" -f null - >/dev/null 2>&1
+    "${ENCODEUR_VIDEO[@]}" "${DEBIT_VIDEO[@]}" -f null - >/dev/null 2>&1
 }
 
 choisir_encodeur() {
-  local candidats=(nvenc vaapi x264) choix
+  local candidats=(nvenc vaapi vaapi-lp vaapi-cqp x264) choix
   if [ "$STREAM_ENCODEUR" != "auto" ]; then
     if essayer_encodeur "$STREAM_ENCODEUR"; then
       ENCODEUR_RETENU="$STREAM_ENCODEUR"
@@ -100,6 +127,11 @@ choisir_encodeur() {
       case "$choix" in
         nvenc) journal "encodeur : NVENC (puce vidéo NVIDIA) — le processeur n'encode plus" ;;
         vaapi) journal "encodeur : VAAPI via $NOEUD_RENDU — le processeur n'encode plus" ;;
+        vaapi-lp) journal "encodeur : VAAPI basse consommation via $NOEUD_RENDU — le processeur
+       n'encode plus. La puce n'expose l'encodage que par cette voie." ;;
+        vaapi-cqp) journal "encodeur : VAAPI basse consommation à qualité constante via
+       $NOEUD_RENDU. Cette puce n'accepte pas le débit constant : le poids du flux suivra la
+       complexité de l'image, ce qui reste sans danger sur une scène lofi." ;;
         x264)  journal "encodeur : libx264 (logiciel). Aucune puce vidéo accessible : compter
        environ un cœur en 1080p. Donner /dev/dri ou un GPU au conteneur divise cette charge." ;;
       esac
@@ -142,6 +174,7 @@ adapter_charge() {
   STREAM_RESOLUTION="1280x720"
   [ "$MODE_SCENE" = "ffmpeg" ] || ECRAN="${ECRAN_DIRECT:-1280x720x24}"
   profil_encodeur "$ENCODEUR_RETENU" "$MODE_SCENE"
+regler_debit "$ENCODEUR_RETENU"
   # La composition a été bâtie à l'ancienne définition : la refaire, sinon ffmpeg dessinerait
   # toujours une image 1080p pour l'encoder en 720p.
   [ "$MODE_SCENE" = "ffmpeg" ] && preparer_composition
@@ -195,8 +228,7 @@ lancer_diffusion() {
     "${PREFIXE_ENCODEUR[@]}" "${entrees[@]}" "${maps[@]}" \
     "${ENCODEUR_VIDEO[@]}" \
     -aspect "${STREAM_RESOLUTION%x*}:${STREAM_RESOLUTION#*x}" \
-    -b:v "$STREAM_VIDEO_BITRATE" -maxrate "$STREAM_VIDEO_BITRATE" \
-    -bufsize "$STREAM_VIDEO_BITRATE" \
+    "${DEBIT_VIDEO[@]}" \
     -g "$gop" -keyint_min "$gop" \
     -c:a aac -b:a "$STREAM_AUDIO_BITRATE" -ar 44100 -ac 2 \
     "${FORMAT_SORTIE[@]}" &

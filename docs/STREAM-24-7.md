@@ -244,6 +244,19 @@ clé de diffusion, que ffmpeg recopie en clair dans ses messages. Et il nomme la
 qui tombe, en la reliant à son rang — le muxer ne désigne ses sorties que par un numéro.
 L'onglet Diffusion affiche alors « refusée » sur la plateforme concernée.
 
+**Les petites puces Intel n'encodent que par la voie « basse consommation ».** Leur pilote
+n'expose H.264 que par `VAEntrypointEncSliceLP`, qui n'accepte pas toujours le débit constant.
+ffmpeg refuse alors net — « Driver does not support any RC mode compatible with selected
+options (supported modes: CQP) » — et l'encodage retombe en logiciel alors que la puce sait
+parfaitement encoder. Mesuré le 2026-09-10 sur un NUC dont `vainfo` listait pourtant
+`VAProfileH264High : VAEntrypointEncSliceLP`.
+
+Le profil VAAPI s'essaie donc en trois variantes, dans cet ordre : débit constant, puis basse
+consommation à débit constant, puis basse consommation à qualité constante. Cette dernière ne
+passe aucun débit imposé — le lui passer quand même ferait refuser l'encodeur, ce qui
+reproduirait exactement le défaut qu'elle corrige. Le poids du flux suit alors la complexité de
+l'image, ce qui reste sans danger sur une scène lofi presque fixe.
+
 **Les pilotes VAAPI ne viennent pas avec ffmpeg.** Debian n'installe que `libva`, l'interface.
 Sans pilote — `iHD` pour l'Intel récent, `i965` pour l'ancien, `radeonsi` pour l'AMD —
 `h264_vaapi` ne s'initialise jamais et l'encodeur retombe en logiciel. Le symptôme est
