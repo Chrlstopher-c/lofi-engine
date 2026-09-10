@@ -261,6 +261,13 @@ reproduirait exactement le défaut qu'elle corrige.
 sur une scène pourtant calme — la liaison montante saturait et les deux plateformes
 décrochaient en boucle. Le défaut ressemblait à un plantage ; c'était un débordement.
 
+**Cette variante n'est pas retenue automatiquement.** Sans plafond de débit, le poids du flux
+oscille en permanence : Twitch l'accepte, YouTube reste bloqué sur « préparation du flux » et ne
+démarre jamais. Mesuré le 2026-09-10 sur un flux par ailleurs irréprochable — H.264 High,
+images-clés toutes les deux secondes, 3,9 Mbit/s. Un flux logiciel plafonné en 1280×720 vaut
+mieux qu'un flux matériel en 1080p qu'une plateforme sur deux refuse. Elle reste accessible en
+la nommant : `STREAM_ENCODEUR=vaapi-cqp`, pour une diffusion Twitch seule.
+
 Aucun plafond n'est possible sur ces puces : les quatre modes qui en offrent un — VBR, QVBR,
 ICQ, AVBR — ont été essayés sur ce NUC et tous refusés. `STREAM_VAAPI_QP` est donc le seul
 levier, 36 par défaut. Mesuré en 1080p30, par destination : qp 24 → 12 Mbit/s, qp 30 → 8,4. Chaque palier de six divise

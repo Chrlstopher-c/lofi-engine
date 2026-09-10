@@ -120,7 +120,12 @@ essayer_encodeur() {
 }
 
 choisir_encodeur() {
-  local candidats=(nvenc vaapi vaapi-lp vaapi-cqp x264) choix
+  # vaapi-cqp n'est PAS dans la sélection automatique, et c'est délibéré : sans plafond de
+  # débit, le poids du flux oscille en permanence. Twitch l'accepte, YouTube reste bloqué sur
+  # « préparation du flux » — mesuré le 2026-09-10. Un flux logiciel plafonné en 720p vaut
+  # mieux qu'un flux matériel en 1080p qu'une plateforme sur deux refuse. Il reste accessible
+  # en le nommant : STREAM_ENCODEUR=vaapi-cqp.
+  local candidats=(nvenc vaapi vaapi-lp x264) choix
   if [ "$STREAM_ENCODEUR" != "auto" ]; then
     if essayer_encodeur "$STREAM_ENCODEUR"; then
       ENCODEUR_RETENU="$STREAM_ENCODEUR"
@@ -138,12 +143,12 @@ choisir_encodeur() {
         vaapi-lp) journal "encodeur : VAAPI basse consommation via $NOEUD_RENDU — le processeur
        n'encode plus. La puce n'expose l'encodage que par cette voie." ;;
         vaapi-cqp) journal "encodeur : VAAPI basse consommation à qualité constante (qp
-       $STREAM_VAAPI_QP) via $NOEUD_RENDU. Cette puce n'accepte aucun plafond de débit : le
-       poids du flux suit la complexité de l'image. Le vérifier une fois en marche —
-       « docker stats lofi-direct », colonne NET I/O. Trop lourd pour la liaison montante ?
-       Monter STREAM_VAAPI_QP dans le .env : chaque palier de six divise le poids par deux." ;;
-        x264)  journal "encodeur : libx264 (logiciel). Aucune puce vidéo accessible : compter
-       environ un cœur en 1080p. Donner /dev/dri ou un GPU au conteneur divise cette charge." ;;
+       $STREAM_VAAPI_QP) via $NOEUD_RENDU — imposé par STREAM_ENCODEUR. Aucun plafond de débit
+       n'est possible sur cette puce : le poids du flux oscille, et YouTube refuse de préparer
+       un flux pareil. À réserver à une diffusion Twitch seule." ;;
+        x264)  journal "encodeur : libx264 (logiciel), à débit constant — le seul mode que les
+       deux plateformes acceptent sans réserve. Compter environ un cœur en 1080p. Si une puce
+       vidéo est accessible et qu'elle sait plafonner le débit, elle sera préférée d'elle-même." ;;
       esac
       return 0
     fi
