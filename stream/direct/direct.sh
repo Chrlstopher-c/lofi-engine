@@ -29,10 +29,12 @@ MODE_SCENE="navigateur"  # qui dessine la scène : ffmpeg, ou le navigateur qu o
 NOEUD_RENDU="${NOEUD_RENDU:-/dev/dri/renderD128}"
 STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # abaisser la définition si la machine ne suit pas
 # Qualité constante VAAPI : plus le nombre est haut, plus l'image est compressée et le flux
-# léger. 30 est un compromis mesuré ; 24 sortait à 12 Mbit/s PAR destination sur un NUC, soit
-# sept fois la cible, ce qui saturait la liaison montante et faisait décrocher les plateformes.
-# Chaque palier de six divise approximativement le poids par deux.
-STREAM_VAAPI_QP="${STREAM_VAAPI_QP:-30}"
+# léger. Aucun plafond de débit n'est possible sur ces puces — les quatre modes qui en offrent
+# un (VBR, QVBR, ICQ, AVBR) ont été essayés et refusés — donc c'est le seul levier.
+# Mesuré sur un NUC en 1080p30, par destination : qp 24 → 12 Mbit/s, qp 30 → 8,4 Mbit/s.
+# Chaque palier de six divise approximativement le poids par deux, d'où 36 par défaut, qui
+# vise environ 4 Mbit/s. À ajuster : c'est la liaison montante qui décide, pas la machine.
+STREAM_VAAPI_QP="${STREAM_VAAPI_QP:-36}"
 COEURS_POUR_1080P_LOGICIEL=6                 # mesuré : 1080p sans puce vidéo coûte ~3 cœurs pleins
 ENCODEUR_RETENU=""
 DEBIT_VIDEO=()        # vide en qualité constante, rempli par regler_debit

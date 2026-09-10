@@ -75,7 +75,7 @@ services:
       # Qualité constante VAAPI, seulement pour les puces sans plafond de débit possible.
       # Plus haut = plus compressé. Voir .env.example : en qp 24, un NUC sortait à
       # 12 Mbit/s par destination et saturait sa liaison montante.
-      STREAM_VAAPI_QP: "${STREAM_VAAPI_QP:-30}"
+      STREAM_VAAPI_QP: "${STREAM_VAAPI_QP:-36}"
       # auto : ffmpeg compose la scène, le navigateur ne fait plus que la musique
       STREAM_COMPOSITEUR: "${STREAM_COMPOSITEUR:-auto}"
       # Scène (mode direct uniquement) — le détail vit dans corpus/scene.json,

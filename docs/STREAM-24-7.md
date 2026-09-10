@@ -261,7 +261,9 @@ reproduirait exactement le défaut qu'elle corrige.
 sur une scène pourtant calme — la liaison montante saturait et les deux plateformes
 décrochaient en boucle. Le défaut ressemblait à un plantage ; c'était un débordement.
 
-`STREAM_VAAPI_QP` règle ce compromis, 30 par défaut. Chaque palier de six divise
+Aucun plafond n'est possible sur ces puces : les quatre modes qui en offrent un — VBR, QVBR,
+ICQ, AVBR — ont été essayés sur ce NUC et tous refusés. `STREAM_VAAPI_QP` est donc le seul
+levier, 36 par défaut. Mesuré en 1080p30, par destination : qp 24 → 12 Mbit/s, qp 30 → 8,4. Chaque palier de six divise
 approximativement le poids par deux. Se vérifie en marche : `docker stats lofi-direct`, colonne
 NET I/O, deux relevés à dix secondes d'intervalle. Si même un `qp` élevé ne suffit pas, le bon
 levier devient la définition : 1280×720 coûte environ deux fois et demie moins.
