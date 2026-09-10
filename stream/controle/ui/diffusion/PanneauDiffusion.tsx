@@ -12,6 +12,7 @@ import type { Etat } from "../commun/useEtat.ts";
 import { AUCUNE_CLE, cleSaisie, Destinations, type Cles } from "./Destinations.tsx";
 import { Encodage } from "./Encodage.tsx";
 import { Journal } from "./Journal.tsx";
+import { Materiel } from "./Materiel.tsx";
 import { Pilotage } from "./Pilotage.tsx";
 import { Services } from "./Services.tsx";
 
@@ -47,12 +48,14 @@ export function PanneauDiffusion({ etat }: Props): ReactNode {
       <div className="colonne">
         <Pilotage etat={etat} modifie={aEnregistrer} />
         <Services etat={etat.etat} conf={conf} />
+        {etat.etat ? <Materiel materiel={etat.etat.materiel} /> : null}
         <Journal conteneur={etat.etat?.conteneur ?? null}
           actif={etat.etat?.enMarche === true || etat.etat?.construction === true} />
       </div>
       <div className="colonne">
         <Alerte message={editeur.erreur} onFermer={editeur.effacerErreur} />
-        <Destinations conf={conf} cles={cles} definir={editeur.definir} setCles={setCles} />
+        <Destinations conf={conf} cles={cles} flux={etat.etat?.destinations ?? null}
+          definir={editeur.definir} setCles={setCles} />
         <Encodage conf={conf} definir={editeur.definir} modifie={aEnregistrer}
           enregistrement={editeur.enregistrement}
           onAnnuler={() => { setCles(AUCUNE_CLE); void editeur.recharger(); }}

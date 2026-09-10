@@ -193,13 +193,45 @@ direct coûterait le flux. Mesuré sur la même source, en temps réel : 96 % d'
 logiciel contre 20 % sur la carte.
 
 L'accès au matériel est donné automatiquement par `stream/materiel.sh`, qui ajoute le fichier
-Docker qui convient à la machine. Sur une machine sans puce vidéo et sous six cœurs, la
-définition est ramenée d'elle-même à 1280×720 : le 1080p logiciel n'y décroche pas franchement,
-il s'étrangle jusqu'à ce que quelque chose meure. `STREAM_ADAPTER=false` l'en empêche.
+Docker qui convient à la machine et lui transmet deux valeurs que rien ne permet de deviner :
+le groupe propriétaire du périphérique, sans lequel le conteneur le voit sans pouvoir l'ouvrir,
+et le nœud de rendu réellement présent — il n'est pas toujours `renderD128`, et VAAPI échouait
+silencieusement sur un périphérique inexistant dès qu'une machine en avait deux.
+
+Sur une machine sans puce vidéo et sous six cœurs, la définition est ramenée d'elle-même à
+1280×720 : le 1080p logiciel n'y décroche pas franchement, il s'étrangle jusqu'à ce que quelque
+chose meure. `STREAM_ADAPTER=false` l'en empêche.
+
+Quand il n'y a pas d'encodage matériel, le détecteur dit **pourquoi**, et l'onglet Diffusion
+l'affiche. « Aucune puce vidéo accessible » recouvrait trois situations sans le même remède :
+
+| Ce que voit le détecteur | Ce que ça veut dire | Ce qu'il faut faire |
+|---|---|---|
+| Aucune puce sur le bus PCI | La machine n'en a pas | Rien : l'encodage restera logiciel |
+| Une puce, mais pas de `/dev/dri` | Le noyau ne l'expose pas — signature d'une machine virtuelle | Déplacer la diffusion dans un LXC, ou passer la puce en PCI à la VM. Sur une machine physique, charger `i915` ou `amdgpu` |
+| `/dev/dri` sans nœud `renderD*` | Seule la sortie écran est exposée | Vérifier que le pilote est chargé |
+| Une carte NVIDIA sans `nvidia-ctk` | Docker ne peut pas la transmettre | Installer `nvidia-container-toolkit` |
 
 Attention : **une machine virtuelle Proxmox ne voit pas la puce vidéo de son hôte.** Sur ce
 genre d'installation, l'encodage restera logiciel tant que le projet tournera dans une VM
-plutôt que dans un conteneur LXC.
+plutôt que dans un conteneur LXC. C'est la deuxième ligne du tableau, et de loin la plus
+fréquente.
+
+### Diffuser vers les deux plateformes à la fois
+
+On n'ouvre pas deux flux : ffmpeg encode une fois et distribue avec le muxer `tee`, chaque
+sortie marquée `onfail=ignore`. Une plateforme qui refuse n'emporte donc pas l'autre — c'est
+le bon comportement, et il a un prix : **le refus est avalé sans bruit**. Mesuré le
+2026-09-10 chez un utilisateur : YouTube en direct, Twitch absente, et pas une ligne d'erreur.
+
+`stream/direct/tamis.sh` filtre l'erreur standard de ffmpeg pour deux raisons. Il masque la
+clé de diffusion, que ffmpeg recopie en clair dans ses messages. Et il nomme la destination
+qui tombe, en la reliant à son rang — le muxer ne désigne ses sorties que par un numéro.
+L'onglet Diffusion affiche alors « refusée » sur la plateforme concernée.
+
+Une sortie abandonnée l'est **pour toute la durée du flux** : le muxer ne la retente jamais.
+Il faut relancer la diffusion pour la reprendre, et l'onglet le dit. Quand c'est Twitch, la
+cause se lit dans l'onglet Twitch, qui interroge l'API de la plateforme.
 
 ## 6. Pièges rencontrés, et ce qu'il a fallu faire
 

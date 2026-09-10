@@ -12,6 +12,7 @@
  */
 import { appelHelix, identifiantChaine } from "./client.ts";
 import { journal } from "../journal.ts";
+import type { Aptitude } from "./types.ts";
 
 /** Ce que Twitch reproche, traduit pour l'interface. */
 const CAUSES: ReadonlyArray<{ motif: RegExp; cause: string; remede: string }> = [
@@ -38,13 +39,6 @@ const CAUSES: ReadonlyArray<{ motif: RegExp; cause: string; remede: string }> = 
   },
 ];
 
-export interface Aptitude {
-  /** true quand Twitch accepterait une diffusion pour autant qu'on puisse le savoir. */
-  apte: boolean;
-  cause: string | null;
-  remede: string | null;
-}
-
 const APTE: Aptitude = { apte: true, cause: null, remede: null };
 
 function interpreter(message: string): Aptitude {
@@ -70,3 +64,5 @@ export async function verifierAptitude(): Promise<Aptitude> {
     return verdict;
   }
 }
+
+export type { Aptitude };

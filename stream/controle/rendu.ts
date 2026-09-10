@@ -7,12 +7,16 @@
  * fichier l'interface ne pourrait pas dire si la puce vidéo encode ou si le processeur a repris
  * la main — c'est exactement la bascule qu'on veut voir.
  */
-import type { Rendu } from "./types.ts";
+import type { Destinations, Rendu } from "./types.ts";
 import { journal } from "./journal.ts";
 
 const CONTENEUR = "lofi-direct";
 /** Dans le conteneur : le seul endroit dont le diffuseur soit toujours propriétaire. */
 const FICHIER_RENDU = "/tmp/lofi-rendu.json";
+/** Écrit par le tamis, à chaque démarrage de ffmpeg puis à chaque destination qui tombe. */
+const FICHIER_DESTINATIONS = "/tmp/lofi-destinations.json";
+/** Ce dépôt-là change en cours de route : on le relit, mais pas à chaque requête. */
+const FRAICHEUR_DESTINATIONS_MS = 5_000;
 
 /** `docker stats` demande plus d'une seconde : au-delà, on relance une mesure. */
 const FRAICHEUR_MS = 5_000;
@@ -32,10 +36,10 @@ let mesureEnCours = false;
 /** Le dépôt ne change pas tant que le conteneur vit : une lecture par démarrage suffit. */
 let cacheRendu: { cle: string; valeur: Rendu | null } | null = null;
 
-/** Sort le fichier du conteneur. Rien n'est passé en argument qui vienne de l'interface. */
-async function extraire(): Promise<string | null> {
+/** Sort un fichier du conteneur. Rien n'est passé en argument qui vienne de l'interface. */
+async function extraire(fichier: string): Promise<string | null> {
   try {
-    const proc = Bun.spawn(["docker", "exec", CONTENEUR, "cat", FICHIER_RENDU],
+    const proc = Bun.spawn(["docker", "exec", CONTENEUR, "cat", fichier],
                            { stdout: "pipe", stderr: "ignore" });
     const minuteur = setTimeout(() => proc.kill(), DELAI_MESURE_MS);
     const [sortie, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
@@ -53,7 +57,7 @@ async function extraire(): Promise<string | null> {
  */
 export async function lireRendu(cle: string): Promise<Rendu | null> {
   if (cacheRendu && cacheRendu.cle === cle) return cacheRendu.valeur;
-  const valeur = analyser(await extraire());
+  const valeur = analyser(await extraire(FICHIER_RENDU));
   cacheRendu = { cle, valeur };
   return valeur;
 }
@@ -76,6 +80,44 @@ function analyser(texte: string | null): Rendu | null {
     };
   } catch (erreur) {
     journal.warn({ erreur }, "dépôt de rendu illisible");
+    return null;
+  }
+}
+
+let cacheDestinations: { valeur: Destinations | null; lue: number } | null = null;
+
+/**
+ * L'état de chaque plateforme. Le muxer `tee` distribue un seul encodage vers les deux, chaque
+ * sortie marquée `onfail=ignore` — une plateforme qui refuse n'emporte donc pas l'autre, mais
+ * son refus n'apparaît nulle part. Le tamis le consigne, ceci le remonte à l'interface.
+ */
+export async function lireDestinations(): Promise<Destinations | null> {
+  if (cacheDestinations && Date.now() - cacheDestinations.lue < FRAICHEUR_DESTINATIONS_MS) {
+    return cacheDestinations.valeur;
+  }
+  const valeur = analyserDestinations(await extraire(FICHIER_DESTINATIONS));
+  cacheDestinations = { valeur, lue: Date.now() };
+  return valeur;
+}
+
+/** Seuls « active » et « refusee » sont écrits par le tamis ; tout le reste est ignoré. */
+function etatPlateforme(brut: Record<string, unknown>, nom: string): "active" | "refusee" | null {
+  const valeur = brut[nom];
+  if (valeur === "active" || valeur === "refusee") return valeur;
+  return null;
+}
+
+function analyserDestinations(texte: string | null): Destinations | null {
+  if (!texte) return null;
+  try {
+    const brut = JSON.parse(texte) as Record<string, unknown>;
+    return {
+      twitch: etatPlateforme(brut, "twitch"),
+      youtube: etatPlateforme(brut, "youtube"),
+      ecrit: typeof brut.ecrit === "string" ? brut.ecrit : "",
+    };
+  } catch (erreur) {
+    journal.warn({ erreur }, "dépôt des destinations illisible");
     return null;
   }
 }
@@ -137,4 +179,5 @@ export function renduDeCetteDiffusion(rendu: Rendu | null, depuis: string | null
 export function oublierCharge(): void {
   charge = { valeur: null, mesuree: 0 };
   cacheRendu = null;
+  cacheDestinations = null;
 }

@@ -1,6 +1,6 @@
 /** Accès à l'API Twitch du centre de contrôle. Aucun secret ne circule par ces routes. */
 import type {
-  Archivage, Categorie, Chaine, ConnexionAppareil, DirectTwitch, EtatChat, EtatTwitch,
+  Aptitude, Archivage, Categorie, Chaine, ConnexionAppareil, DirectTwitch, EtatChat, EtatTwitch,
   LotChat, MessageChat, Rediffusion, StatistiquesTwitch,
 } from "../../twitch/types.ts";
 import { requete, corpsJson } from "../commun/api.ts";
@@ -18,6 +18,8 @@ export const apiTwitch = {
   /** Le serveur écrit la clé dans le .env et n'en renvoie que l'existence. */
   recupererCle: (): Promise<{ cleEnregistree: boolean }> =>
     requete("/api/twitch/cle-diffusion", { method: "POST" }),
+  /** Pourquoi Twitch refuse la diffusion, quand le RTMP ne dit rien d'autre que « I/O error ». */
+  lireAptitude: (): Promise<Aptitude> => requete<Aptitude>("/api/twitch/aptitude"),
   lireChaine: (): Promise<Chaine> => requete<Chaine>("/api/twitch/chaine"),
   modifierChaine: (chaine: Chaine): Promise<Chaine> =>
     requete<Chaine>("/api/twitch/chaine", corpsJson("PATCH", {

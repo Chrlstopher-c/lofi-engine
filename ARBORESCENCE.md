@@ -105,8 +105,9 @@ lofi-engine/
 │   ├── base.sh                        journalisation, partagée par tous les scripts
 │   ├── commun.sh                      config des plateformes, sortie RTMP, playlist
 │   ├── navigateur.sh                  écran virtuel, puits audio, pilotage du navigateur
-│   ├── materiel.sh                    détecte la puce vidéo de la machine hôte
+│   ├── materiel.sh                    détecte la puce vidéo, et dit pourquoi quand il n'y en a pas
 │   ├── direct/direct.sh               diffusion en direct + repli sur le corpus
+│   ├── direct/tamis.sh                masque la clé et nomme la destination qui tombe
 │   ├── direct/composition.sh          choisit qui dessine la scène, ffmpeg ou le navigateur
 │   ├── direct/composer.py             traduit scene.json en chaîne de filtres ffmpeg
 │   ├── direct/relais-accords.py       recopie la progression jouée pour drawtext
@@ -200,6 +201,7 @@ lofi-engine/
 │       ├── diffusion/Destinations.tsx liste des plateformes configurées
 │       ├── diffusion/Plateforme.tsx   une destination : logo, bascule, clé
 │       ├── diffusion/Encodage.tsx     résolution, images par seconde, débits
+│       ├── diffusion/Materiel.tsx     la puce vidéo, ou pourquoi il n'y en a pas
 │       ├── diffusion/Journal.tsx      sorties du conteneur, relecture
 │       ├── diffusion/format-diffusion.ts  durées et horloge
 │       ├── moteur/PanneauMoteur.tsx  grille de l'onglet Moteur
@@ -207,6 +209,7 @@ lofi-engine/
 │       ├── moteur/useMoteur.ts      lecture, écriture retardée, application à chaud
 │       ├── twitch/PanneauTwitch.tsx   grille de l'onglet Twitch
 │       ├── twitch/Compte.tsx          autorisation par code d'appareil
+│       ├── twitch/Aptitude.tsx        pourquoi Twitch refuse la diffusion
 │       ├── twitch/Entete.tsx          compte connecté, portées, clé, déconnexion
 │       ├── twitch/Chaine.tsx          titre, catégorie, état constaté
 │       ├── twitch/Direct.tsx          état du direct lu sur la chaîne

@@ -173,15 +173,14 @@ lancer_diffusion() {
   fi
   # setsid donne au flux son propre groupe de processus : recharger la scène doit pouvoir
   # arrêter ffmpeg et sa boucle de reconnexion ensemble, sans chercher de PID au jugé.
-  # ffmpeg recopie l'URL complète dans ses messages d'erreur, clé de diffusion comprise —
-  # elle se retrouvait donc en clair dans `docker logs`, que l'on colle volontiers pour
-  # demander de l'aide. Sa sortie passe par un tamis qui coupe tout ce qui suit le chemin
-  # d'ingestion. Le tamis est branché sur l'erreur seule, pour ne pas masquer le code de
-  # sortie de ffmpeg derrière celui de sed.
+  # L'erreur standard de ffmpeg passe par le tamis : il masque la clé de diffusion, que
+  # ffmpeg recopie en clair dans ses messages, et nomme la destination qui tombe — sans lui
+  # le muxer tee abandonne une plateforme en silence. Il est branché sur l'erreur seule,
+  # pour ne pas masquer le code de sortie de ffmpeg derrière le sien.
   setsid bash -c '
     while true; do
       ffmpeg -hide_banner -loglevel warning -nostdin "$@" \
-        2> >(sed -u -E "s#(rtmps?://[^/]+/[^/]+/)[^ :]+#\\1***#g" >&2)
+        2> >(/usr/local/bin/tamis.sh >&2)
       echo "[direct] le flux s'"'"'est interrompu — reconnexion dans 10 s"
       sleep 10
     done' _ \

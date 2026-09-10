@@ -1,4 +1,15 @@
 /**
+ * Ce que Twitch répond quand on lui demande si le compte a le droit de diffuser.
+ * En RTMP un refus se réduit à « Input/output error » ; ceci le nomme.
+ */
+export interface Aptitude {
+  /** true quand Twitch accepterait une diffusion pour autant qu'on puisse le savoir. */
+  apte: boolean;
+  cause: string | null;
+  remede: string | null;
+}
+
+/**
  * Modèle du domaine Twitch.
  * Deux familles bien séparées : ce qui reste au serveur (`Coffre`, jamais sérialisé vers
  * l'interface) et ce que l'API expose (des booléens et des données publiques de la chaîne).

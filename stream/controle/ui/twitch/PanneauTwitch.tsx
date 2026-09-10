@@ -6,6 +6,7 @@
 import type { ReactNode } from "react";
 import { Alerte } from "../commun/composants.tsx";
 import { useTwitch } from "./useTwitch.ts";
+import { Aptitude } from "./Aptitude.tsx";
 import { Compte } from "./Compte.tsx";
 import { EnteteChaine } from "./Entete.tsx";
 import { ChaineTwitch } from "./Chaine.tsx";
@@ -25,6 +26,7 @@ export function PanneauTwitch(): ReactNode {
     <div className="twitch">
       <div className="colonne">
         {avis}
+        <Aptitude />
         <EnteteChaine etat={etat} twitch={twitch} />
         <Statistiques />
         <div className="grille-2">

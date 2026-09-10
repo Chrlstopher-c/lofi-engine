@@ -16,6 +16,7 @@ CORPUS_DIR="${CORPUS_DIR:-/corpus}"
 
 ETIQUETTE="${ETIQUETTE:-diffusion}"
 FORMAT_SORTIE=()   # rempli par construire_sortie, consommé par les lanceurs ffmpeg
+DESTINATIONS_ORDRE=""  # les plateformes dans l'ordre où tee les empile, pour le tamis
 
 # shellcheck source=/dev/null
 . /usr/local/lib/lofi/base.sh
@@ -41,8 +42,16 @@ valider_plateformes() {
 # Une sortie simple, ou le muxer tee vers deux destinations en une seule passe d'encodage.
 construire_sortie() {
   local cibles=()
-  vrai "$STREAM_TWITCH"  && cibles+=("${TWITCH_INGEST%/}/${TWITCH_STREAM_KEY}")
-  vrai "$STREAM_YOUTUBE" && cibles+=("${YOUTUBE_INGEST%/}/${YOUTUBE_STREAM_KEY}")
+  DESTINATIONS_ORDRE=""
+  # L'ordre d'empilement est la seule chose qui relie une sortie ffmpeg à une plateforme :
+  # le muxer tee ne désigne ses sorties que par leur rang. Il est publié ici, à l'endroit
+  # où il est décidé, pour que le tamis puisse nommer celle qui tombe.
+  vrai "$STREAM_TWITCH"  && { cibles+=("${TWITCH_INGEST%/}/${TWITCH_STREAM_KEY}")
+                              DESTINATIONS_ORDRE+="twitch "; }
+  vrai "$STREAM_YOUTUBE" && { cibles+=("${YOUTUBE_INGEST%/}/${YOUTUBE_STREAM_KEY}")
+                              DESTINATIONS_ORDRE+="youtube "; }
+  DESTINATIONS_ORDRE="${DESTINATIONS_ORDRE% }"
+  export DESTINATIONS_ORDRE
 
   if [ ${#cibles[@]} -eq 1 ]; then
     FORMAT_SORTIE=(-f flv "${cibles[0]}")

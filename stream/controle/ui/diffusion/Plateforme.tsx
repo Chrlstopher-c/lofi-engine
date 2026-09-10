@@ -29,6 +29,8 @@ interface Props {
   ingest: string;
   /** Nouvelle clé en attente d'enregistrement, ou `undefined` si on conserve l'existante. */
   nouvelleCle: string | undefined;
+  /** L'état de cette destination dans le flux en cours. null quand rien ne diffuse. */
+  etatFlux: "active" | "refusee" | null;
   onActif: (actif: boolean) => void;
   onIngest: (ingest: string) => void;
   onNouvelleCle: (cle: string | undefined) => void;
@@ -68,6 +70,20 @@ function EtatCle({ cleEnregistree, nouvelleCle, onNouvelleCle }: PropsCle): Reac
   );
 }
 
+/**
+ * Le muxer `tee` abandonne une sortie qui refuse et continue sur l'autre, sans rien dire. Ce
+ * badge est le seul endroit où ça se voit : « refusée » veut dire que cette plateforme est
+ * sortie du flux pour toute sa durée, et qu'il faut relancer la diffusion pour la reprendre.
+ */
+function EtatFlux({ etatFlux }: { etatFlux: Props["etatFlux"] }): ReactNode {
+  if (etatFlux === null) return null;
+  return (
+    <Badge sens={etatFlux === "active" ? "live" : "danger"} voyant>
+      {etatFlux === "active" ? "reçoit le flux" : "refusée — relancer pour reprendre"}
+    </Badge>
+  );
+}
+
 export function Plateforme(props: Props): ReactNode {
   const { nom, marque, actif, cleEnregistree, ingest, nouvelleCle, onActif, onIngest, onNouvelleCle } = props;
   return (
@@ -78,6 +94,7 @@ export function Plateforme(props: Props): ReactNode {
           {nom}
         </span>
         <span className="pousse">
+          <EtatFlux etatFlux={props.etatFlux} />
           <Bascule libelle="Diffuser" petit actif={actif} onChange={onActif} />
         </span>
       </div>

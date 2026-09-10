@@ -5,7 +5,8 @@
 import { resolve } from "node:path";
 import type { EtatDiffusion } from "./types.ts";
 import { journal } from "./journal.ts";
-import { lireRendu, renduDeCetteDiffusion, chargeProcesseur, oublierCharge } from "./rendu.ts";
+import { lireDestinations, lireRendu, renduDeCetteDiffusion, chargeProcesseur, oublierCharge }
+  from "./rendu.ts";
 
 const RACINE = resolve(process.env.RACINE_PROJET ?? resolve(import.meta.dir, "../.."));
 const CORPUS = resolve(process.env.CORPUS_DIR ?? resolve(RACINE, "corpus"));
@@ -20,7 +21,18 @@ const VERROU_CONSTRUCTION = "/tmp/lofi-construction.en-cours";
 const DETECTEUR = resolve(RACINE, "stream/materiel.sh");
 
 /** Ce que la machine offre comme encodeur matériel, et ce qu'il faut passer à Docker pour y accéder. */
-interface Materiel { nom: string; overrides: string[]; gidRender: string; }
+interface Materiel {
+  nom: string;
+  overrides: string[];
+  gidRender: string;
+  /** Le nœud de rendu réellement présent : il n'est pas toujours renderD128. */
+  noeudRendu: string;
+  /** La puce vue sur le bus PCI, même quand elle est inutilisable. */
+  puce: string;
+  /** Pourquoi il n'y a pas d'encodage matériel, et quoi faire. Vides quand il y en a. */
+  cause: string;
+  remede: string;
+}
 
 let materiel: Materiel | null = null;
 
@@ -51,7 +63,11 @@ async function executer(args: string[], env?: Record<string, string>): Promise<R
  */
 async function lireMateriel(): Promise<Materiel> {
   if (materiel) return materiel;
-  const defaut: Materiel = { nom: "aucun", overrides: [], gidRender: "" };
+  const defaut: Materiel = {
+    nom: "aucun", overrides: [], gidRender: "", noeudRendu: "", puce: "",
+    cause: "La détection du matériel n'a pas pu s'exécuter sur cette machine.",
+    remede: "Lancer « bash stream/materiel.sh » à la main pour voir ce qu'elle répond.",
+  };
   const r = await executer(["bash", DETECTEUR]);
   if (!r.ok) {
     journal.warn({ sortie: r.sortie }, "détection du matériel impossible — encodage logiciel");
@@ -67,6 +83,10 @@ async function lireMateriel(): Promise<Materiel> {
     nom: champs.get("MATERIEL") ?? "aucun",
     overrides: (champs.get("OVERRIDES") ?? "").split(" ").filter(Boolean),
     gidRender: champs.get("GID_RENDER") ?? "",
+    noeudRendu: champs.get("NOEUD_RENDU") ?? "",
+    puce: champs.get("PUCE") ?? "",
+    cause: champs.get("CAUSE") ?? "",
+    remede: champs.get("REMEDE") ?? "",
   };
   journal.info({ materiel }, "matériel d'encodage détecté");
   return materiel;
@@ -78,8 +98,13 @@ async function compose(...reste: string[]): Promise<Resultat> {
   const fichiers = m.overrides.length > 0
     ? ["-f", "docker-compose.yml", ...m.overrides.flatMap((f) => ["-f", f])]
     : [];
-  const env = m.gidRender ? { GID_RENDER: m.gidRender } : undefined;
-  return executer(["docker", "compose", ...fichiers, ...reste], env);
+  // Les deux valeurs voyagent ensemble : sans le groupe le conteneur voit le périphérique
+  // sans pouvoir l'ouvrir, sans le nœud il en ouvre un qui n'existe pas.
+  const env: Record<string, string> = {};
+  if (m.gidRender) env.GID_RENDER = m.gidRender;
+  if (m.noeudRendu) env.NOEUD_RENDU = m.noeudRendu;
+  return executer(["docker", "compose", ...fichiers, ...reste],
+    Object.keys(env).length > 0 ? env : undefined);
 }
 
 async function conteneurActif(nom: string): Promise<{ actif: boolean; depuis: string | null }> {
@@ -113,7 +138,11 @@ export async function lireEtat(): Promise<EtatDiffusion> {
     constructionEnCours(),
   ]);
   const rendu = direct.actif ? await lireRendu(direct.depuis ?? "") : null;
+  const destinations = direct.actif ? await lireDestinations() : null;
+  const m = await lireMateriel();
   return {
+    materiel: { nom: m.nom, puce: m.puce, cause: m.cause, remede: m.remede },
+    destinations,
     enMarche: direct.actif,
     conteneur: direct.actif ? CONTENEUR : null,
     depuis: direct.depuis,

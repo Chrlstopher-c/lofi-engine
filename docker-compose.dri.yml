@@ -6,15 +6,24 @@
 # Le conteneur ne tourne pas en root : sans le groupe propriétaire du périphérique, il le
 # voit mais ne peut pas l'ouvrir. Le numéro de ce groupe change d'une distribution à l'autre,
 # d'où la variable — 104 est la valeur Debian, simple garde-fou si la détection n'a rien donné.
+#
+# NOEUD_RENDU suit le même chemin, et pour la même raison : le nœud n'est pas toujours
+# renderD128. Sur une machine à deux puces — un portable à carte hybride, un hôte où la
+# première est déjà prise — c'est renderD129, et VAAPI échouait alors sur un périphérique
+# qui n'existe pas, sans que rien ne le dise. La valeur vient de stream/materiel.sh.
 services:
   direct:
     devices:
       - /dev/dri:/dev/dri
     group_add:
       - "${GID_RENDER:-104}"
+    environment:
+      NOEUD_RENDU: "${NOEUD_RENDU:-/dev/dri/renderD128}"
 
   diffuseur:
     devices:
       - /dev/dri:/dev/dri
     group_add:
       - "${GID_RENDER:-104}"
+    environment:
+      NOEUD_RENDU: "${NOEUD_RENDU:-/dev/dri/renderD128}"

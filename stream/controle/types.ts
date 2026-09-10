@@ -80,7 +80,31 @@ export interface Rendu {
   ecrit: string;
 }
 
+/**
+ * L'état de chaque plateforme pendant le flux en cours. `refusee` veut dire que le muxer a
+ * abandonné cette sortie : elle ne reviendra pas sans relancer la diffusion.
+ */
+export interface Destinations {
+  twitch: "active" | "refusee" | null;
+  youtube: "active" | "refusee" | null;
+  ecrit: string;
+}
+
+/** Ce que la machine offre comme encodeur matériel, et pourquoi quand elle n'offre rien. */
+export interface MaterielEncodage {
+  /** nvidia | dri | aucun */
+  nom: string;
+  /** La puce vue sur le bus PCI, même inutilisable. Vide si aucune. */
+  puce: string;
+  /** Vides quand l'encodage matériel est disponible. */
+  cause: string;
+  remede: string;
+}
+
 export interface EtatDiffusion {
+  materiel: MaterielEncodage;
+  /** null tant qu'aucun flux n'a démarré, ou quand le dépôt est illisible. */
+  destinations: Destinations | null;
   enMarche: boolean;
   conteneur: string | null;
   depuis: string | null;
