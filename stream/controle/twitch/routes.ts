@@ -10,6 +10,7 @@ import { lireChaine, modifierChaine, chercherCategories, lireDirect } from "./ch
 import { listerRediffusions, supprimerRediffusion } from "./rediffusions.ts";
 import { recupererCleDiffusion } from "./cle-diffusion.ts";
 import { verifierAptitude, type Aptitude } from "./aptitude.ts";
+import { verifierAccordCle } from "./cle-diffusion.ts";
 import { lireLotChat, envoyerMessage, relancerChat, arreterChat, viderChat } from "./chat.ts";
 import { lireStatistiques } from "./statistiques.ts";
 import { lireArchivage, definirSuppressionAuto } from "./archivage.ts";
@@ -70,6 +71,9 @@ async function routerCompte(req: Request, chemin: string): Promise<Response | nu
   }
   if (chemin === `${PREFIXE}/cle-diffusion` && m === "POST") return json(await recupererCleDiffusion());
   if (chemin === `${PREFIXE}/aptitude` && m === "GET") return json(await aptitudeMiseEnCache());
+  if (chemin === `${PREFIXE}/cle-diffusion/accord` && m === "GET") {
+    return json(await verifierAccordCle());
+  }
   return null;
 }
 

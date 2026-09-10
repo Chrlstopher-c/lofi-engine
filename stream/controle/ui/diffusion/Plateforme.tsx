@@ -74,12 +74,16 @@ function EtatCle({ cleEnregistree, nouvelleCle, onNouvelleCle }: PropsCle): Reac
  * Le muxer `tee` abandonne une sortie qui refuse et continue sur l'autre, sans rien dire. Ce
  * badge est le seul endroit où ça se voit : « refusée » veut dire que cette plateforme est
  * sortie du flux pour toute sa durée, et qu'il faut relancer la diffusion pour la reprendre.
+ *
+ * L'autre état ne dit PAS que la plateforme reçoit : il dit que rien n'a été refusé. Un flux
+ * poussé avec la clé d'un autre compte est accepté sans une erreur, et cette nuance-là est
+ * exactement ce qui a coûté une demi-journée — le libellé ne doit rien affirmer de plus.
  */
 function EtatFlux({ etatFlux }: { etatFlux: Props["etatFlux"] }): ReactNode {
   if (etatFlux === null) return null;
   return (
     <Badge sens={etatFlux === "active" ? "live" : "danger"} voyant>
-      {etatFlux === "active" ? "reçoit le flux" : "refusée — relancer pour reprendre"}
+      {etatFlux === "active" ? "aucun refus signalé" : "refusée — relancer pour reprendre"}
     </Badge>
   );
 }

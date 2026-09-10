@@ -1,6 +1,16 @@
 # Image partagée par la génération de corpus et la diffusion en direct : les deux ont besoin
 # d'un navigateur qui joue le moteur. Une seule image plutôt que deux fois 1,4 Go.
-FROM debian:bookworm-slim
+#
+# Debian 13 et pas 12, pour une seule raison, mesurée : le muxer `tee` de ffmpeg 5.1 — celui de
+# Debian 12 — produit un flux FLV que Twitch REFUSE. Il se connecte, envoie exactement le même
+# volume d'octets qu'une sortie simple, ne signale aucune erreur, et la chaîne ne passe jamais
+# en direct. Une sortie simple vers Twitch passe ; la même par `tee` ne passe pas.
+#
+# Isolé le 2026-09-10 en rejouant la poussée dans le réseau du conteneur avec ffmpeg 7.1 et
+# rien d'autre de changé : la chaîne passe en direct. C'est donc bien la version, et elle
+# n'était visible que lorsque les deux plateformes étaient actives — le muxer `tee` ne sert
+# qu'à ce moment-là.
+FROM debian:trixie-slim
 
 # chromium n'émet pas d'audio sans affichage : d'où xvfb. pulseaudio fournit le puits
 # audio virtuel que ffmpeg vient lire. Rien n'est installé sur la machine hôte.

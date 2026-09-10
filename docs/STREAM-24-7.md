@@ -244,6 +244,17 @@ clé de diffusion, que ffmpeg recopie en clair dans ses messages. Et il nomme la
 qui tombe, en la reliant à son rang — le muxer ne désigne ses sorties que par un numéro.
 L'onglet Diffusion affiche alors « refusée » sur la plateforme concernée.
 
+**Le muxer `tee` exige un ffmpeg récent.** Celui de Debian 12 — ffmpeg 5.1 — produit par
+`tee` un flux FLV que **Twitch refuse en silence** : la connexion s'ouvre, exactement le même
+volume d'octets qu'une sortie simple est envoyé, aucune erreur n'est signalée, et la chaîne ne
+passe jamais en direct. Le défaut n'apparaît donc que lorsque les deux plateformes sont
+actives, puisque `tee` ne sert qu'à ce moment-là — une seule destination utilise `-f flv`, qui
+n'a jamais posé de problème.
+
+Isolé le 2026-09-10 en cinq mesures : Twitch seule passe, YouTube seule passe, les deux ne
+passent pas ; la même poussée depuis l'hôte passe ; et la même poussée rejouée **dans le réseau
+du conteneur** avec ffmpeg 7.1, sans rien changer d'autre, passe. D'où l'image en Debian 13.
+
 Une sortie abandonnée l'est **pour toute la durée du flux** : le muxer ne la retente jamais.
 Il faut relancer la diffusion pour la reprendre, et l'onglet le dit. Quand c'est Twitch, la
 cause se lit dans l'onglet Twitch, qui interroge l'API de la plateforme.

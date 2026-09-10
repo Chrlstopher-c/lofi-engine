@@ -1,46 +1,69 @@
 /**
- * Le bandeau qui dit pourquoi Twitch refuse la diffusion.
+ * Les deux raisons pour lesquelles une chaîne reste hors ligne alors que tout semble en ordre.
  *
- * En RTMP, un refus se réduit à « Input/output error » : la connexion s'ouvre, le serveur
- * raccroche, la boucle de reconnexion tourne. Une heure a été perdue le 2026-09-10 à écarter
- * la clé, le réseau et l'encodeur, alors que l'API de Twitch répondait en une phrase. Ce
- * bandeau pose la question et affiche la réponse — la sonde existait déjà, elle n'était
- * branchée nulle part.
+ * La première : Twitch refuse la diffusion au compte. En RTMP ce refus se réduit à « Input/output
+ * error » — la connexion s'ouvre, le serveur raccroche, la boucle de reconnexion tourne. Une
+ * heure perdue le 2026-09-10 à écarter la clé, le réseau et l'encodeur, alors que l'API le
+ * disait en une phrase.
+ *
+ * La seconde, plus sournoise : la clé enregistrée est celle d'un AUTRE compte. Twitch accepte
+ * alors le flux sans broncher, c'est l'autre chaîne qui passe en direct, et celle qu'on regarde
+ * reste hors ligne. Aucune erreur nulle part. Mesuré le même jour : compte connecté, portées
+ * accordées, encodeur muet, « la chaîne n'émet pas ».
  */
 import { useEffect, useState, type ReactNode } from "react";
-import type { Aptitude as Verdict } from "../../twitch/types.ts";
+import type { AccordCle, Aptitude as Verdict } from "../../twitch/types.ts";
 import { apiTwitch } from "./api-twitch.ts";
 
-/** La réponse ne change pas d'une minute à l'autre : c'est un état de compte, pas une mesure. */
+/** Deux états de compte, pas des mesures : ils ne changent pas d'une minute à l'autre. */
 const REPOS_MS = 120_000;
 
-export function Aptitude(): ReactNode {
-  const [verdict, setVerdict] = useState<Verdict | null>(null);
+interface Diagnostic { aptitude: Verdict | null; accord: AccordCle | null }
+
+function useDiagnostic(): Diagnostic {
+  const [diagnostic, setDiagnostic] = useState<Diagnostic>({ aptitude: null, accord: null });
 
   useEffect(() => {
     let vivant = true;
     const lire = async (): Promise<void> => {
-      try {
-        const r = await apiTwitch.lireAptitude();
-        if (vivant) setVerdict(r);
-      } catch {
-        // Sonde muette : on n'affiche rien plutôt qu'une fausse alerte.
-        if (vivant) setVerdict(null);
-      }
+      const [aptitude, accord] = await Promise.all([
+        apiTwitch.lireAptitude().catch(() => null),
+        apiTwitch.lireAccordCle().catch(() => null),
+      ]);
+      if (vivant) setDiagnostic({ aptitude, accord });
     };
     void lire();
     const minuteur = window.setInterval(() => void lire(), REPOS_MS);
     return () => { vivant = false; window.clearInterval(minuteur); };
   }, []);
 
-  if (!verdict || verdict.apte) return null;
+  return diagnostic;
+}
+
+function Avis({ titre, corps, aide }: { titre: string; corps: string; aide?: string }): ReactNode {
   return (
     <div className="avis danger" role="alert">
       <div>
-        <strong>Twitch refuse la diffusion.</strong>
-        <p>{verdict.cause}</p>
-        {verdict.remede ? <p className="aide">{verdict.remede}</p> : null}
+        <strong>{titre}</strong>
+        <p>{corps}</p>
+        {aide ? <p className="aide">{aide}</p> : null}
       </div>
     </div>
+  );
+}
+
+export function Aptitude(): ReactNode {
+  const { aptitude, accord } = useDiagnostic();
+  return (
+    <>
+      {aptitude && !aptitude.apte
+        ? <Avis titre="Twitch refuse la diffusion." corps={aptitude.cause ?? ""}
+            aide={aptitude.remede ?? undefined} />
+        : null}
+      {accord && accord.correspond === false
+        ? <Avis titre="La clé de diffusion n'est pas celle de cette chaîne."
+            corps={accord.message} />
+        : null}
+    </>
   );
 }

@@ -77,7 +77,9 @@ rm -f "$ECHANTILLON"
 echo "--- destinations du flux en cours ---"
 if [ -f /tmp/lofi-destinations.json ]; then
   cat /tmp/lofi-destinations.json | sed 's/^/  /'
-  echo "  (« refusee » = la plateforme a rejeté le flux, elle ne reviendra pas sans relance)"
+  echo "  (« refusee » = rejet constaté, sans relance elle ne reviendra pas)"
+  echo "  (« active »  = AUCUN refus signalé — ce n'est pas la preuve que la plateforme"
+  echo "                 reçoive : une clé appartenant à un autre compte est acceptée)"
 else
   echo "  /tmp/lofi-destinations.json absent : le tamis n'est pas dans cette image."
   echo "  Reconstruire : docker compose --profile direct build direct"

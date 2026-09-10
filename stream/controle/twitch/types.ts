@@ -1,4 +1,14 @@
 /**
+ * La clé enregistrée est-elle celle de la chaîne connectée ? Un flux poussé avec la clé d'un
+ * autre compte ne produit aucune erreur — c'est l'autre chaîne qui passe en direct.
+ */
+export interface AccordCle {
+  enregistree: boolean;
+  correspond: boolean | null;
+  message: string;
+}
+
+/**
  * Ce que Twitch répond quand on lui demande si le compte a le droit de diffuser.
  * En RTMP un refus se réduit à « Input/output error » ; ceci le nomme.
  */

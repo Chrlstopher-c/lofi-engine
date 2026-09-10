@@ -1,6 +1,7 @@
 /** Accès à l'API Twitch du centre de contrôle. Aucun secret ne circule par ces routes. */
 import type {
-  Aptitude, Archivage, Categorie, Chaine, ConnexionAppareil, DirectTwitch, EtatChat, EtatTwitch,
+  AccordCle, Aptitude, Archivage, Categorie, Chaine, ConnexionAppareil, DirectTwitch, EtatChat,
+  EtatTwitch,
   LotChat, MessageChat, Rediffusion, StatistiquesTwitch,
 } from "../../twitch/types.ts";
 import { requete, corpsJson } from "../commun/api.ts";
@@ -20,6 +21,9 @@ export const apiTwitch = {
     requete("/api/twitch/cle-diffusion", { method: "POST" }),
   /** Pourquoi Twitch refuse la diffusion, quand le RTMP ne dit rien d'autre que « I/O error ». */
   lireAptitude: (): Promise<Aptitude> => requete<Aptitude>("/api/twitch/aptitude"),
+  /** La clé du .env est-elle celle de la chaîne connectée ? Aucune des deux ne circule. */
+  lireAccordCle: (): Promise<AccordCle> =>
+    requete<AccordCle>("/api/twitch/cle-diffusion/accord"),
   lireChaine: (): Promise<Chaine> => requete<Chaine>("/api/twitch/chaine"),
   modifierChaine: (chaine: Chaine): Promise<Chaine> =>
     requete<Chaine>("/api/twitch/chaine", corpsJson("PATCH", {
