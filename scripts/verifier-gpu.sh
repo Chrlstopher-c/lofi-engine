@@ -280,7 +280,7 @@ paquets_pilote() {
 
 verifier_encodage() {
   local voie; voie=$(voie_encodage)
-  titre "6. L'encodage matériel, essayé pour de vrai"
+  titre "6. L'encodage matériel sur cette machine"
   [ -n "$voie" ] || { note "aucune voie matérielle connue pour une puce ${puce:-absente}."; return 1; }
   [ "$voie" = "nvenc" ] || [ -n "$noeud" ] || { note "sans nœud de rendu, rien à essayer."; return 1; }
   if ! command -v ffmpeg >/dev/null 2>&1; then
@@ -288,7 +288,8 @@ verifier_encodage() {
     proposer "installer ffmpeg" installer_paquets ffmpeg || return 1
   fi
   if essai_encodeur "$voie"; then
-    bon "$voie encode ici. C'est la preuve, pas une présomption."
+    bon "$voie encode sur cette machine."
+    note "Attention : cela ne dit rien du conteneur, qui a ses propres pilotes — voir l'étape 8."
     return 0
   fi
   manque "$voie ne parvient pas à encoder sur cette machine."
@@ -380,12 +381,16 @@ verifier_docker() {
     return 0
   fi
   manque "le conteneur ne parvient pas à encoder, alors que la machine y arrive."
+  note "C'est CETTE étape qui compte : la machine et le conteneur n'ont pas les mêmes pilotes."
   if [ "$voie" = "nvenc" ]; then
     note "Le pont nvidia-container est installé mais ne transmet pas la carte : vérifier que"
     note "« nvidia-ctk runtime configure » a bien été passé, et que Docker a redémarré depuis."
   else
-    note "Presque toujours le groupe : le conteneur ne tourne pas en root et doit rejoindre"
-    note "le groupe ${gid:-?} propriétaire du nœud. materiel.sh le transmet — voir l'étape 9."
+    note "Deux causes possibles, dans cet ordre :"
+    note "  · le pilote VAAPI manque dans l'image — libva seul ne suffit pas, il faut un"
+    note "    pilote (iHD, i965, radeonsi). Vérifier : docker run --rm lofi-navigateur:local"
+    note "    ls /usr/lib/x86_64-linux-gnu/dri/ — si le répertoire n'existe pas, reconstruire."
+    note "  · le groupe ${gid:-?} propriétaire du nœud, que le conteneur doit rejoindre."
   fi
   return 1
 }

@@ -244,6 +244,18 @@ clé de diffusion, que ffmpeg recopie en clair dans ses messages. Et il nomme la
 qui tombe, en la reliant à son rang — le muxer ne désigne ses sorties que par un numéro.
 L'onglet Diffusion affiche alors « refusée » sur la plateforme concernée.
 
+**Les pilotes VAAPI ne viennent pas avec ffmpeg.** Debian n'installe que `libva`, l'interface.
+Sans pilote — `iHD` pour l'Intel récent, `i965` pour l'ancien, `radeonsi` pour l'AMD —
+`h264_vaapi` ne s'initialise jamais et l'encodeur retombe en logiciel. Le symptôme est
+déroutant : le centre de contrôle annonce « VAAPI disponible » parce que l'hôte, lui, a ses
+pilotes, pendant que le conteneur écrit « aucune puce vidéo accessible » et abaisse la
+définition à 1280×720. Mesuré le 2026-09-10 sur un LXC dont la puce Intel était pourtant
+correctement passée : `/usr/lib/x86_64-linux-gnu/dri/` n'existait même pas dans l'image.
+
+C'est aussi pourquoi l'étape 8 de `verifier-gpu.sh` est la seule qui compte : elle encode
+**dans l'image du diffuseur**. Les étapes précédentes éprouvent la machine, qui n'a pas les
+mêmes pilotes que le conteneur.
+
 **Ne jamais diffuser en 25 ou 50 images par seconde vers YouTube.** Ces cadences PAL passent
 l'ingestion sans la moindre erreur — YouTube note même la réception « Excellent » — puis son
 transcodeur construit une échelle de qualités **entièrement carrée**. Mesuré le 2026-09-10 : en

@@ -16,8 +16,16 @@ FROM debian:trixie-slim
 # audio virtuel que ffmpeg vient lire. Rien n'est installé sur la machine hôte.
 # python3 sert au compositeur : il traduit la scène en chaîne de filtres ffmpeg, ce qui évite
 # d'afficher cette scène dans un navigateur pour la recapturer ensuite.
+# Les pilotes VAAPI ne viennent PAS avec ffmpeg : Debian n'installe que libva, l'interface.
+# Sans pilote, h264_vaapi ne s'initialise jamais et l'encodeur retombe en logiciel — le
+# conteneur annonce alors « aucune puce vidéo accessible » pendant que l'hôte, lui, expose bien
+# son nœud de rendu. Mesuré le 2026-09-10 sur une installation LXC dont la puce Intel était
+# correctement passée : /usr/lib/x86_64-linux-gnu/dri/ n'existait même pas dans l'image.
+#   i965      : Intel jusqu'à Broadwell · intel-media : Intel Gen8 et au-delà
+#   mesa-va   : AMD · vainfo : de quoi diagnostiquer sur place
 RUN apt-get update && apt-get install -y --no-install-recommends \
       chromium xvfb pulseaudio pulseaudio-utils ffmpeg procps ca-certificates python3 \
+      intel-media-va-driver i965-va-driver mesa-va-drivers vainfo \
   && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 1000 capteur
