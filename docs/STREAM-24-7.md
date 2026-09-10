@@ -244,6 +244,16 @@ clé de diffusion, que ffmpeg recopie en clair dans ses messages. Et il nomme la
 qui tombe, en la reliant à son rang — le muxer ne désigne ses sorties que par un numéro.
 L'onglet Diffusion affiche alors « refusée » sur la plateforme concernée.
 
+**Un débit de 1500k ne suffit pas en 1080p.** C'est le défaut historique du projet, hérité
+d'une époque où la scène était une image fixe. Sur une scène sombre en dégradés — ce qu'est
+une scène lofi — l'image part en blocs, et rien dans les journaux ne fait le lien. Mesuré :
+sur une source en dégradés sombres, la similarité passe de 0,999440 à 0,999667 entre 1500k et 4500k, et à l'œil l'écart est sans appel. Le `tune`, lui,
+n'y change rien : 0,999440 contre 0,999443, mesuré aussi — l'intuition disait le contraire.
+
+Le défaut est donc 4500k, ce que recommandent les deux plateformes, et le diffuseur avertit au
+démarrage quand on descend sous 3000k en 1080p. Ce débit se compte **par destination** : deux
+plateformes actives demandent le double en montant.
+
 **Quand le processeur encode, on allège le préréglage avant de toucher à la définition.**
 Mesuré en 1080p30 sur une source difficile : `veryfast` coûte 2,74 cœurs, `ultrafast` 1,63 —
 40 % de moins pour une image à peine plus molle, alors qu'une définition divisée par deux se

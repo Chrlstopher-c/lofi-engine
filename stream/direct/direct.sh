@@ -485,6 +485,18 @@ adapter_charge
 # carte appartiennent à la chaîne de filtres, pas aux options de sortie.
 profil_encodeur "$ENCODEUR_RETENU" "$MODE_SCENE"
 [ "$MODE_SCENE" = "ffmpeg" ] && [ -n "$FILTRE_SORTIE" ] && preparer_composition
+# Un débit trop serré pour la définition ne casse rien : il donne une image en blocs, et
+# personne ne fait le lien. Autant le dire au démarrage.
+avertir_debit() {
+  local largeur="${STREAM_RESOLUTION%x*}" k="${STREAM_VIDEO_BITRATE%k}"
+  [ "$largeur" -ge 1920 ] || return 0
+  [ "$k" -lt 3000 ] 2>/dev/null || return 0
+  journal "ATTENTION : ${STREAM_VIDEO_BITRATE} pour du ${STREAM_RESOLUTION}, c'est peu. Les deux
+       plateformes recommandent 4500k, et en dessous une scène sombre part en blocs — les
+       dégradés sont ce qui se compresse le plus mal. STREAM_VIDEO_BITRATE dans le .env."
+}
+
+avertir_debit
 annoncer_destinations
 ecrire_rendu
 journal "corpus de secours : $(compter_corpus) fichier(s)"

@@ -68,7 +68,7 @@ services:
       YOUTUBE_INGEST: "${YOUTUBE_INGEST:-rtmp://a.rtmp.youtube.com/live2}"
       STREAM_RESOLUTION: "${STREAM_RESOLUTION:-1920x1080}"
       STREAM_FPS: "${STREAM_FPS:-30}"
-      STREAM_VIDEO_BITRATE: "${STREAM_VIDEO_BITRATE:-1500k}"
+      STREAM_VIDEO_BITRATE: "${STREAM_VIDEO_BITRATE:-4500k}"
       STREAM_AUDIO_BITRATE: "${STREAM_AUDIO_BITRATE:-160k}"
       # auto : puce vidéo si elle est accessible, logiciel sinon (voir stream/materiel.sh)
       STREAM_ENCODEUR: "${STREAM_ENCODEUR:-auto}"
