@@ -248,6 +248,7 @@ lofi-engine/
 ├── scripts/
 │   └── optimize-backgrounds.sh        compression des fonds d'écran
 │   ├── verifier-gpu.sh             diagnostique l'accès à la puce vidéo et propose de corriger
-│   └── lxc-gpu-hote.sh             donne la puce d'un hôte Proxmox à un conteneur LXC
+│   ├── lxc-gpu-hote.sh             donne la puce d'un hôte Proxmox à un conteneur LXC
+│   └── sonder-format.sh           mesure ce que le flux émet vraiment : forme, bandes, destinations
 └── screenshots/                       captures utilisées par le README amont
 ```
