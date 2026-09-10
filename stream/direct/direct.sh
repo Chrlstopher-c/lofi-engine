@@ -234,6 +234,7 @@ nettoyer() {
   arreter_repli
   arreter_navigateur
   arreter_diffusion
+  arreter_relais_accords
   pulseaudio --kill 2>/dev/null
   return 0
 }
@@ -347,6 +348,9 @@ construire_sortie
 # et l'annonce des destinations en dépendent tous les trois.
 choisir_encodeur
 vrai "$STREAM_SCENE" && choisir_mode_scene
+# Le relais démarre avec la première tentative de composition ; s'il faut finalement passer par
+# le navigateur, il n'a plus d'objet — c'est le navigateur qui dessine les accords.
+[ "$MODE_SCENE" = "navigateur" ] && arreter_relais_accords
 adapter_charge
 # Le profil d'encodeur dépend du mode : en composition, l'échelle et le transfert vers la
 # carte appartiennent à la chaîne de filtres, pas aux options de sortie.

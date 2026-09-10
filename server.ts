@@ -5,6 +5,7 @@
  */
 import { file, type BunFile } from "bun";
 import { resolve, normalize, join } from "node:path";
+import { repondre as repondreProgression } from "./progression.ts";
 
 const ROOT = resolve(process.env.LOFI_ROOT ?? "./dist");
 const PORT = Number(process.env.LOFI_PORT ?? 4707);
@@ -55,6 +56,8 @@ Bun.serve({
   idleTimeout: 255,
   async fetch(req: Request): Promise<Response> {
     const { pathname } = new URL(req.url);
+    // Seule route dynamique du site : le relais d'accords vers le diffuseur.
+    if (pathname === "/progression") return repondreProgression(req, req.method);
     const path = resolveSafePath(pathname);
     if (!path) return new Response("Forbidden", { status: 403 });
 

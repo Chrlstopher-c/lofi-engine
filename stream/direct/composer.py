@@ -23,6 +23,8 @@ POLICE_TITRE = POLICES / "scene-titre.ttf"
 POLICE_TEXTE = POLICES / "scene-texte.ttf"
 VOILE_PNG = Path("/tmp/lofi-voile.png")
 FICHIER_DATE = Path(os.environ.get("FICHIER_DATE", "/tmp/lofi-date.txt"))
+# Déposé par le relais : la progression que le moteur joue, relue à chaque image.
+FICHIER_ACCORDS = Path(os.environ.get("FICHIER_ACCORDS", ""))
 
 EXTENSIONS_VIDEO = {".mp4", ".webm", ".mov", ".mkv", ".m4v"}
 AMPLITUDE_DERIVE = 1.06        # la scène agrandit le fond de 6 % pour avoir de quoi dériver
@@ -206,7 +208,8 @@ def poser_voile(plan: Plan) -> None:
 # --- Calques --------------------------------------------------------------------------
 
 def _drawtext(texte: str, police: Path, taille: int, couleur: str,
-              expr_x: str, expr_y: str, cadre: bool, fichier: Path | None = None) -> str:
+              expr_x: str, expr_y: str, cadre: bool, fichier: Path | None = None,
+              brut: bool = False) -> str:
     # Un texte tenu dans un fichier est relu à chaque image : c'est ainsi que la date passe
     # en français — ffmpeg ne connaît que la locale du système — et que le calque des accords
     # pourra suivre la musique sans redémarrer la diffusion.
@@ -216,6 +219,10 @@ def _drawtext(texte: str, police: Path, taille: int, couleur: str,
         f"fontcolor={couleur}", f"x={expr_x}", f"y={expr_y}",
         "shadowcolor=black@0.45", "shadowx=0", "shadowy=2",
     ]
+    # drawtext interprète %{...} dans le texte qu'il lit. Pour un contenu qui ne vient pas
+    # d'ici — les accords passent par le navigateur — cette interprétation est une brèche.
+    if brut:
+        options.append("expansion=none")
     if cadre:
         options += ["box=1", "boxcolor=black@0.35", f"boxborderw={max(8, taille // 4)}"]
     return "drawtext=" + ":".join(options)
@@ -255,6 +262,19 @@ def poser_horloge(plan: Plan, calque: dict, larg: int, haut: int, rang: int) -> 
         f"c{rang}d")
 
 
+def poser_accords(plan: Plan, calque: dict, larg: int, haut: int, rang: int) -> None:
+    """La progression jouée, telle que le relais l'a déposée : « Am · i IV [v] VII »."""
+    taille = max(8, int(larg * float(calque.get("taille", 2.4)) / 100))
+    couleur = couleur_ffmpeg(calque.get("couleur"), float(calque.get("opacite", 1)))
+    bordure = max(8, taille // 4) if calque.get("cadre") else 0
+    x, y = position(calque.get("ancre", "bas-droite"), float(calque.get("x", 0)),
+                    float(calque.get("y", 0)), larg, haut, "texte", bordure)
+    plan.enchainer(
+        _drawtext("", POLICE_TEXTE, taille, couleur, x, y,
+                  bool(calque.get("cadre")), FICHIER_ACCORDS, brut=True),
+        f"c{rang}")
+
+
 def poser_media(plan: Plan, calque: dict, larg: int, haut: int, fps: int, rang: int) -> None:
     fichier = calque.get("fichier") or ""
     if not fichier:
@@ -285,8 +305,9 @@ def poser_media(plan: Plan, calque: dict, larg: int, haut: int, fps: int, rang: 
     plan.dernier = f"[c{rang}]"
 
 
-POSEURS = {"texte": poser_texte, "horloge": poser_horloge}
-NON_COMPOSABLES = {"accords"}
+POSEURS = {"texte": poser_texte, "horloge": poser_horloge, "accords": poser_accords}
+# Sans relais alimenté, les accords ne sont pas composables : seul le navigateur les connaît.
+NON_COMPOSABLES = set() if FICHIER_ACCORDS.name else {"accords"}
 
 
 def poser_calques(plan: Plan, calques: list[dict], larg: int, haut: int, fps: int) -> bool:

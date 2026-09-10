@@ -10,7 +10,7 @@ RUN bun run build
 FROM oven/bun:1-slim
 WORKDIR /app
 COPY --from=build /app/dist ./dist
-COPY server.ts ./
+COPY server.ts progression.ts ./
 
 ENV LOFI_ROOT=/app/dist \
     LOFI_PORT=4707 \

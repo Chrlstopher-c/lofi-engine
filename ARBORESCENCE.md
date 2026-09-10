@@ -14,6 +14,7 @@ lofi-engine/
 ├── .dockerignore                   ⬤ exclut node_modules, dist, .git du contexte de build
 ├── docker-cli.sh                   ⬤ détecte le client Docker et la commande d'installation
 ├── server.ts                       ⬤ serveur statique Bun, gère les requêtes Range des mp3
+├── progression.ts                  relais mémoire des accords vers le diffuseur
 ├── .echoforge.yml                  ⬤ fiche d'identité lue par Atrium
 ├── .env.example                    ⬤ variables d'environnement, sans valeurs sensibles
 ├── STATE.md                        ⬤ état du projet, décisions, cross-session

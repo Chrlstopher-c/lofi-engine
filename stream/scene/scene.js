@@ -263,9 +263,32 @@
     });
   }
 
+  // ---- Relais vers le diffuseur ---------------------------------------------------------
+
+  // Quand ffmpeg compose, cette page ne dessine plus rien : elle est le seul endroit d'où les
+  // accords sont visibles, puisqu'ils naissent dans le moteur. Elle les dépose donc sur le
+  // serveur, où le diffuseur vient les lire. Rien n'est envoyé tant que rien ne change.
+  let derniereSignatureEnvoyee = null;
+
+  function deposerProgression(progression, signature) {
+    if (signature === derniereSignatureEnvoyee) return;
+    derniereSignatureEnvoyee = signature;
+    if (!progression) return;
+    const actif = progression.degres.findIndex((degre) => degre.actif);
+    const corps = JSON.stringify({
+      cle: progression.cle,
+      degres: progression.degres.map((degre) => enRomain(degre.texte)),
+      actif,
+    });
+    // Un dépôt manqué n'est pas grave : le suivant arrive dans 300 ms.
+    void fetch("/progression", { method: "POST", body: corps, keepalive: true })
+      .catch(() => { derniereSignatureEnvoyee = null; });
+  }
+
   function sonderAccords() {
     const progression = lireProgression();
     const actuelle = progression ? signatureProgression(progression) : "";
+    if (CONFIG.audioSeul) { deposerProgression(progression, actuelle); return; }
     document.querySelectorAll(".calque-accords").forEach((calque) => {
       if (!progression) { calque.hidden = true; calque.dataset.signature = ""; return; }
       if (calque.dataset.signature !== actuelle) {

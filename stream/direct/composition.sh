@@ -7,6 +7,9 @@
 
 COMPOSITEUR="${COMPOSITEUR:-/usr/local/bin/composer.py}"
 FICHIER_DATE="${FICHIER_DATE:-/tmp/lofi-date.txt}"
+FICHIER_ACCORDS="${FICHIER_ACCORDS:-/tmp/lofi-accords.txt}"
+CADENCE_ACCORDS=0.5       # les accords changent à la mesure : la boucle doit suivre
+RELAIS_ACCORDS_PID=""
 FICHIER_SCENE="${FICHIER_SCENE:-${CORPUS_DIR:-/corpus}/scene.json}"
 ECRAN_MOTEUR="${ECRAN_MOTEUR:-360x240x24}"   # le navigateur ne sert plus qu'à jouer, pas à montrer
 ARGS_COMPOSITION=()
@@ -27,6 +30,32 @@ ecrire_date() {
   printf '%s %s %s' "${jour^}" "$(date +%-d)" "$mois" > "$FICHIER_DATE" 2>/dev/null
 }
 
+# Les accords naissent dans le navigateur : lui seul les connaît. La page les dépose sur le
+# serveur du site, cette boucle les recopie dans un fichier que drawtext relit à chaque image.
+# Sans elle, le calque des accords forcerait le retour au navigateur pour toute la scène.
+demarrer_relais_accords() {
+  [ -n "$RELAIS_ACCORDS_PID" ] && return 0
+  : > "$FICHIER_ACCORDS"
+  setsid bash -c '
+    fichier="$1"; base="$2"; cadence="$3"
+    while true; do
+      if ligne=$(curl -fsS --max-time 2 "${base}/progression" 2>/dev/null); then
+        printf "%s" "$ligne" > "${fichier}.partiel" && mv -f "${fichier}.partiel" "$fichier"
+      fi
+      sleep "$cadence"
+    done
+  ' _ "$FICHIER_ACCORDS" "$LOFI_BASE" "$CADENCE_ACCORDS" >/dev/null 2>&1 &
+  RELAIS_ACCORDS_PID=$!
+  journal "relais d'accords en marche (PID $RELAIS_ACCORDS_PID)"
+}
+
+# Arrêt par groupe, sur le PID exact retenu au démarrage : jamais par motif de nom.
+arreter_relais_accords() {
+  [ -n "$RELAIS_ACCORDS_PID" ] || return 0
+  kill -TERM -- "-$RELAIS_ACCORDS_PID" 2>/dev/null
+  RELAIS_ACCORDS_PID=""
+}
+
 empreinte_scene() {
   stat -c '%Y %s' "$FICHIER_SCENE" 2>/dev/null || echo "absente"
 }
@@ -35,9 +64,11 @@ empreinte_scene() {
 # (un calque que seul le moteur sait produire), 1 si la scène n'est pas composable du tout.
 preparer_composition() {
   ecrire_date
+  demarrer_relais_accords
   local sortie code
   sortie=$(STREAM_RESOLUTION="$STREAM_RESOLUTION" STREAM_FPS="$STREAM_FPS" \
            CORPUS_DIR="${CORPUS_DIR:-/corpus}" FICHIER_DATE="$FICHIER_DATE" \
+           FICHIER_ACCORDS="$FICHIER_ACCORDS" \
            ENTREES_AVANT=1 FILTRE_SORTIE="${FILTRE_SORTIE:-}" \
            python3 "$COMPOSITEUR" "$FICHIER_SCENE" 2>/tmp/composition.log)
   code=$?

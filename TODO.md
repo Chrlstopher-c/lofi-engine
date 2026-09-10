@@ -30,10 +30,11 @@ serveur, pas un chantier d'interface.
       l'ont remplacé. À supprimer une fois qu'on est sûr de ne pas y revenir.
 
 ## À faire
-- [ ] **Afficher les accords quand ffmpeg compose** — c'est le seul calque qui force encore
-      la scène à repasser par le navigateur, bien plus coûteux. Le mécanisme existe déjà : la
-      date est écrite dans un fichier que ffmpeg relit à chaque image. Il suffit que le moteur
-      musical écrive l'accord courant dans un fichier du même genre.
+- [x] **Afficher les accords quand ffmpeg compose** — la page dépose la progression sur le
+      serveur du site (`/progression`), un relais la recopie dans un fichier que ffmpeg relit
+      à chaque image. Plus aucun calque ne force le retour au navigateur.
+      Reste à voir à l'antenne : la ligne est rendue d'un seul tenant, « Am · i IV [v] VII »,
+      le degré en cours entre crochets faute de pouvoir le colorer dans un seul tracé.
 - [ ] **Exercer VAAPI sur du vrai matériel Intel** — le profil n'a jamais encodé une image sur
       une puce Intel, faute d'en avoir une ici. À faire chez quelqu'un qui en a une.
 - [ ] **Passer la diffusion à 30 images par seconde** — le `.env` est encore à 25, hérité de
