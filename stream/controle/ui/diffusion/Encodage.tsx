@@ -7,7 +7,16 @@ import type { Diffusion } from "../../types.ts";
 import { Badge, BarreEnregistrement, Champ, Section, Selection, Texte } from "../commun/composants.tsx";
 import type { Editeur } from "../commun/useEditeur.ts";
 
-const FPS = [24, 25, 30, 48, 50, 60].map((n) => ({ valeur: String(n), libelle: `${n} i/s` }));
+/**
+ * 25 et 50 sont des cadences PAL. YouTube les accepte à l'ingestion, puis construit une échelle
+ * de qualités entièrement CARRÉE — mesuré le 2026-09-10 : en 25 i/s, les sept rendus produits
+ * allaient de 1440x1440 à 144x144, sans un seul 16:9 ; en 30 i/s, sur la même diffusion et la
+ * même clé, ils repassent tous en 16:9. Elles restent proposées, mais annoncées.
+ */
+const FPS = [24, 25, 30, 48, 50, 60].map((n) => ({
+  valeur: String(n),
+  libelle: [25, 50].includes(n) ? `${n} i/s — carre le flux YouTube` : `${n} i/s`,
+}));
 
 interface Props {
   conf: Diffusion;
@@ -33,7 +42,8 @@ export function Encodage({ conf, definir, modifie, enregistrement, onAnnuler, on
         <Champ libelle="Résolution" note="l×h" indice="ex. 1920x1080">
           <Texte mono valeur={conf.resolution} onChange={(resolution) => definir((c) => ({ ...c, resolution }))} />
         </Champ>
-        <Champ libelle="Images par seconde">
+        <Champ libelle="Images par seconde"
+          indice="30 ou 60. En 25 ou 50, YouTube produit une image carrée — mesuré.">
           <Selection valeur={String(conf.fps)} options={FPS}
             onChange={(v) => definir((c) => ({ ...c, fps: Number(v) }))} />
         </Champ>

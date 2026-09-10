@@ -244,6 +244,19 @@ clé de diffusion, que ffmpeg recopie en clair dans ses messages. Et il nomme la
 qui tombe, en la reliant à son rang — le muxer ne désigne ses sorties que par un numéro.
 L'onglet Diffusion affiche alors « refusée » sur la plateforme concernée.
 
+**Ne jamais diffuser en 25 ou 50 images par seconde vers YouTube.** Ces cadences PAL passent
+l'ingestion sans la moindre erreur — YouTube note même la réception « Excellent » — puis son
+transcodeur construit une échelle de qualités **entièrement carrée**. Mesuré le 2026-09-10 : en
+25 i/s, les sept rendus produits allaient de 1440×1440 à 144×144, sans un seul 16:9, et la
+scène arrivait au spectateur encadrée de noir sur les quatre côtés. En 30 i/s, sur la **même
+diffusion** et la **même clé**, tous les rendus repassent en 16:9.
+
+Ce défaut a coûté une demi-journée parce qu'il ne laisse aucune trace de notre côté : le codec,
+le conteneur, les métadonnées FLV et la réception annoncée par YouTube disent tous 1920×1080.
+Cinq variables ont été éliminées avant d'arriver à la bonne — double flux, clé régénérée, type
+de clé, latence, diffusion programmée — et c'est la seule qu'on n'avait jamais fait varier de
+notre côté. Twitch, lui, accepte le 25 i/s sans broncher.
+
 **Le muxer `tee` exige un ffmpeg récent.** Celui de Debian 12 — ffmpeg 5.1 — produit par
 `tee` un flux FLV que **Twitch refuse en silence** : la connexion s'ouvre, exactement le même
 volume d'octets qu'une sortie simple est envoyé, aucune erreur n'est signalée, et la chaîne ne
