@@ -208,6 +208,12 @@ choisir_entree_video() {
 
 # En composition, le puits audio est ouvert en premier : la scène référence ses propres
 # entrées par des index, et elle a été construite en sachant qu'une entrée la précède.
+# -g demande un intervalle d'images-clés ; certains encodeurs ne l'honorent pas. Mesuré le
+# 2026-09-10 sur une puce Intel en basse consommation : deux images-clés sur six secondes au
+# lieu de trois, soit un intervalle de trois secondes au lieu de deux. Twitch s'en accommode,
+# YouTube reste bloqué sur « préparation du flux » indéfiniment — même flux, deux exigences.
+# -force_key_frames est calculé par ffmpeg lui-même, sur le temps : il ne dépend plus de la
+# bonne volonté de l'encodeur.
 lancer_diffusion() {
   local gop=$((STREAM_FPS * 2))
   local entrees=() maps=()
@@ -240,6 +246,7 @@ lancer_diffusion() {
     -aspect "${STREAM_RESOLUTION%x*}:${STREAM_RESOLUTION#*x}" \
     "${DEBIT_VIDEO[@]}" \
     -g "$gop" -keyint_min "$gop" \
+    -force_key_frames "expr:gte(t,n_forced*2)" \
     -c:a aac -b:a "$STREAM_AUDIO_BITRATE" -ar 44100 -ac 2 \
     "${FORMAT_SORTIE[@]}" &
   DIFFUSION_PID=$!
