@@ -244,6 +244,12 @@ clé de diffusion, que ffmpeg recopie en clair dans ses messages. Et il nomme la
 qui tombe, en la reliant à son rang — le muxer ne désigne ses sorties que par un numéro.
 L'onglet Diffusion affiche alors « refusée » sur la plateforme concernée.
 
+**Quand le processeur encode, on allège le préréglage avant de toucher à la définition.**
+Mesuré en 1080p30 sur une source difficile : `veryfast` coûte 2,74 cœurs, `ultrafast` 1,63 —
+40 % de moins pour une image à peine plus molle, alors qu'une définition divisée par deux se
+voit immédiatement. Le garde-fou choisit donc `ultrafast` en dessous de six cœurs et ne
+descend en 1280×720 qu'en dessous de trois. `STREAM_PRESET` permet de trancher soi-même.
+
 **Les petites puces Intel n'encodent que par la voie « basse consommation ».** Leur pilote
 n'expose H.264 que par `VAEntrypointEncSliceLP`, qui n'accepte pas toujours le débit constant.
 ffmpeg refuse alors net — « Driver does not support any RC mode compatible with selected

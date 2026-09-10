@@ -27,7 +27,13 @@ STREAM_ENCODEUR="${STREAM_ENCODEUR:-auto}"   # auto | nvenc | vaapi | x264
 STREAM_COMPOSITEUR="${STREAM_COMPOSITEUR:-auto}"  # auto | ffmpeg | navigateur
 MODE_SCENE="navigateur"  # qui dessine la scène : ffmpeg, ou le navigateur qu on recapture
 NOEUD_RENDU="${NOEUD_RENDU:-/dev/dri/renderD128}"
-STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # abaisser la définition si la machine ne suit pas
+STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # adapter la charge si la machine ne suit pas
+# Préréglage x264, déduit du nombre de cœurs quand il vaut « auto ». C'est le premier levier
+# quand la machine est juste : mesuré en 1080p30 sur une source difficile, veryfast coûte
+# 2,74 cœurs et ultrafast 1,63 — 40 % de moins pour une image à peine plus molle, alors qu'une
+# définition divisée par deux se voit immédiatement.
+STREAM_PRESET="${STREAM_PRESET:-auto}"
+PRESET_X264="veryfast"
 # Qualité constante VAAPI : plus le nombre est haut, plus l'image est compressée et le flux
 # léger. Aucun plafond de débit n'est possible sur ces puces — les quatre modes qui en offrent
 # un (VBR, QVBR, ICQ, AVBR) ont été essayés et refusés — donc c'est le seul levier.
@@ -35,7 +41,8 @@ STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # abaisser la définition si la mac
 # Chaque palier de six divise approximativement le poids par deux, d'où 36 par défaut, qui
 # vise environ 4 Mbit/s. À ajuster : c'est la liaison montante qui décide, pas la machine.
 STREAM_VAAPI_QP="${STREAM_VAAPI_QP:-36}"
-COEURS_POUR_1080P_LOGICIEL=6                 # mesuré : 1080p sans puce vidéo coûte ~3 cœurs pleins
+COEURS_POUR_1080P_RAPIDE=6    # au-delà, veryfast tient sans se poser de question
+COEURS_POUR_1080P_MINIMAL=3   # en dessous, même ultrafast ne suffit plus : la définition tombe
 ENCODEUR_RETENU=""
 DEBIT_VIDEO=()        # vide en qualité constante, rempli par regler_debit
 REPOS_INGESTION=2      # secondes laissées à la plateforme avant de renvoyer un flux
@@ -92,7 +99,7 @@ profil_encodeur() {
                         -c:v h264_vaapi "${qualite[@]}" -r "$STREAM_FPS")
       fi ;;
     x264)
-      ENCODEUR_VIDEO=(-c:v libx264 -preset veryfast -tune stillimage -pix_fmt yuv420p
+      ENCODEUR_VIDEO=(-c:v libx264 -preset "$PRESET_X264" -tune stillimage -pix_fmt yuv420p
                       "${echelle[@]}" -r "$STREAM_FPS" -sc_threshold 0) ;;
     *) return 1 ;;
   esac
@@ -120,6 +127,7 @@ essayer_encodeur() {
 }
 
 choisir_encodeur() {
+  choisir_preset
   # vaapi-cqp n'est PAS dans la sélection automatique, et c'est délibéré : sans plafond de
   # débit, le poids du flux oscille en permanence. Twitch l'accepte, YouTube reste bloqué sur
   # « préparation du flux » — mesuré le 2026-09-10. Un flux logiciel plafonné en 720p vaut
@@ -160,7 +168,23 @@ choisir_encodeur() {
 # Sans puce vidéo, le 1080p demande environ trois cœurs pour l'encodage, plus autant pour le
 # navigateur qui décode le fond : sur une petite machine le flux ne décroche pas franchement,
 # il s'étrangle — les tampons gonflent jusqu'à ce que quelque chose meure. Mieux vaut diffuser
-# en 1280x720 que crasher au bout d'une minute. Se désactive avec STREAM_ADAPTER=false.
+# en 1280x720 que crasher au bout d'une minute. Mais on allège d'abord l'encodage, et on ne
+# touche à la définition qu'en dernier recours. Se désactive avec STREAM_ADAPTER=false.
+# Choisit le préréglage x264 selon ce que la machine peut tenir.
+choisir_preset() {
+  if [ "$STREAM_PRESET" != "auto" ]; then
+    PRESET_X264="$STREAM_PRESET"
+    return 0
+  fi
+  local coeurs
+  coeurs=$(nproc 2>/dev/null || echo 4)
+  if [ "$coeurs" -ge "$COEURS_POUR_1080P_RAPIDE" ]; then
+    PRESET_X264="veryfast"
+  else
+    PRESET_X264="ultrafast"
+  fi
+}
+
 adapter_charge() {
   if [ "$MODE_SCENE" = "ffmpeg" ]; then
     # Personne ne regarde cet écran : il n'existe que parce que le navigateur refuse de
@@ -179,10 +203,19 @@ adapter_charge() {
 
   local coeurs
   coeurs=$(nproc 2>/dev/null || echo 0)
-  [ "$coeurs" -lt "$COEURS_POUR_1080P_LOGICIEL" ] || return 0
+  [ "$coeurs" -lt "$COEURS_POUR_1080P_RAPIDE" ] || return 0
 
-  journal "définition abaissée à 1280x720 : ${coeurs} cœur(s) et aucune puce vidéo accessible,
-       ${STREAM_RESOLUTION} en logiciel en demande environ ${COEURS_POUR_1080P_LOGICIEL}.
+  # Premier levier : le préréglage, choisi plus haut. La définition est préservée.
+  if [ "$coeurs" -ge "$COEURS_POUR_1080P_MINIMAL" ]; then
+    journal "${coeurs} cœur(s) et pas de puce vidéo utilisable : la pleine définition est
+       conservée, l'encodage passe en « $PRESET_X264 ». Mesuré en 1080p30 : 1,63 cœur contre
+       2,74 en « veryfast ». L'image est à peine plus molle, là où une définition divisée par
+       deux se verrait tout de suite. Pour choisir soi-même : STREAM_PRESET dans le .env."
+    return 0
+  fi
+
+  journal "définition abaissée à 1280x720 : ${coeurs} cœur(s) seulement, et même le préréglage
+       le plus rapide ne suffit pas en ${STREAM_RESOLUTION}.
        Pour diffuser malgré tout en ${STREAM_RESOLUTION}, mettre STREAM_ADAPTER=false dans le .env.
        Pour retrouver la pleine définition, donner une puce vidéo au conteneur : sur Proxmox, un
        conteneur LXC voit /dev/dri de l'hôte, une machine virtuelle non."

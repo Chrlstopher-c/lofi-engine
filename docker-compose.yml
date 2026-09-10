@@ -72,6 +72,9 @@ services:
       STREAM_AUDIO_BITRATE: "${STREAM_AUDIO_BITRATE:-160k}"
       # auto : puce vidéo si elle est accessible, logiciel sinon (voir stream/materiel.sh)
       STREAM_ENCODEUR: "${STREAM_ENCODEUR:-auto}"
+      # Préréglage x264. « auto » le déduit du nombre de cœurs : veryfast au-delà de six,
+      # ultrafast en dessous, ce qui préserve la définition plutôt que de la diviser.
+      STREAM_PRESET: "${STREAM_PRESET:-auto}"
       # Qualité constante VAAPI, seulement pour les puces sans plafond de débit possible.
       # Plus haut = plus compressé. Voir .env.example : en qp 24, un NUC sortait à
       # 12 Mbit/s par destination et saturait sa liaison montante.
