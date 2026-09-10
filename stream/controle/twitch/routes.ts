@@ -9,6 +9,7 @@ import { demarrerConnexion, annulerConnexion, etatConnexion } from "./appareil.t
 import { lireChaine, modifierChaine, chercherCategories, lireDirect } from "./chaine.ts";
 import { listerRediffusions, supprimerRediffusion } from "./rediffusions.ts";
 import { recupererCleDiffusion } from "./cle-diffusion.ts";
+import { verifierAptitude, type Aptitude } from "./aptitude.ts";
 import { lireLotChat, envoyerMessage, relancerChat, arreterChat, viderChat } from "./chat.ts";
 import { lireStatistiques } from "./statistiques.ts";
 import { lireArchivage, definirSuppressionAuto } from "./archivage.ts";
@@ -68,7 +69,22 @@ async function routerCompte(req: Request, chemin: string): Promise<Response | nu
     return json(await lireEtatTwitch());
   }
   if (chemin === `${PREFIXE}/cle-diffusion` && m === "POST") return json(await recupererCleDiffusion());
+  if (chemin === `${PREFIXE}/aptitude` && m === "GET") return json(await aptitudeMiseEnCache());
   return null;
+}
+
+/**
+ * Une minute de cache : l'interface interroge cette route tant que le flux ne passe pas, et
+ * la réponse ne change pas d'une seconde à l'autre — un numéro se vérifie en minutes.
+ */
+const FRAICHEUR_APTITUDE_MS = 60_000;
+let aptitude: { valeur: Aptitude; lue: number } | null = null;
+
+async function aptitudeMiseEnCache(): Promise<Aptitude> {
+  if (aptitude && Date.now() - aptitude.lue < FRAICHEUR_APTITUDE_MS) return aptitude.valeur;
+  const valeur = await verifierAptitude();
+  aptitude = { valeur, lue: Date.now() };
+  return valeur;
 }
 
 async function routerChaine(req: Request, chemin: string): Promise<Response | null> {

@@ -8,7 +8,26 @@ Two samples require crediting their author. That credit must appear wherever the
 output is published — including a 24/7 stream description. The block to paste is at the
 bottom of this file.
 
-## Voices: searched, not used
+## Voices: generated locally
+
+The vocal pads in `public/assets/engine/VoixSamples/` were **generated on this machine** and owe
+nothing to anyone. The chain, so it can be reproduced or re-tuned:
+
+1. [ACE-Step v1.5](https://github.com/ace-step/ACE-Step) (**Apache 2.0**, free for commercial use)
+   generates 40 s of wordless sung material per key — `outils/vox/banque.py`.
+2. [demucs](https://github.com/adefossez/demucs) `htdemucs` separates the stems; only the vocal
+   track is kept — the model always writes a full production behind the voice.
+3. The window where the singer **holds** a note is located by pitch tracking and exported alone.
+   A sung phrase fights the engine's own melody; a held note sits under it.
+
+Two colours (close solo voice, ethereal choir), four keys a minor third apart, three takes each.
+The manifest records each sample's measured pitch, so the engine transposes by at most a semitone
+or two — beyond that a voice stops sounding like one.
+
+**No third-party licence applies to these files.** The seeds are in the manifest: any sample can
+be regenerated identically.
+
+## Voices: what was searched before generating
 
 The engine's voice layer is **synthesised by formants**, not sampled — so there is nothing to
 licence and nothing to credit for it. That was a fallback, and the reason is worth recording so

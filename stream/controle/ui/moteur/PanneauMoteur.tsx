@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import { Alerte, Badge, Champ, Section, Segments, Vide } from "../commun/composants.tsx";
 import { useMoteur } from "./useMoteur.ts";
-import { Generation, Instruments, Sonorite } from "./Reglages.tsx";
+import { Generation, Instruments, MixageVoix, Sonorite } from "./Reglages.tsx";
 
 const LIBELLES: Record<string, string> = {
   equilibre: "Équilibré",
@@ -69,6 +69,7 @@ export function PanneauMoteur(): ReactNode {
       </div>
       <div className="colonne">
         <Instruments valeurs={reglages} modifier={modifier} />
+        <MixageVoix valeurs={reglages} modifier={modifier} />
       </div>
     </div>
   );

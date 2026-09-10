@@ -1,0 +1,486 @@
+{
+  "version": 1,
+  "provenance": "Généré localement par ACE-Step v1.5 (Apache 2.0), voix isolée par demucs htdemucs. Aucune licence tierce ne pèse sur ces fichiers.",
+  "nappes": [
+    {
+      "nom": "proche-do-1",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "C major",
+      "demiTons": 0,
+      "graine": 1676152,
+      "debut": 0.06,
+      "fin": 38.12,
+      "duree": 38.06,
+      "hauteurDemiTon": 67.08,
+      "hauteur": "Sol4",
+      "tenueDebut": 28.15,
+      "tenueDuree": 4.0,
+      "fichierLong": "proche-do-1.ogg",
+      "fichier": "proche-do-1.ogg"
+    },
+    {
+      "nom": "proche-do-2",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "C major",
+      "demiTons": 0,
+      "graine": 979786,
+      "debut": 0.0,
+      "fin": 38.64,
+      "duree": 38.64,
+      "hauteurDemiTon": 67.08,
+      "hauteur": "Sol4",
+      "tenueDebut": 30.25,
+      "tenueDuree": 7.0,
+      "fichierLong": "proche-do-2.ogg",
+      "fichier": "proche-do-2.ogg"
+    },
+    {
+      "nom": "proche-do-3",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "C major",
+      "demiTons": 0,
+      "graine": 573405,
+      "debut": 0.0,
+      "fin": 35.16,
+      "duree": 35.16,
+      "hauteurDemiTon": 60.06,
+      "hauteur": "Do4",
+      "tenueDebut": 21.4,
+      "tenueDuree": 4.0,
+      "fichierLong": "proche-do-3.ogg",
+      "fichier": "proche-do-3.ogg"
+    },
+    {
+      "nom": "proche-mib-1",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "D# major",
+      "demiTons": 3,
+      "graine": 1876089,
+      "debut": 0.0,
+      "fin": 37.9,
+      "duree": 37.9,
+      "hauteurDemiTon": 65.88,
+      "hauteur": "Fa#4",
+      "tenueDebut": 21.4,
+      "tenueDuree": 4.0,
+      "fichierLong": "proche-mib-1.ogg",
+      "fichier": "proche-mib-1.ogg"
+    },
+    {
+      "nom": "proche-mib-2",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "D# major",
+      "demiTons": 3,
+      "graine": 245792,
+      "debut": 0.0,
+      "fin": 38.78,
+      "duree": 38.78,
+      "hauteurDemiTon": 68.03,
+      "hauteur": "Sol#4",
+      "tenueDebut": 14.55,
+      "tenueDuree": 4.0,
+      "fichierLong": "proche-mib-2.ogg",
+      "fichier": "proche-mib-2.ogg"
+    },
+    {
+      "nom": "proche-mib-3",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "D# major",
+      "demiTons": 3,
+      "graine": 942158,
+      "debut": 0.0,
+      "fin": 36.22,
+      "duree": 36.22,
+      "hauteurDemiTon": 54.17,
+      "hauteur": "Fa#3",
+      "tenueDebut": 14.9,
+      "tenueDuree": 4.0,
+      "fichierLong": "proche-mib-3.ogg",
+      "fichier": "proche-mib-3.ogg"
+    },
+    {
+      "nom": "proche-fad-1",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "F# major",
+      "demiTons": 6,
+      "graine": 628474,
+      "debut": 0.0,
+      "fin": 40.0,
+      "duree": 40.0,
+      "hauteurDemiTon": 70.11,
+      "hauteur": "La#4",
+      "tenueDebut": 33.8,
+      "tenueDuree": 6.0,
+      "fichierLong": "proche-fad-1.ogg",
+      "fichier": "proche-fad-1.ogg"
+    },
+    {
+      "nom": "proche-fad-2",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "F# major",
+      "demiTons": 6,
+      "graine": 67892,
+      "debut": 0.0,
+      "fin": 37.24,
+      "duree": 37.24,
+      "hauteurDemiTon": 70.11,
+      "hauteur": "La#4",
+      "tenueDebut": 1.5,
+      "tenueDuree": 4.0,
+      "fichierLong": "proche-fad-2.ogg",
+      "fichier": "proche-fad-2.ogg"
+    },
+    {
+      "nom": "proche-fad-3",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "F# major",
+      "demiTons": 6,
+      "graine": 1930533,
+      "debut": 0.0,
+      "fin": 39.56,
+      "duree": 39.56,
+      "hauteurDemiTon": 60.9,
+      "hauteur": "Do#4",
+      "tenueDebut": 0.4,
+      "tenueDuree": 5.0,
+      "fichierLong": "proche-fad-3.ogg",
+      "fichier": "proche-fad-3.ogg"
+    },
+    {
+      "nom": "proche-la-1",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "A major",
+      "demiTons": 9,
+      "graine": 1742635,
+      "debut": 0.54,
+      "fin": 37.1,
+      "duree": 36.56,
+      "hauteurDemiTon": 60.9,
+      "hauteur": "Do#4",
+      "tenueDebut": 1.4,
+      "tenueDuree": 5.0,
+      "fichierLong": "proche-la-1.ogg",
+      "fichier": "proche-la-1.ogg"
+    },
+    {
+      "nom": "proche-la-2",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "A major",
+      "demiTons": 9,
+      "graine": 1744210,
+      "debut": 0.0,
+      "fin": 33.66,
+      "duree": 33.66,
+      "hauteurDemiTon": 65.88,
+      "hauteur": "Fa#4",
+      "tenueDebut": 2.45,
+      "tenueDuree": 4.0,
+      "fichierLong": "proche-la-2.ogg",
+      "fichier": "proche-la-2.ogg"
+    },
+    {
+      "nom": "proche-la-3",
+      "couleur": "proche",
+      "types": [
+        "nocturne",
+        "equilibre"
+      ],
+      "tonalite": "A major",
+      "demiTons": 9,
+      "graine": 1886087,
+      "debut": 0.44,
+      "fin": 37.88,
+      "duree": 37.44,
+      "hauteurDemiTon": 69.04,
+      "hauteur": "La4",
+      "tenueDebut": 14.1,
+      "tenueDuree": 6.0,
+      "fichierLong": "proche-la-3.ogg",
+      "fichier": "proche-la-3.ogg"
+    },
+    {
+      "nom": "ethere-do-1",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "C major",
+      "demiTons": 0,
+      "graine": 1465942,
+      "debut": 0.0,
+      "fin": 38.82,
+      "duree": 38.82,
+      "hauteurDemiTon": 71.65,
+      "hauteur": "Do5",
+      "tenueDebut": 17.75,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-do-1.ogg",
+      "fichier": "ethere-do-1.ogg"
+    },
+    {
+      "nom": "ethere-do-2",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "C major",
+      "demiTons": 0,
+      "graine": 532483,
+      "debut": 0.0,
+      "fin": 37.78,
+      "duree": 37.78,
+      "hauteurDemiTon": 67.08,
+      "hauteur": "Sol4",
+      "tenueDebut": 5.85,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-do-2.ogg",
+      "fichier": "ethere-do-2.ogg"
+    },
+    {
+      "nom": "ethere-do-3",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "C major",
+      "demiTons": 0,
+      "graine": 532011,
+      "debut": 0.0,
+      "fin": 34.4,
+      "duree": 34.4,
+      "hauteurDemiTon": 67.39,
+      "hauteur": "Sol4",
+      "tenueDebut": 3.65,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-do-3.ogg",
+      "fichier": "ethere-do-3.ogg"
+    },
+    {
+      "nom": "ethere-mib-1",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "D# major",
+      "demiTons": 3,
+      "graine": 691520,
+      "debut": 0.04,
+      "fin": 37.72,
+      "duree": 37.68,
+      "hauteurDemiTon": 65.88,
+      "hauteur": "Fa#4",
+      "tenueDebut": 7.35,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-mib-1.ogg",
+      "fichier": "ethere-mib-1.ogg"
+    },
+    {
+      "nom": "ethere-mib-2",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "D# major",
+      "demiTons": 3,
+      "graine": 163730,
+      "debut": 0.06,
+      "fin": 35.62,
+      "duree": 35.56,
+      "hauteurDemiTon": 70.11,
+      "hauteur": "La#4",
+      "tenueDebut": 28.25,
+      "tenueDuree": 5.0,
+      "fichierLong": "ethere-mib-2.ogg",
+      "fichier": "ethere-mib-2.ogg"
+    },
+    {
+      "nom": "ethere-mib-3",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "D# major",
+      "demiTons": 3,
+      "graine": 1389461,
+      "debut": 0.12,
+      "fin": 37.22,
+      "duree": 37.1,
+      "hauteurDemiTon": 67.08,
+      "hauteur": "Sol4",
+      "tenueDebut": 10.6,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-mib-3.ogg",
+      "fichier": "ethere-mib-3.ogg"
+    },
+    {
+      "nom": "ethere-fad-1",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "F# major",
+      "demiTons": 6,
+      "graine": 1037996,
+      "debut": 0.0,
+      "fin": 36.72,
+      "duree": 36.72,
+      "hauteurDemiTon": 68.03,
+      "hauteur": "Sol#4",
+      "tenueDebut": 7.65,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-fad-1.ogg",
+      "fichier": "ethere-fad-1.ogg"
+    },
+    {
+      "nom": "ethere-fad-2",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "F# major",
+      "demiTons": 6,
+      "graine": 515195,
+      "debut": 0.0,
+      "fin": 36.1,
+      "duree": 36.1,
+      "hauteurDemiTon": 66.77,
+      "hauteur": "Sol4",
+      "tenueDebut": 20.35,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-fad-2.ogg",
+      "fichier": "ethere-fad-2.ogg"
+    },
+    {
+      "nom": "ethere-fad-3",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "F# major",
+      "demiTons": 6,
+      "graine": 1971927,
+      "debut": 0.0,
+      "fin": 36.12,
+      "duree": 36.12,
+      "hauteurDemiTon": 69.75,
+      "hauteur": "La#4",
+      "tenueDebut": 29.85,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-fad-3.ogg",
+      "fichier": "ethere-fad-3.ogg"
+    },
+    {
+      "nom": "ethere-la-1",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "A major",
+      "demiTons": 9,
+      "graine": 1924321,
+      "debut": 0.0,
+      "fin": 24.72,
+      "duree": 24.72,
+      "hauteurDemiTon": 66.17,
+      "hauteur": "Fa#4",
+      "tenueDebut": 9.85,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-la-1.ogg",
+      "fichier": "ethere-la-1.ogg"
+    },
+    {
+      "nom": "ethere-la-2",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "A major",
+      "demiTons": 9,
+      "graine": 74104,
+      "debut": 0.0,
+      "fin": 38.84,
+      "duree": 38.84,
+      "hauteurDemiTon": 62.02,
+      "hauteur": "Ré4",
+      "tenueDebut": 21.95,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-la-2.ogg",
+      "fichier": "ethere-la-2.ogg"
+    },
+    {
+      "nom": "ethere-la-3",
+      "couleur": "ethere",
+      "types": [
+        "atmospherique",
+        "equilibre"
+      ],
+      "tonalite": "A major",
+      "demiTons": 9,
+      "graine": 990390,
+      "debut": 0.0,
+      "fin": 37.54,
+      "duree": 37.54,
+      "hauteurDemiTon": 62.97,
+      "hauteur": "Ré#4",
+      "tenueDebut": 6.5,
+      "tenueDuree": 4.0,
+      "fichierLong": "ethere-la-3.ogg",
+      "fichier": "ethere-la-3.ogg"
+    }
+  ]
+}

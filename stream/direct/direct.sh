@@ -30,6 +30,7 @@ NOEUD_RENDU="${NOEUD_RENDU:-/dev/dri/renderD128}"
 STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # abaisser la définition si la machine ne suit pas
 COEURS_POUR_1080P_LOGICIEL=6                 # mesuré : 1080p sans puce vidéo coûte ~3 cœurs pleins
 ENCODEUR_RETENU=""
+REPOS_INGESTION=2      # secondes laissées à la plateforme avant de renvoyer un flux
 REPLI_PID=""
 DIFFUSION_PID=""
 ENTREE_VIDEO=()
@@ -172,9 +173,15 @@ lancer_diffusion() {
   fi
   # setsid donne au flux son propre groupe de processus : recharger la scène doit pouvoir
   # arrêter ffmpeg et sa boucle de reconnexion ensemble, sans chercher de PID au jugé.
+  # ffmpeg recopie l'URL complète dans ses messages d'erreur, clé de diffusion comprise —
+  # elle se retrouvait donc en clair dans `docker logs`, que l'on colle volontiers pour
+  # demander de l'aide. Sa sortie passe par un tamis qui coupe tout ce qui suit le chemin
+  # d'ingestion. Le tamis est branché sur l'erreur seule, pour ne pas masquer le code de
+  # sortie de ffmpeg derrière celui de sed.
   setsid bash -c '
     while true; do
-      ffmpeg -hide_banner -loglevel warning -nostdin "$@"
+      ffmpeg -hide_banner -loglevel warning -nostdin "$@" \
+        2> >(sed -u -E "s#(rtmps?://[^/]+/[^/]+/)[^ :]+#\\1***#g" >&2)
       echo "[direct] le flux s'"'"'est interrompu — reconnexion dans 10 s"
       sleep 10
     done' _ \
@@ -189,10 +196,25 @@ lancer_diffusion() {
   journal "diffusion lancée (groupe $DIFFUSION_PID)"
 }
 
+# Attendre que le groupe soit VRAIMENT vide avant de rendre la main. La boucle qui relance
+# ffmpeg rend la main dès qu'elle reçoit TERM, mais ffmpeg, lui, met encore un instant à fermer
+# sa connexion RTMP — le journal le montre : « Failed to update header » arrive APRÈS l'annonce
+# de la diffusion suivante. Repartir à ce moment-là met deux émetteurs sur la même clé, et
+# Twitch les refuse tous les deux : le flux part alors en boucle d'erreurs d'entrée/sortie.
 arreter_diffusion() {
   [ -n "$DIFFUSION_PID" ] || return 0
-  kill -TERM -- "-$DIFFUSION_PID" 2>/dev/null || kill "$DIFFUSION_PID" 2>/dev/null
-  wait "$DIFFUSION_PID" 2>/dev/null
+  local groupe="$DIFFUSION_PID" i
+  kill -TERM -- "-$groupe" 2>/dev/null || kill "$groupe" 2>/dev/null
+  wait "$groupe" 2>/dev/null
+  for ((i = 0; i < 50; i++)); do
+    pgrep -g "$groupe" >/dev/null 2>&1 || break
+    sleep 0.2
+  done
+  if pgrep -g "$groupe" >/dev/null 2>&1; then
+    journal "le groupe $groupe ne se termine pas — arrêt forcé"
+    kill -KILL -- "-$groupe" 2>/dev/null
+    sleep 1
+  fi
   DIFFUSION_PID=""
 }
 
@@ -205,6 +227,9 @@ recharger_scene() {
     return 1
   fi
   arreter_diffusion
+  # Twitch garde la session ouverte un court moment après une déconnexion : se reconnecter
+  # dans la seconde se fait refuser. Deux secondes suffisent.
+  sleep "$REPOS_INGESTION"
   lancer_diffusion
   return 0
 }

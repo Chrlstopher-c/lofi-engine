@@ -29,6 +29,9 @@ export interface Reglages {
   coupureCharleston: number;
   voile: number;
   souffle: number;
+  voixNiveau: number;
+  voixVoile: number;
+  voixEsquive: number;
 }
 
 export const DEFAUTS: Reglages = {
@@ -49,6 +52,9 @@ export const DEFAUTS: Reglages = {
   coupureCharleston: 0.22,
   voile: 2000,
   souffle: -32,
+  voixNiveau: -26,
+  voixVoile: 1800,
+  voixEsquive: 0.55,
 };
 
 /** Les bornes de chaque réglage : hors de là, la musique s'arrête ou devient inécoutable. */
@@ -66,6 +72,9 @@ const BORNES: Record<string, [number, number]> = {
   coupureCharleston: [0, 0.9],
   voile: [400, 12000],
   souffle: [-60, -12],
+  voixNiveau: [-48, -8],
+  voixVoile: [500, 8000],
+  voixEsquive: [0, 0.9],
 };
 
 const MODES: ModeInstrument[] = ['auto', 'toujours', 'jamais'];
@@ -79,12 +88,14 @@ export const TYPES: Record<string, Partial<Reglages>> = {
   nocturne: {
     tempo: 128, swing: 1, notesParAccord: 3, densiteMelodie: 0.28, penchantAccord: 4,
     partMineur: 0.6, sectionMin: 24, sectionMax: 64, voix: 'auto',
+    voixNiveau: -24, voixVoile: 1500, voixEsquive: 0.6,
     coupureKick: 0.2, coupureCaisse: 0.3, coupureCharleston: 0.45, voile: 1400, souffle: -30,
   },
   atmospherique: {
     tempo: 112, swing: 0.8, notesParAccord: 5, densiteMelodie: 0.14, penchantAccord: 5,
     partMineur: 0.55, sectionMin: 32, sectionMax: 80, basse: 'auto', pad: 'toujours',
     voix: 'toujours', coupureKick: 0.55, coupureCaisse: 0.6, coupureCharleston: 0.5,
+    voixNiveau: -20, voixVoile: 2400, voixEsquive: 0.3,
     voile: 1100, souffle: -26,
   },
   energique: {

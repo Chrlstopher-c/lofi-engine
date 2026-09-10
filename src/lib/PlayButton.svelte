@@ -39,6 +39,9 @@
   // ?arrangement=voix ne laisse que la nappe de voix : c'est le seul moyen de vérifier
   // qu'elle sonne, une couche noyée sous le reste ne se mesure pas.
   const voixSeule = arrangementDemande === "voix";
+  // Même chose pour le pad : le distinguer à l'oreille de la voix demande de l'entendre seul.
+  const padSeul = arrangementDemande === "pad";
+  const isole = voixSeule || padSeul;
   console.info(`[moteur] graine ${graineEnTexte(graine())}`);
 
   // Les réglages viennent du centre de contrôle : assez souvent pour qu'un curseur
@@ -110,7 +113,8 @@
   const pn = new Piano(() => (pianoLoaded = true)).sampler;
   const basse = new Bass().synth;
   const pad = new Pad().synth;
-  const voix = new Voix().synth;
+  let voixPrete = false;
+  const voix = new Voix(() => (voixPrete = true));
   const kick = new Kick(() => (kickLoaded = true)).sampler;
   const snare = new Snare(() => (snareLoaded = true)).sampler;
   const hat = new Hat(() => (hatLoaded = true)).sampler;
@@ -139,7 +143,7 @@
 
     kickLoop = new Tone.Sequence(
       (time, note) => {
-        if (!kickOff && !voixSeule) {
+        if (!kickOff && !isole) {
           if (note === "C4" && alea() < 0.9) {
             // @ts-ignore
             kick.triggerAttack(note);
@@ -173,7 +177,7 @@
 
     snareLoop = new Tone.Sequence(
       (time, note) => {
-        if (!snareOff && !voixSeule) {
+        if (!snareOff && !isole) {
           if (note !== "" && alea() < 0.8) {
             // @ts-ignore
             snare.triggerAttack(note);
@@ -186,7 +190,7 @@
 
     hatLoop = new Tone.Sequence(
       (time, note) => {
-        if (!hatOff && !voixSeule) {
+        if (!hatOff && !isole) {
           // @ts-ignore
           if (note !== "" && alea() < 0.8) {
             // @ts-ignore
@@ -271,6 +275,7 @@
     if (suivants.swing !== reglages.swing) Tone.Transport.swing = suivants.swing;
     if (suivants.voile !== reglages.voile) lpf.frequency.rampTo(suivants.voile, 2);
     if (suivants.souffle !== reglages.souffle) volumeSouffle.volume.rampTo(suivants.souffle, 2);
+    voix.regler(suivants.voixNiveau, suivants.voixVoile);
     reglages = suivants;
   }
 
@@ -336,14 +341,14 @@
     // This was the "current main lofi track generation"
     melodyDensity = Math.min(1, reglages.densiteMelodie * (0.75 + alea() * 0.5));
     // La basse se retire rarement : c'est elle qui tient l'ensemble. Le pad, plus souvent.
-    basseOff = voixSeule || (!arrangementImpose
+    basseOff = isole || (!arrangementImpose
       && instrumentCoupe(reglages.basse, alea() < 0.08));
-    padOff = voixSeule || (!arrangementImpose
+    padOff = voixSeule || (!padSeul && !arrangementImpose
       && instrumentCoupe(reglages.pad, alea() < 0.3));
     // La voix est un accent, pas un fond permanent : elle n'est là qu'une section sur trois.
-    voixOff = arrangementImpose || voixSeule
+    voixOff = padSeul ? true : (arrangementImpose || voixSeule
       ? false
-      : instrumentCoupe(reglages.voix, alea() > 0.34);
+      : instrumentCoupe(reglages.voix, alea() > 0.34));
     kickOff = alea() < reglages.coupureKick;
     snareOff = alea() < reglages.coupureCaisse;
     hatOff = alea() < reglages.coupureCharleston;
@@ -380,6 +385,30 @@
     }, 2000);
   }
 
+  /**
+   * Une ou deux notes de l'accord, tenues par un vrai échantillon de voix.
+   *
+   * Jamais l'accord entier : la voix doit poser une couleur, pas doubler le piano. Et pas
+   * toujours fondamentale + quinte — c'est l'intervalle le plus neutre qui existe, au bout de
+   * trois accords on n'entend plus qu'un bourdon. La tierce et la septième portent la couleur
+   * de l'accord ; alterner suffit à ce que la nappe raconte quelque chose.
+   */
+  function chanter(chord) {
+    const jeux = voix.jeuxPour(reglages.type);
+    if (jeux.length === 0) return;
+    const jeu = jeux[aleaEntier(jeux.length)];
+    const paire = alea() < 0.5
+      ? [chord.intervals[0], chord.intervals[2] ?? 7]
+      : [chord.intervals[1] ?? 4, chord.intervals[3] ?? 11];
+    const octave = alea() < 0.25 ? "5" : "4";
+    const notes = (alea() < 0.4 ? paire.slice(0, 1) : paire)
+      .map((demiTons) => Tone.Frequency(key + octave).transpose(chord.semitoneDist + demiTons))
+      .map((f) => Tone.Frequency(f).toNote());
+    // @ts-ignore
+    // Tenue longue : la nappe couvre le groupe de mesures qu'elle ouvre.
+    jeu.sampler.triggerAttackRelease(notes, alea() < 0.4 ? "2m" : "1m");
+  }
+
   function playChord() {
     const chord = progression[progress];
     const root = Tone.Frequency(key + "3").transpose(chord.semitoneDist);
@@ -388,9 +417,12 @@
     const notes = Tone.Frequency(root)
       .harmonize(voicing)
       .map((f) => Tone.Frequency(f).toNote());
-    if (!voixSeule) {
+    if (!isole) {
       // @ts-ignore
       pn.triggerAttackRelease(notes, "1n");
+      // La voix s'efface sous l'attaque et revient dans le creux : c'est ce qui permet de
+      // l'entendre sans jamais l'écouter, et ce qui évite qu'elle masque le piano.
+      voix.ecarter(reglages.voixEsquive, 0.9);
     }
     accordSonnant = chord;
 
@@ -398,15 +430,12 @@
       // @ts-ignore
       basse.triggerAttackRelease(Tone.Frequency(key + "2").transpose(chord.semitoneDist), "2n");
     }
-    if (!voixOff) {
-      // La voix ne prend que la fondamentale et la quinte de l'accord, une octave au-dessus du
-      // piano : deux notes suffisent à poser une couleur, et l'accord complet la rendrait
-      // bavarde là où elle doit rester une ambiance.
-      const socle = [chord.intervals[0], chord.intervals[2] ?? 7]
-        .map((demiTons) => Tone.Frequency(key + "4").transpose(chord.semitoneDist + demiTons))
-        .map((f) => Tone.Frequency(f).toNote());
-      // @ts-ignore
-      voix.triggerAttackRelease(socle, "1n");
+    // Une nappe se pose et se tient : la redéclencher à chaque accord, c'était la faire
+    // trébucher toutes les 1,5 s et empiler les voix. Elle entre au début d'un groupe de
+    // mesures, puis se tait le temps de respirer.
+    if (voixPrete && !voixOff && barCount % MESURES_ENTRE_NAPPES === 0
+        && (voixSeule || arrangementImpose || alea() < PART_VOIX)) {
+      chanter(chord);
     }
     if (!padOff) {
       // Fondamentale, tierce et quinte de l'accord lui-même — jamais une quinte supposée :
@@ -423,6 +452,13 @@
 
   // Combien la mélodie préfère une note de l'accord en cours à une note simplement dans la
   // gamme. 1 = comme avant, indifférente. Au-delà de 4 elle arpège et cesse de chanter.
+  // Une voix qui entre sur chaque accord ne s'entend plus comme une entrée : elle devient un
+  // fond permanent. Une fois sur trois environ, elle redevient un accent.
+  const PART_VOIX = 0.38;
+  // Quatre accords entre deux entrées : la nappe tient sur plusieurs mesures au lieu de se
+  // relancer sans cesse. C'est plus juste musicalement, et bien moins coûteux.
+  const MESURES_ENTRE_NAPPES = 4;
+
   // Réglable depuis le centre de contrôle : 1 = la mélodie ignore l'accord, au-delà de 4 elle
   // arpège et cesse de chanter.
 
@@ -445,7 +481,7 @@
   }
 
   function playMelody() {
-    if (voixSeule || melodyOff || !(alea() < melodyDensity)) {
+    if (isole || melodyOff || !(alea() < melodyDensity)) {
       return;
     }
 

@@ -1,54 +1,124 @@
 import * as Tone from 'tone';
 
 /**
- * Une nappe de voix, synthétisée par formants.
+ * La nappe de voix : de vraies tenues, choisies dans une banque, posées sur l'accord en cours.
  *
- * Ce qui fait qu'une voyelle s'entend comme une voix, ce n'est pas la hauteur, ce sont les
- * **formants** : trois bosses de résonance que la bouche et la gorge impriment au son. Une
- * source riche en harmoniques passée dans trois filtres en cloche placés à ces fréquences-là
- * s'entend comme un « aah » chanté. Les valeurs ci-dessous sont celles d'un /a/ de voix
- * féminine ; les descendre vers 730 / 1090 / 2440 donne une voix d'homme.
+ * La synthèse par formants a été essayée et écartée à l'écoute — ça sonnait comme une scie
+ * filtrée, pas comme une voyelle. Les échantillons sont maintenant générés en local par
+ * ACE-Step (Apache 2.0), la voix isolée par demucs, et seule la fenêtre où le chant TIENT une
+ * note est conservée. Une phrase chantée se bagarrerait avec la mélodie du moteur ; une note
+ * tenue s'y pose.
  *
- * Pourquoi synthétisé plutôt qu'échantillonné : je n'ai pas trouvé de jeu de voix féminine
- * tenue, échantillonné note par note, sous une licence qui autorise un flux public. Ce qui
- * existe en CC0 est une voix d'homme (voir CREDITS.md). Ici, aucun fichier, donc aucune
- * licence à tracer — et les formants se règlent, ce qu'un échantillon ne permet pas.
+ * Chaque échantillon est rangé à sa hauteur mesurée : Tone.Sampler prend le plus proche de la
+ * note demandée et ne le transpose que de ce qu'il faut. Au-delà de deux ou trois demi-tons une
+ * voix se déforme, d'où une banque étalée sur quatre tonalités.
+ *
+ * Le mixage compte autant que le choix de la note. Une voix vit exactement là où vivent le
+ * piano et la mélodie : à niveau égal elle les masque. D'où trois précautions — très en dessous,
+ * coupée dans l'aigu pour lui ôter ses consonnes, et effacée à chaque attaque de piano.
  */
-const FORMANTS = [
-  { frequence: 850, q: 9, gain: -3 },    // F1 : l'ouverture de la voyelle
-  { frequence: 1220, q: 11, gain: -9 },  // F2 : ce qui distingue un /a/ d'un /o/
-  { frequence: 2810, q: 14, gain: -17 }, // F3 : la présence, le côté « proche »
-];
+
+const RACINE = 'assets/engine/VoixSamples/';
+const MANIFESTE = `${RACINE}manifeste.json`;
+
+export interface Nappe {
+  nom: string;
+  fichier: string;
+  couleur: string;
+  types: string[];
+  hauteur: string;
+  hauteurDemiTon: number;
+  tenueDuree: number;
+}
+
+interface Manifeste { nappes: Nappe[] }
+
+/** Une couleur, découpée en jeux : plusieurs jeux permettent de varier sans réentendre le même. */
+interface Jeu { couleur: string; types: string[]; sampler: Tone.Sampler }
 
 class Voix {
-  constructor() {
-    this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'sawtooth' },
-      // Une voix ne démarre pas d'un coup et ne s'arrête pas net.
-      envelope: { attack: 1.8, decay: 1.2, sustain: 0.8, release: 3.5 },
-    });
-    this.synth.maxPolyphony = 4;
+  constructor(auChargement?: () => void) {
+    this.jeux = [];
+    this.pret = false;
 
-    // Le vibrato est ce qui sépare une nappe de synthé d'une nappe de voix : lent et discret,
-    // autour de cinq oscillations par seconde. Plus profond, ça devient une sirène.
-    const vibrato = new Tone.Vibrato(5, 0.07);
-    const entree = new Tone.Gain(1);
-    const somme = new Tone.Gain(1);
-    this.synth.chain(vibrato, entree);
+    this.esquive = new Tone.Gain(1);
+    // 1,8 kHz : au-delà on entend les consonnes et le grain du chanteur, donc « quelqu'un qui
+    // chante ». En dessous il ne reste que la voyelle, c'est-à-dire une couleur.
+    this.voile = new Tone.Filter(1800, 'lowpass');
+    this.largeur = new Tone.StereoWidener(0.85);
+    this.volume = new Tone.Volume(-26);
+    // Pas de réverbération ajoutée : les nappes ont été générées avec, elle est déjà dans le
+    // fichier. En remettre une coûtait du calcul pour épaissir ce qui l'était déjà.
+    this.esquive.chain(this.voile, this.largeur, this.volume, Tone.Master);
 
-    // Les trois formants sont en parallèle, pas en série : ce sont trois résonances
-    // simultanées de la même source, pas trois filtrages successifs.
-    for (const { frequence, q, gain } of FORMANTS) {
-      const cloche = new Tone.Filter({ frequency: frequence, type: 'bandpass', Q: q });
-      entree.chain(cloche, new Tone.Volume(gain), somme);
+    void this.charger(auChargement);
+  }
+
+  /** Lit le manifeste et construit un sampler par jeu. Sans banque, la voix reste muette. */
+  async charger(auChargement?: () => void): Promise<void> {
+    let manifeste: Manifeste;
+    try {
+      const reponse = await fetch(MANIFESTE, { cache: 'force-cache' });
+      if (!reponse.ok) return;
+      manifeste = await reponse.json();
+    } catch {
+      return;
     }
+    // Un sampler par COULEUR, et pas un par variante : huit samplers polyphoniques dans le même
+    // navigateur faisaient décrocher le fil audio — mesuré à quatorze coupures par minute contre
+    // une demie avant. La variété vient de ce qu'on choisit dans le sampler, pas de leur nombre.
+    const groupes = new Map<string, Nappe[]>();
+    for (const nappe of manifeste.nappes ?? []) {
+      const liste = groupes.get(nappe.couleur) ?? [];
+      liste.push(nappe);
+      groupes.set(nappe.couleur, liste);
+    }
+    for (const nappes of groupes.values()) {
+      const jeu = this.construireJeu(nappes);
+      if (jeu) this.jeux.push(jeu);
+    }
+    this.pret = this.jeux.length > 0;
+    if (this.pret && auChargement) auChargement();
+  }
 
-    // Freeverb plutôt que Tone.Reverb : pas de réponse impulsionnelle à générer au démarrage,
-    // et bien moins de calcul — le navigateur tourne dans le conteneur, à côté de l'encodeur.
-    const reverb = new Tone.Freeverb({ roomSize: 0.92, dampening: 2400 });
-    const largeur = new Tone.StereoWidener(0.9);
-    const vol = new Tone.Volume(-19);
-    somme.chain(reverb, largeur, vol, Tone.Master);
+  construireJeu(nappes: Nappe[]): Jeu | null {
+    const urls: Record<string, string> = {};
+    for (const nappe of nappes) {
+      // La clé est le numéro MIDI, pas un nom de note : le manifeste nomme les hauteurs en
+      // français (Sol4) et Tone n'accepte que l'anglais. Le nombre ne se traduit pas.
+      const midi = String(Math.round(nappe.hauteurDemiTon));
+      if (!urls[midi]) urls[midi] = nappe.fichier;
+    }
+    if (Object.keys(urls).length === 0) return null;
+    const sampler = new Tone.Sampler({ urls, baseUrl: RACINE, release: 3, curve: 'linear' });
+    sampler.maxPolyphony = 4;
+    sampler.connect(this.esquive);
+    return { couleur: nappes[0].couleur, types: nappes[0].types, sampler };
+  }
+
+  /** Les jeux utilisables pour ce type de génération, ou tous si aucun ne le revendique. */
+  jeuxPour(type: string): Jeu[] {
+    const compatibles = this.jeux.filter((j) => j.types.includes(type));
+    return compatibles.length > 0 ? compatibles : this.jeux;
+  }
+
+  /**
+   * Efface la voix sous l'attaque, puis la laisse revenir. C'est ce qui la fait vivre dans les
+   * creux du piano au lieu de lui disputer la place.
+   */
+  ecarter(profondeur: number, duree: number): void {
+    if (profondeur <= 0) return;
+    const maintenant = Tone.now();
+    const gain = this.esquive.gain;
+    gain.cancelScheduledValues(maintenant);
+    gain.setValueAtTime(gain.value, maintenant);
+    gain.linearRampToValueAtTime(Math.max(0, 1 - profondeur), maintenant + 0.05);
+    gain.linearRampToValueAtTime(1, maintenant + Math.max(0.2, duree));
+  }
+
+  regler(niveauDb: number, voileHz: number): void {
+    if (this.volume.volume.value !== niveauDb) this.volume.volume.rampTo(niveauDb, 1);
+    if (this.voile.frequency.value !== voileHz) this.voile.frequency.rampTo(voileHz, 1);
   }
 }
 

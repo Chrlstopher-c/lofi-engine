@@ -51,6 +51,15 @@ const COUPURES: Definition[] = [
   { champ: "coupureCharleston", libelle: "Retrait du charleston", min: 0, max: 0.9, pas: 0.01, note: "" },
 ];
 
+const VOIX: Definition[] = [
+  { champ: "voixNiveau", libelle: "Niveau de la voix", min: -48, max: -8, pas: 1, unite: "dB",
+    note: "Très en dessous du reste : une voix vit là où vivent le piano et la mélodie." },
+  { champ: "voixVoile", libelle: "Voile de la voix", min: 500, max: 8000, pas: 100, unite: "Hz",
+    note: "Bas = une couleur sans consonnes. Haut = on entend quelqu'un chanter." },
+  { champ: "voixEsquive", libelle: "Esquive sous le piano", min: 0, max: 0.9, pas: 0.05,
+    note: "De combien elle s'efface à chaque attaque, pour vivre dans les creux." },
+];
+
 const MODES = [
   { valeur: "auto" as const, libelle: "Au gré des sections" },
   { valeur: "toujours" as const, libelle: "Toujours" },
@@ -100,6 +109,19 @@ export function Generation(props: Props): ReactNode {
       <div className="grille-2">
         <Groupe definitions={GENERATION} {...props} />
       </div>
+    </Section>
+  );
+}
+
+export function MixageVoix(props: Props): ReactNode {
+  return (
+    <Section titre="Mixage de la voix">
+      <Groupe definitions={VOIX} {...props} />
+      <p className="indice">
+        Les nappes sont de vraies tenues, générées en local puis isolées. Le moteur choisit
+        celle dont la note est la plus proche de l'accord et ne la transpose que du strict
+        minimum — au-delà de deux ou trois demi-tons, une voix se déforme.
+      </p>
     </Section>
   );
 }

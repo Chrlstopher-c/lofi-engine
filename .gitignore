@@ -40,3 +40,5 @@ corpus/
 # Centre de contrôle — bundle et dépendances
 stream/controle/ui/dist/
 stream/controle/node_modules/
+outils/vox/brut/
+__pycache__/
