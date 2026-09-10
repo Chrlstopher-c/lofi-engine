@@ -1,10 +1,20 @@
-/* Onglet Pixabay : mode d'emploi de la clé, grille de vignettes, favoris. */
+/* Onglet Pixabay : recherche, grille de résultats, favoris, aperçu en grand.
+   Même grille racine que les autres onglets — le travail à gauche, ce qui l'accompagne à
+   droite — et rien qui ne s'exprime en jetons du socle. */
 
-/* Le mode d'emploi de la clé : quatre étapes numérotées, lisibles d'un coup d'œil. */
+.pixabay {
+  display: grid; grid-template-columns: minmax(0, 1fr) var(--largeur-droite);
+  gap: var(--s-4); align-items: start;
+}
+/* Sans clé, il n'y a qu'un mode d'emploi : une colonne, bornée, plutôt qu'une grille vide. */
+.pixabay-accueil { display: flex; flex-direction: column; gap: var(--s-4); max-width: 640px; }
+
+/* ------------------------------------------------------- MODE D'EMPLOI DE LA CLÉ */
+
 .pixabay-etapes { list-style: none; counter-reset: etape; display: grid; gap: var(--s-3); margin-bottom: var(--s-4); }
 .pixabay-etapes li {
-  counter-increment: etape; display: grid; grid-template-columns: var(--s-6) minmax(0, 1fr);
-  gap: var(--s-3); align-items: baseline;
+  counter-increment: etape;
+  display: grid; grid-template-columns: var(--s-6) minmax(0, 1fr); gap: var(--s-3);
 }
 .pixabay-etapes li::before {
   content: counter(etape); grid-row: span 2;
@@ -14,51 +24,79 @@
 }
 .pixabay-etapes strong { font-size: var(--t-sm); line-height: var(--lh-sm); }
 .pixabay-etapes span { grid-column: 2; font-size: var(--t-sm); line-height: var(--lh-md); color: var(--fg-2); }
-.pixabay-etapes code { font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-1); }
+.pixabay-etapes code, .pixabay-tags { font-family: var(--mono); font-size: var(--t-xs); }
 
-/* Les pistes de départ : des raccourcis, pas une taxonomie. */
-.pixabay-pistes { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+/* ------------------------------------------------------- RECHERCHE */
 
-/* La grille s'adapte à la largeur : jamais de vignette étirée, jamais de trou. */
-.pixabay-grille {
-  display: grid; gap: var(--s-3);
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
+.pixabay-pistes { display: flex; flex-wrap: wrap; gap: var(--s-1); margin-top: var(--s-3); }
 
-.pixabay-vignette {
-  margin: 0; display: grid; gap: var(--s-2);
-  border: 1px solid var(--line); border-radius: var(--r-surface);
-  background: var(--bg-2); overflow: hidden;
-}
-.pixabay-vignette.prise { border-color: var(--ok); }
+/* ------------------------------------------------------- GRILLE */
 
+/* Les vignettes suivent la largeur disponible : trois de front à gauche, une à droite dans
+   la colonne des favoris, sans règle particulière pour l'une ou l'autre. */
+.pixabay-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--s-2); }
+
+.pixabay-carte { margin: 0; display: grid; gap: var(--s-1); min-width: 0; }
+
+/* L'aperçu est un bouton : mêmes états que .vignette de l'onglet Scène. */
 .pixabay-apercu {
-  position: relative; aspect-ratio: 16 / 9; background: var(--bg-3);
-  display: grid; place-items: center; overflow: hidden;
+  position: relative; display: block; width: 100%; padding: 0;
+  aspect-ratio: 16 / 9; border-radius: var(--r-ctrl); overflow: hidden;
+  border: 1px solid var(--line-strong); background: var(--bg-3); cursor: pointer;
 }
+.pixabay-apercu:hover { border-color: var(--fg-2); }
+.pixabay-apercu:focus-visible { outline-offset: 2px; }
+.pixabay-carte.prise .pixabay-apercu { border-color: var(--ok); }
 .pixabay-apercu img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.pixabay-sans-apercu { font-size: var(--t-xs); color: var(--fg-2); }
+.pixabay-sans-apercu { display: grid; place-items: center; height: 100%; font-size: var(--t-xs); color: var(--fg-2); }
 
-/* Les deux marques posées sur l'aperçu : le genre à gauche, l'état à droite. */
-.pixabay-genre {
-  position: absolute; left: var(--s-2); top: var(--s-2);
-  padding: 0 var(--s-2); height: var(--h-sm); display: grid; place-items: center;
+/* Légende et marques, posées sur l'image comme dans la galerie de fonds. */
+.pixabay-apercu b, .pixabay-apercu i {
+  position: absolute; bottom: var(--s-1); padding: 0 var(--s-1);
   border-radius: var(--r-ctrl); background: var(--chrome-scrim); color: var(--fg-0);
-  font: 400 var(--t-xs) / 1 var(--mono);
+  font: 400 var(--t-xs) / calc(var(--s-5) - 2px) var(--mono); font-style: normal;
 }
-.pixabay-prise { position: absolute; right: var(--s-2); top: var(--s-2); }
+.pixabay-apercu b { right: var(--s-1); }
+.pixabay-apercu i { left: var(--s-1); }
+.pixabay-prise { position: absolute; top: var(--s-1); right: var(--s-1); }
 
-.pixabay-vignette figcaption {
-  display: flex; justify-content: space-between; gap: var(--s-2);
-  padding: 0 var(--s-3); font-size: var(--t-xs); line-height: var(--lh-xs); color: var(--fg-2);
+.pixabay-carte figcaption {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s-1);
+  align-items: center;
 }
-.pixabay-legende { font-family: var(--mono); }
-.pixabay-auteur { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pixabay-auteur {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--t-xs); line-height: var(--lh-xs); color: var(--fg-2);
+}
 .pixabay-auteur a { color: var(--fg-2); }
 .pixabay-auteur a:hover { color: var(--fg-0); }
 
-.pixabay-gestes {
-  display: flex; align-items: center; gap: var(--s-2);
-  padding: 0 var(--s-3) var(--s-3);
+/* ------------------------------------------------------- PAGINATION */
+
+.pixabay-pages { display: flex; align-items: center; gap: var(--s-2); margin: 0 auto; }
+.pixabay-pages span { font-family: var(--mono); font-size: var(--t-xs); color: var(--fg-2); }
+.pixabay-pages .btn:first-child svg { transform: rotate(90deg); }
+.pixabay-pages .btn:last-child svg { transform: rotate(-90deg); }
+
+/* ------------------------------------------------------- APERÇU EN GRAND */
+
+.pixabay-apercu-grand {
+  width: min(1100px, 92vw); max-height: 92vh; padding: 0; border: none;
+  border-radius: var(--r-surface); background: var(--bg-1); color: var(--fg-0);
+  box-shadow: var(--ombre-2); overflow: hidden;
 }
-.pixabay-gestes .btn:last-child { margin-left: auto; }
+.pixabay-apercu-grand::backdrop { background: var(--chrome-scrim); }
+.pixabay-apercu-grand header,
+.pixabay-apercu-grand footer {
+  display: flex; align-items: center; gap: var(--s-2); padding: var(--s-3) var(--s-4);
+  font-size: var(--t-xs); line-height: var(--lh-xs); color: var(--fg-2);
+}
+.pixabay-apercu-grand header { border-bottom: 1px solid var(--line); }
+.pixabay-apercu-grand footer { border-top: 1px solid var(--line); flex-wrap: wrap; }
+.pixabay-scene { background: var(--bg-3); display: grid; place-items: center; }
+.pixabay-scene img, .pixabay-scene video {
+  display: block; max-width: 100%; max-height: calc(92vh - 8rem); object-fit: contain;
+}
+.pixabay-apercu-grand .pixabay-tags {
+  color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%;
+}

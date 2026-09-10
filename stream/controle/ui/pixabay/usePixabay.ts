@@ -17,7 +17,12 @@ export interface Pixabay {
   resultats: Media[];
   total: number;
   favoris: Media[];
+  /** La page affichée, et le nombre de pages atteignables. */
+  page: number;
+  pages: number;
   chercher: (q: string, genre: Genre, page: number) => Promise<void>;
+  /** Rejoue la dernière recherche sur une autre page. */
+  allerPage: (page: number) => Promise<void>;
   basculerFavori: (media: Media) => Promise<void>;
   telecharger: (media: Media) => Promise<void>;
   enregistrerCle: (cle: string) => Promise<void>;
@@ -32,19 +37,29 @@ function majListe(liste: Media[], media: Media, champs: Partial<Media>): Media[]
   return liste.map((m) => (m.id === media.id && m.genre === media.genre ? { ...m, ...champs } : m));
 }
 
-/** La recherche : ce que Pixabay renvoie, et rien d'autre. */
+/** Combien de résultats Pixabay rend par page, et jusqu'où il accepte d'aller. */
+const PAR_PAGE = 30;
+/** Pixabay refuse au-delà de 500 résultats pour une même requête. */
+const PLAFOND = 500;
+
+/** La recherche : ce que Pixabay renvoie, et de quoi y revenir page après page. */
 function useRecherche(signaler: Signaler) {
   const [resultats, setResultats] = useState<Media[]>([]);
   const [total, setTotal] = useState(0);
   const [occupe, setOccupe] = useState(false);
+  const [page, setPage] = useState(1);
+  // La dernière requête, pour que la pagination la rejoue sans la redemander à l'utilisateur.
+  const [derniere, setDerniere] = useState<{ q: string; genre: Genre } | null>(null);
 
-  const chercher = useCallback(async (q: string, genre: Genre, page: number): Promise<void> => {
+  const chercher = useCallback(async (q: string, genre: Genre, n: number): Promise<void> => {
     if (q.trim() === "") return;
     setOccupe(true);
     try {
-      const r = await apiPixabay.chercher(q, genre, page);
+      const r = await apiPixabay.chercher(q, genre, n);
       setResultats(r.medias);
       setTotal(r.total);
+      setPage(n);
+      setDerniere({ q, genre });
     } catch (e) {
       signaler(e);
       setResultats([]);
@@ -54,7 +69,17 @@ function useRecherche(signaler: Signaler) {
     }
   }, [signaler]);
 
-  return { resultats, setResultats, total, setTotal, occupe, setOccupe, chercher };
+  const allerPage = useCallback(async (n: number): Promise<void> => {
+    if (!derniere) return;
+    await chercher(derniere.q, derniere.genre, n);
+  }, [chercher, derniere]);
+
+  // Arrondi vers le BAS : Pixabay refuse une page dont le dernier résultat dépasserait 500.
+  // Vers le haut, la dernière page annoncée n'existerait pas — 17 pages proposées pour 16
+  // atteignables, et un clic qui ne rend rien.
+  const pages = Math.min(Math.ceil(total / PAR_PAGE), Math.floor(PLAFOND / PAR_PAGE));
+  return { resultats, setResultats, total, setTotal, occupe, setOccupe,
+           chercher, page, pages, allerPage };
 }
 
 /** Les favoris, relus depuis le serveur après chaque changement : une seule source de vérité. */
@@ -159,6 +184,7 @@ export function usePixabay(): Pixabay {
 
   return {
     etat: c.etat, erreur, occupe: r.occupe, resultats: r.resultats, total: r.total,
+    page: r.page, pages: r.pages, allerPage: r.allerPage,
     favoris: f.favoris, chercher: r.chercher, basculerFavori, telecharger,
     enregistrerCle: c.enregistrer, oublierCle, effacerErreur: () => setErreur(null),
   };
