@@ -254,8 +254,17 @@ parfaitement encoder. Mesuré le 2026-09-10 sur un NUC dont `vainfo` listait pou
 Le profil VAAPI s'essaie donc en trois variantes, dans cet ordre : débit constant, puis basse
 consommation à débit constant, puis basse consommation à qualité constante. Cette dernière ne
 passe aucun débit imposé — le lui passer quand même ferait refuser l'encodeur, ce qui
-reproduirait exactement le défaut qu'elle corrige. Le poids du flux suit alors la complexité de
-l'image, ce qui reste sans danger sur une scène lofi presque fixe.
+reproduirait exactement le défaut qu'elle corrige.
+
+**Et il faut alors surveiller le poids du flux**, car plus rien ne le plafonne. Mesuré le
+2026-09-10 : en `qp 24`, ce même NUC sortait à **12 Mbit/s par destination**, sept fois la cible,
+sur une scène pourtant calme — la liaison montante saturait et les deux plateformes
+décrochaient en boucle. Le défaut ressemblait à un plantage ; c'était un débordement.
+
+`STREAM_VAAPI_QP` règle ce compromis, 30 par défaut. Chaque palier de six divise
+approximativement le poids par deux. Se vérifie en marche : `docker stats lofi-direct`, colonne
+NET I/O, deux relevés à dix secondes d'intervalle. Si même un `qp` élevé ne suffit pas, le bon
+levier devient la définition : 1280×720 coûte environ deux fois et demie moins.
 
 **Les pilotes VAAPI ne viennent pas avec ffmpeg.** Debian n'installe que `libva`, l'interface.
 Sans pilote — `iHD` pour l'Intel récent, `i965` pour l'ancien, `radeonsi` pour l'AMD —

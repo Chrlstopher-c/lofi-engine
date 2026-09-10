@@ -28,6 +28,11 @@ STREAM_COMPOSITEUR="${STREAM_COMPOSITEUR:-auto}"  # auto | ffmpeg | navigateur
 MODE_SCENE="navigateur"  # qui dessine la scène : ffmpeg, ou le navigateur qu on recapture
 NOEUD_RENDU="${NOEUD_RENDU:-/dev/dri/renderD128}"
 STREAM_ADAPTER="${STREAM_ADAPTER:-true}"     # abaisser la définition si la machine ne suit pas
+# Qualité constante VAAPI : plus le nombre est haut, plus l'image est compressée et le flux
+# léger. 30 est un compromis mesuré ; 24 sortait à 12 Mbit/s PAR destination sur un NUC, soit
+# sept fois la cible, ce qui saturait la liaison montante et faisait décrocher les plateformes.
+# Chaque palier de six divise approximativement le poids par deux.
+STREAM_VAAPI_QP="${STREAM_VAAPI_QP:-30}"
 COEURS_POUR_1080P_LOGICIEL=6                 # mesuré : 1080p sans puce vidéo coûte ~3 cœurs pleins
 ENCODEUR_RETENU=""
 DEBIT_VIDEO=()        # vide en qualité constante, rempli par regler_debit
@@ -70,9 +75,10 @@ profil_encodeur() {
       case "$1" in
         vaapi)      qualite=(-rc_mode CBR) ;;
         vaapi-lp)   qualite=(-low_power 1 -rc_mode CBR) ;;
-        # Sans débit constant, le poids du flux suit la complexité de l'image. Sur une scène
-        # lofi presque fixe, il reste bien en dessous du plafond des plateformes.
-        vaapi-cqp)  qualite=(-low_power 1 -rc_mode CQP -qp 24) ;;
+        # Sans débit constant, le poids du flux suit la complexité de l'image — et il monte
+        # beaucoup plus qu'on ne le croit : mesuré à 12 Mbit/s par destination en qp 24, sur
+        # une scène pourtant calme. Le réglage se corrige par STREAM_VAAPI_QP.
+        vaapi-cqp)  qualite=(-low_power 1 -rc_mode CQP -qp "$STREAM_VAAPI_QP") ;;
       esac
       PREFIXE_ENCODEUR=(-vaapi_device "$NOEUD_RENDU")
       if [ "$compose" = "ffmpeg" ]; then
@@ -129,9 +135,11 @@ choisir_encodeur() {
         vaapi) journal "encodeur : VAAPI via $NOEUD_RENDU — le processeur n'encode plus" ;;
         vaapi-lp) journal "encodeur : VAAPI basse consommation via $NOEUD_RENDU — le processeur
        n'encode plus. La puce n'expose l'encodage que par cette voie." ;;
-        vaapi-cqp) journal "encodeur : VAAPI basse consommation à qualité constante via
-       $NOEUD_RENDU. Cette puce n'accepte pas le débit constant : le poids du flux suivra la
-       complexité de l'image, ce qui reste sans danger sur une scène lofi." ;;
+        vaapi-cqp) journal "encodeur : VAAPI basse consommation à qualité constante (qp
+       $STREAM_VAAPI_QP) via $NOEUD_RENDU. Cette puce n'accepte aucun plafond de débit : le
+       poids du flux suit la complexité de l'image. Le vérifier une fois en marche —
+       « docker stats lofi-direct », colonne NET I/O. Trop lourd pour la liaison montante ?
+       Monter STREAM_VAAPI_QP dans le .env : chaque palier de six divise le poids par deux." ;;
         x264)  journal "encodeur : libx264 (logiciel). Aucune puce vidéo accessible : compter
        environ un cœur en 1080p. Donner /dev/dri ou un GPU au conteneur divise cette charge." ;;
       esac
