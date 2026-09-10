@@ -12,6 +12,7 @@ import {
   listerProfils, enregistrerProfil, chargerProfil, supprimerProfil,
 } from "./profils.ts";
 import { routerTwitch } from "./twitch/routes.ts";
+import { routerPixabay } from "./pixabay/routes.ts";
 import { demarrerEchantillonnage } from "./twitch/historique.ts";
 import { demarrerSurveillanceArchivage } from "./twitch/archivage.ts";
 import { journal } from "./journal.ts";
@@ -54,7 +55,9 @@ async function routerApi(req: Request, chemin: string): Promise<Response | null>
     return json({ texte: await lireJournalDiffusion() });
   }
   const twitch = await routerTwitch(req, chemin);
-  return twitch ?? routerActions(req, chemin);
+  if (twitch) return twitch;
+  const pixabay = await routerPixabay(req, chemin);
+  return pixabay ?? routerActions(req, chemin);
 }
 
 async function routerActions(req: Request, chemin: string): Promise<Response | null> {

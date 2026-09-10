@@ -9,13 +9,15 @@ import { PanneauScene } from "./scene/PanneauScene.tsx";
 import { PanneauDiffusion } from "./diffusion/PanneauDiffusion.tsx";
 import { PanneauTwitch } from "./twitch/PanneauTwitch.tsx";
 import { PanneauMoteur } from "./moteur/PanneauMoteur.tsx";
+import { PanneauPixabay } from "./pixabay/PanneauPixabay.tsx";
 
-type Onglet = "scene" | "moteur" | "diffusion" | "twitch";
+type Onglet = "scene" | "moteur" | "diffusion" | "pixabay" | "twitch";
 
 const ONGLETS: ReadonlyArray<{ valeur: Onglet; libelle: string }> = [
   { valeur: "scene", libelle: "Scène" },
   { valeur: "moteur", libelle: "Moteur" },
   { valeur: "diffusion", libelle: "Diffusion" },
+  { valeur: "pixabay", libelle: "Pixabay" },
   { valeur: "twitch", libelle: "Twitch" },
 ];
 
@@ -65,6 +67,7 @@ export function App(): ReactNode {
         <div className="page" hidden={onglet !== "scene"}><PanneauScene /></div>
         <div className="page" hidden={onglet !== "moteur"}><PanneauMoteur /></div>
         <div className="page" hidden={onglet !== "diffusion"}><PanneauDiffusion etat={etat} /></div>
+        <div className="page" hidden={onglet !== "pixabay"}><PanneauPixabay /></div>
         <div className="page" hidden={onglet !== "twitch"}><PanneauTwitch /></div>
       </main>
     </div>

@@ -40,6 +40,8 @@ interface TexteProps {
   desactive?: boolean;
   lectureSeule?: boolean;
   petit?: boolean;
+  /** Appelé sur Entrée : une recherche se valide au clavier, pas à la souris. */
+  onEntree?: () => void;
 }
 
 function classesCtrl(mono: boolean, petit: boolean): string {
@@ -48,7 +50,7 @@ function classesCtrl(mono: boolean, petit: boolean): string {
 
 export function Texte(props: TexteProps): ReactNode {
   const { valeur, onChange, placeholder, type = "text", mono = false } = props;
-  const { desactive = false, lectureSeule = false, petit = false } = props;
+  const { desactive = false, lectureSeule = false, petit = false, onEntree } = props;
   return (
     <input
       className={classesCtrl(mono, petit)}
@@ -59,6 +61,7 @@ export function Texte(props: TexteProps): ReactNode {
       disabled={desactive}
       readOnly={lectureSeule}
       onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      onKeyDown={onEntree ? (e) => { if (e.key === "Enter") onEntree(); } : undefined}
     />
   );
 }

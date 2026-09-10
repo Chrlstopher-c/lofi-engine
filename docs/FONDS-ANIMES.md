@@ -9,6 +9,26 @@ ce qui les distingue.
 
 ---
 
+
+## Depuis le centre de contrôle
+
+L'onglet **Pixabay** cherche images et vidéos sans quitter l'interface, et dépose ce qu'on
+retient dans le corpus — c'est-à-dire dans l'explorateur de la composition, où le fichier
+apparaît aussitôt.
+
+Il demande une clé d'API, gratuite : créer un compte sur Pixabay, puis ouvrir
+[la documentation de l'API](https://pixabay.com/api/docs/) **en étant connecté** — la clé
+s'affiche au début de la page, elle n'a pas d'écran à elle. Le mode d'emploi est repris dans
+l'onglet. Elle est écrite dans le `.env`, qui n'est pas versionné, et n'est jamais réaffichée.
+
+Deux gestes distincts sur chaque résultat :
+
+- **l'étoile** le garde de côté sans rien télécharger — un fond pèse jusqu'à quelques dizaines
+  de mégaoctets, et on en repère plus qu'on n'en garde ;
+- **Télécharger** le rapatrie dans le corpus, avec sa provenance dans `corpus/fonds-sources.json`.
+
+Un média déjà pris est marqué comme tel : inutile de s'en souvenir.
+
 ## 1. Sans attribution, usage commercial — les plus sûres
 
 | Source | Licence | Ce qu'elle vaut |

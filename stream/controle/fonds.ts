@@ -9,8 +9,10 @@ const IMAGES = [".png", ".jpg", ".jpeg", ".webp", ".avif", ".gif"];
 const VIDEOS = [".mp4", ".webm", ".m4v"];
 const EXTENSIONS = new Set([...IMAGES, ...VIDEOS]);
 // Une vidéo de fond pèse plus lourd qu'une image : plafond plus haut, mais borné.
-const TAILLE_MAX = 25 * 1024 * 1024;
-const TAILLE_MAX_VIDEO = 400 * 1024 * 1024;
+// Exportés : ce qui arrive de Pixabay passe par les mêmes plafonds que ce qu'on dépose à la
+// main — deux tables de limites finiraient par diverger.
+export const TAILLE_MAX = 25 * 1024 * 1024;
+export const TAILLE_MAX_VIDEO = 400 * 1024 * 1024;
 
 export interface Image { fichier: string; octets: number; video: boolean; }
 

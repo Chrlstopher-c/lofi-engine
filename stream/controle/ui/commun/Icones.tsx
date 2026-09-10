@@ -41,6 +41,8 @@ const DESSINS = {
   recherche: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
   televerser: <path d="M12 16V4M7 9l5-5 5 5M4 20h16" />,
   telecharger: <path d="M12 4v12M7 11l5 5 5-5M4 20h16" />,
+  etoile: <path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.2-4.1 5.9-.9L12 3.5Z" />,
+  "etoile-pleine": <path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.2-4.1 5.9-.9L12 3.5Z" fill="currentColor" />,
   options: <><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.3" fill="currentColor" stroke="none" /></>,
   coche: <path d="m5 12 5 5 9-10" />,
   croix: <path d="M6 6l12 12M18 6 6 18" />,

@@ -121,6 +121,12 @@ lofi-engine/
 │   ├── serveur.ts                     routes de l'API et service de l'interface
 │   ├── types.ts                       modèle de la scène et de la diffusion
 │   ├── journal.ts                     journalisation (pino)
+│   ├── env.ts                         lecture et écriture du .env, partagées
+│   ├── pixabay/types.ts               médias, favoris, état — sans jamais la clé
+│   ├── pixabay/client.ts              appels à l'API, garde-fous sur ce qu'elle renvoie
+│   ├── pixabay/favoris.ts             ce qu'on garde de côté sans le télécharger
+│   ├── pixabay/telechargement.ts      rapatrie un média dans le corpus, avec sa provenance
+│   ├── pixabay/routes.ts              routes /api/pixabay
 │   ├── scene.ts                       lecture, validation et écriture de la scène
 │   ├── scene-defaut.json              scène de référence, livrée avec le projet
 │   ├── profils.ts                     scènes nommées : enregistrer, charger, supprimer
@@ -210,6 +216,12 @@ lofi-engine/
 │       ├── twitch/PanneauTwitch.tsx   grille de l'onglet Twitch
 │       ├── twitch/Compte.tsx          autorisation par code d'appareil
 │       ├── twitch/Aptitude.tsx        pourquoi Twitch refuse la diffusion
+│       ├── pixabay/PanneauPixabay.tsx onglet Pixabay — recherche, favoris, téléchargement
+│       ├── pixabay/Cle.tsx            mode d'emploi de la clé d'API, et sa saisie
+│       ├── pixabay/Resultats.tsx      barre de recherche et grille de vignettes
+│       ├── pixabay/Vignette.tsx       un média : aperçu, étoile, téléchargement
+│       ├── pixabay/usePixabay.ts      état de l'onglet : clé, résultats, favoris
+│       ├── pixabay/api-pixabay.ts     accès aux routes /api/pixabay
 │       ├── twitch/Entete.tsx          compte connecté, portées, clé, déconnexion
 │       ├── twitch/Chaine.tsx          titre, catégorie, état constaté
 │       ├── twitch/Direct.tsx          état du direct lu sur la chaîne
@@ -235,6 +247,7 @@ lofi-engine/
 │
 ├── scripts/
 │   └── optimize-backgrounds.sh        compression des fonds d'écran
-│   └── verifier-gpu.sh             diagnostique l'accès à la puce vidéo et propose de corriger
+│   ├── verifier-gpu.sh             diagnostique l'accès à la puce vidéo et propose de corriger
+│   └── lxc-gpu-hote.sh             donne la puce d'un hôte Proxmox à un conteneur LXC
 └── screenshots/                       captures utilisées par le README amont
 ```
