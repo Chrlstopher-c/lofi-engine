@@ -68,8 +68,11 @@ function useEnvoi(
   const programmer = useCallback((suivants: Reglages) => {
     setReglages(suivants);
     if (minuteur.current !== null) window.clearTimeout(minuteur.current);
+    // Rien n'a bougé, rien ne part : le moteur relit ce fichier en continu, et une écriture
+    // inutile est une occasion de lui servir une valeur périmée.
+    if (dernier.current && JSON.stringify(dernier.current) === JSON.stringify(suivants)) return;
     minuteur.current = window.setTimeout(() => envoyer(suivants), REPOS_MS);
-  }, [envoyer, minuteur, setReglages]);
+  }, [envoyer, minuteur, dernier, setReglages]);
 
   return { envoyer, programmer };
 }
